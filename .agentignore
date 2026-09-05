@@ -1,0 +1,26 @@
+# Incluir patrones de .gitignore
+.env
+.env.*
+!.env.example
+*.secret
+*.pem
+*.key
+*.cer
+*.crt
+node_modules/
+vendor/
+dist/
+build/
+bin/
+*.log
+logs/
+
+# Específicos del Agente (GIT-001 / GIT-004)
+*_dialog.md
+*_chat.log
+conversation_*.txt
+*.tmp
+*.cache
+*.draft
+*_test_secret_data.json
+*_test_pii.csv

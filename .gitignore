@@ -1,0 +1,42 @@
+# Ambientes y Secretos
+.env
+.env.*
+!.env.example
+*.secret
+*.pem
+*.key
+*.cer
+*.crt
+
+# Dependencias y Estándar Externo
+.standard/
+node_modules/
+vendor/
+.pnpm-store/
+
+# Compilados y Builds
+dist/
+build/
+bin/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Logs y Depuración
+*.log
+logs/
+*.out
+*.err
+
+# Sistema Operativo y Editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Cobertura y Pruebas
+coverage/
+*.test.log
