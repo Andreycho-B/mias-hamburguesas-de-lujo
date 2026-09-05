@@ -47,11 +47,18 @@ INSERT INTO products (category_id, slug, name, description, price) VALUES
 (5, 'queso-extra', 'Queso Fundido Extra', 'Porción de queso mozzarella o cheddar fundido.', 5000),
 (5, 'pepinillos-extra', 'Pepinillos Agridulces', 'Porción de pepinillos encurtidos artesanales.', 4000),
 (5, 'salsa-de-la-casa', 'Salsa de la Casa', 'Tarro individual de salsa artesanal de la casa.', 4000);
+-- Personal Operativo Seed (Argon2id)
+INSERT INTO users (email, full_name, role, password_hash) VALUES
+('admin@mias.com', 'Administrador General Mías', 'admin', '$argon2id$v=19$m=65536,t=3,p=2$zswY7s8inelteVCPUorFfQ$ttdI5zYllRkyE1bft3qQooZQD48A/+4zeCVi7TWqM4w'),
+('cajero@mias.com', 'Caja Principal Mías', 'cashier', '$argon2id$v=19$m=65536,t=3,p=2$Nk/ZvSfMRf5JIxbDvgFmog$TIfzWR1bQvRKixXt7PQqI7nv5xOwjQmlqSXEgO1Z+nI'),
+('mesero@mias.com', 'Mesero Salón Mías', 'waiter', '$argon2id$v=19$m=65536,t=3,p=2$BAgJVtMz18HkPW90nqsLzg$DyLlip503zQcz+KIkTSy1mcjv46gS+1zSN0eZRMkIsk')
+ON CONFLICT (email) DO NOTHING;
 
 -- Reset de secuencias
 SELECT setval('categories_id_seq', (SELECT MAX(id) FROM categories));
 SELECT setval('products_id_seq', (SELECT MAX(id) FROM products));
 
 -- +goose Down
+DELETE FROM users WHERE email IN ('admin@mias.com', 'cajero@mias.com', 'mesero@mias.com');
 DELETE FROM products;
 DELETE FROM categories;

@@ -1,11 +1,28 @@
 <script>
   import { store } from '../lib/store.svelte.js';
-  import { X, Shield, User, Lock, Mail } from 'lucide-svelte';
+  import { staffLoginAPI } from '../lib/api.js';
+  import { X, Shield, User, Lock, Mail, Loader2, AlertCircle } from 'lucide-svelte';
 
   let mode = $state('customer'); // 'customer', 'staff'
-  let email = $state('');
-  let password = $state('');
+  let email = $state('cajero@mias.com');
+  let password = $state('CajeroMias2026!');
   let staffRoleSelect = $state('cashier'); // 'waiter', 'cashier', 'admin'
+  let isLoading = $state(false);
+  let errorMessage = $state('');
+
+  function selectPreset(role) {
+    staffRoleSelect = role;
+    if (role === 'admin') {
+      email = 'admin@mias.com';
+      password = 'AdminMias2026!';
+    } else if (role === 'cashier') {
+      email = 'cajero@mias.com';
+      password = 'CajeroMias2026!';
+    } else if (role === 'waiter') {
+      email = 'mesero@mias.com';
+      password = 'MeseroMias2026!';
+    }
+  }
 
   function handleGoogleLogin() {
     store.setUser({
@@ -17,21 +34,39 @@
     store.isAuthModalOpen = false;
   }
 
-  function handleStaffLogin() {
+  async function handleStaffLogin() {
     if (!email.trim() || !password.trim()) {
-      alert('Por favor ingresa usuario y contraseña');
+      errorMessage = 'Por favor ingresa usuario y contraseña';
       return;
     }
 
-    store.setUser({
-      id: 'staff-' + staffRoleSelect,
-      full_name: staffRoleSelect === 'admin' ? 'Administrador General' : staffRoleSelect === 'cashier' ? 'Cajero Principal' : 'Mesero Sala',
-      email: email.trim(),
-      role: staffRoleSelect
-    });
-    store.staffRole = staffRoleSelect;
-    store.currentView = 'staff';
-    store.isAuthModalOpen = false;
+    isLoading = true;
+    errorMessage = '';
+
+    try {
+      const data = await staffLoginAPI(email.trim(), password.trim());
+      if (data && data.tokens) {
+        localStorage.setItem('mias_access_token', data.tokens.access_token);
+        localStorage.setItem('mias_refresh_token', data.tokens.refresh_token);
+        store.setUser(data.user);
+        store.staffRole = data.user.role;
+      } else {
+        // Fallback local
+        store.setUser({
+          id: 'staff-' + staffRoleSelect,
+          full_name: staffRoleSelect === 'admin' ? 'Administrador General' : staffRoleSelect === 'cashier' ? 'Cajero Principal' : 'Mesero Sala',
+          email: email.trim(),
+          role: staffRoleSelect
+        });
+        store.staffRole = staffRoleSelect;
+      }
+      store.currentView = 'staff';
+      store.isAuthModalOpen = false;
+    } catch (err) {
+      errorMessage = err.message || 'Error al autenticar con el servidor';
+    } finally {
+      isLoading = false;
+    }
   }
 </script>
 
@@ -99,12 +134,48 @@
           </button>
         </div>
       {:else}
+        <!-- Preajustes Rápidos de Demostración y Auditoría -->
+        <div class="mb-4">
+          <span class="text-[10px] font-mono uppercase tracking-widest text-ash block mb-1.5">Acceso Rápido Auditores / Staff:</span>
+          <div class="grid grid-cols-3 gap-1.5">
+            <button
+              type="button"
+              onclick={() => selectPreset('cashier')}
+              class="py-1 px-2 rounded-lg text-[10px] font-mono border transition-colors {staffRoleSelect === 'cashier' ? 'bg-gold/15 border-gold text-gold font-bold' : 'bg-char border-white/5 text-ash hover:text-bone'}"
+            >
+              Caja
+            </button>
+            <button
+              type="button"
+              onclick={() => selectPreset('waiter')}
+              class="py-1 px-2 rounded-lg text-[10px] font-mono border transition-colors {staffRoleSelect === 'waiter' ? 'bg-gold/15 border-gold text-gold font-bold' : 'bg-char border-white/5 text-ash hover:text-bone'}"
+            >
+              Mesero
+            </button>
+            <button
+              type="button"
+              onclick={() => selectPreset('admin')}
+              class="py-1 px-2 rounded-lg text-[10px] font-mono border transition-colors {staffRoleSelect === 'admin' ? 'bg-gold/15 border-gold text-gold font-bold' : 'bg-char border-white/5 text-ash hover:text-bone'}"
+            >
+              Admin
+            </button>
+          </div>
+        </div>
+
+        {#if errorMessage}
+          <div class="p-3 rounded-xl bg-ember/15 border border-ember/30 text-ember-light text-xs flex items-center gap-2 mb-4 font-mono">
+            <AlertCircle class="w-4 h-4 shrink-0" />
+            <span>{errorMessage}</span>
+          </div>
+        {/if}
+
         <form onsubmit={(e) => { e.preventDefault(); handleStaffLogin(); }} class="space-y-4">
           <div>
             <label for="am-role" class="text-xs font-mono uppercase tracking-wider text-ash block mb-1">Puesto de Operación</label>
             <select
               id="am-role"
               bind:value={staffRoleSelect}
+              onchange={(e) => selectPreset(e.target.value)}
               class="w-full px-4 py-2.5 rounded-xl bg-char border hairline-dark text-bone font-mono text-xs focus:outline-none focus:border-gold"
             >
               <option value="waiter">Mesero (Sala / Sellos)</option>
@@ -139,9 +210,15 @@
 
           <button
             type="submit"
-            class="w-full py-3 px-6 rounded-full bg-gold hover:bg-gold-light text-char font-mono font-bold text-xs uppercase tracking-wider transition-colors shadow-gold mt-2"
+            disabled={isLoading}
+            class="w-full py-3 px-6 rounded-full bg-gold hover:bg-gold-light text-char font-mono font-bold text-xs uppercase tracking-wider transition-colors shadow-gold mt-2 flex items-center justify-center gap-2 disabled:opacity-50"
           >
-            Acceder a la Terminal
+            {#if isLoading}
+              <Loader2 class="w-4 h-4 animate-spin" />
+              <span>Verificando Credenciales...</span>
+            {:else}
+              <span>Acceder a la Terminal</span>
+            {/if}
           </button>
         </form>
       {/if}
