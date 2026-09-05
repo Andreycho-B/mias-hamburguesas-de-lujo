@@ -1,6 +1,6 @@
 # 03. Flujos de la Aplicación y Diagramas de Navegación (APP FLOW)
 
-**Proyecto:** Mías.8 Hamburguesas de Lujo  
+**Proyecto:** Mías Hamburguesas de Lujo  
 **Versión:** 1.0.0  
 **Estado:** Normativo / Aprobado  
 

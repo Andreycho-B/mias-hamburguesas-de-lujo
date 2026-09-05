@@ -1,4 +1,4 @@
-// Cliente API para Mías.8 Hamburguesas de Lujo (Zero-Trust & Ring 0 Fallback)
+// Cliente API para Mías Hamburguesas de Lujo (Zero-Trust & Ring 0 Fallback)
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
 

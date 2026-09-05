@@ -1,6 +1,6 @@
 # 02. Documento de Requisitos Técnicos (TRD)
 
-**Proyecto:** Mías.8 Hamburguesas de Lujo  
+**Proyecto:** Mías Hamburguesas de Lujo  
 **Versión:** 1.0.0  
 **Estado:** Normativo / Aprobado  
 

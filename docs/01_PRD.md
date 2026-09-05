@@ -1,6 +1,6 @@
 # 01. Documento de Requisitos de Producto (PRD)
 
-**Proyecto:** Mías.8 Hamburguesas de Lujo  
+**Proyecto:** Mías Hamburguesas de Lujo  
 **Versión:** 1.0.0  
 **Estado:** Normativo / Aprobado  
 
@@ -8,7 +8,7 @@
 
 ## 1. Alcance y Objetivos
 
-Diseñar y construir una aplicación web progresiva (PWA) de nivel senior que unifique la experiencia gastronómica de los clientes de **Mías.8 Hamburguesas de Lujo**, agilice la toma y cobro de comandas en sala, canalice pedidos a domicilio estructurados vía WhatsApp y opere un programa de fidelización digital blindado contra fraudes.
+Diseñar y construir una aplicación web progresiva (PWA) de nivel senior que unifique la experiencia gastronómica de los clientes de **Mías Hamburguesas de Lujo**, agilice la toma y cobro de comandas en sala, canalice pedidos a domicilio estructurados vía WhatsApp y opere un programa de fidelización digital blindado contra fraudes.
 
 ---
 

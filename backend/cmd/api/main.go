@@ -29,7 +29,7 @@ func main() {
 	}))
 	slog.SetDefault(logger)
 
-	slog.Info("Iniciando Mías.8 Hamburguesas de Lujo API...")
+	slog.Info("Iniciando Mías Hamburguesas de Lujo API...")
 
 	// 2. Cargar Configuración
 	cfg := config.Load()

@@ -117,7 +117,7 @@
   <footer class="border-t hairline-dark bg-char-card py-10 px-4 text-center text-xs text-ash space-y-4">
     <div class="flex items-center justify-center gap-2">
       <img src="/imagenes/marca/isotipo.webp" alt="Mías" class="w-6 h-6 object-contain opacity-70" />
-      <span class="font-serif text-lg font-bold text-bone tracking-wide">Mías.8 Hamburguesas de Lujo</span>
+      <span class="font-serif text-lg font-bold text-bone tracking-wide">Mías Hamburguesas de Lujo</span>
     </div>
     <p class="font-mono text-[11px] text-ash/80">
       Sábado a Jueves: 3:00 PM – 9:30 PM • Viernes: Cerrado • Domicilios: 321 252 0881

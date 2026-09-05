@@ -1,6 +1,6 @@
 # 13. Registro de Decisiones de Arquitectura y Producto (DECISION LOG)
 
-**Proyecto:** Mías.8 Hamburguesas de Lujo  
+**Proyecto:** Mías Hamburguesas de Lujo  
 **Versión:** 1.0.0  
 **Estado:** Normativo / Aprobado  
 
@@ -20,3 +20,5 @@
 | **ADR-008** | 2026-09-05 | Caducidad de Sellos | 6 meses desde la última compra registrada. | Fomenta la recurrencia periódica protegiendo la viabilidad financiera del restaurante. |
 | **ADR-009** | 2026-09-05 | Seguridad de Consultas | Inmunidad total a inyección SQL usando compilador SQLC sobre PostgreSQL 16. | Genera código Go fuertemente tipado; imposibilita la concatenación dinámica de strings en SQL. |
 | **ADR-010** | 2026-09-05 | Persistencia de Carrito | Migración automática del carrito anónimo al iniciar sesión con Google. | Previene la tasa de abandono: el cliente no pierde los productos seleccionados al momento de registrarse. |
+| **ADR-011** | 2026-09-05 | Estandarización de Marca | Eliminación absoluta de cualquier referencia a ".8" o "8". | El isotipo oficial es un candado de hierro en forma de corazón (que visualmente recordaba a un 8). El nombre oficial de la marca es estrictamente «Mías Hamburguesas de Lujo». |
+| **ADR-012** | 2026-09-05 | Lenguaje Visual de Autor | Transición de Brasa (Bienvenida) a Crema Editorial (Home). | Reemplazo del diseño oscuro tipo SaaS por el lenguaje de alta autoría aprobado: gradiente de carbón a brasa viva con retícula de estrella cóncava en splash, e interior crema cálido (#F5F0EB). |

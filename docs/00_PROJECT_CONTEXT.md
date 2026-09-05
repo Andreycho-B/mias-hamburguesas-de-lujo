@@ -1,4 +1,4 @@
-# 00. Contexto del Proyecto: Mías.8 Hamburguesas de Lujo
+# 00. Contexto del Proyecto: Mías Hamburguesas de Lujo
 
 **Versión:** 1.0.0  
 **Estado:** Normativo / Aprobado  
@@ -8,7 +8,7 @@
 
 ## 1. Visión y Propósito del Negocio
 
-**Mías.8 Hamburguesas de Lujo** es una propuesta gastronómica boutique de alta gama centrada en hamburguesas artesanales al carbón preparadas en horno «Rayo» (acabado en rojo escarlata y latón dorado). El restaurante combina un ambiente íntimo y sofisticado (*"Lo Íntimo Hecho para Compartir"*), con sillas de terciopelo escarlata, iluminación cálida con candelabros de cristal y la tradición simbólica del **candado de amor** (los comensales sellan su vínculo dejando un candado en la reja del local).
+**Mías Hamburguesas de Lujo** es una propuesta gastronómica boutique de alta gama centrada en hamburguesas artesanales al carbón preparadas en horno «Rayo» (acabado en rojo escarlata y latón dorado). El restaurante combina un ambiente íntimo y sofisticado (*"Lo Íntimo Hecho para Compartir"*), con sillas de terciopelo escarlata, iluminación cálida con candelabros de cristal y la tradición simbólica del **candado de amor** (los comensales sellan su vínculo dejando un candado en la reja del local).
 
 El objetivo de esta plataforma web es doble:
 1. **Fidelización de Alta Gama**: Crear un programa de sellos digitales transparente, ultra-seguro y sin fricción (10 sellos = 1 hamburguesa Original gratis).

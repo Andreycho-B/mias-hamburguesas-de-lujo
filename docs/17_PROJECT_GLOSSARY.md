@@ -1,6 +1,6 @@
 # 17. Glosario del Proyecto (PROJECT GLOSSARY)
 
-**Proyecto:** Mías.8 Hamburguesas de Lujo  
+**Proyecto:** Mías Hamburguesas de Lujo  
 **Versión:** 1.0.0  
 **Estado:** Normativo / Aprobado  
 

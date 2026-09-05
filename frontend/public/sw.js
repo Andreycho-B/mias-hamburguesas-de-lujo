@@ -1,4 +1,4 @@
-// Service Worker para Mías.8 (Nivel 0: Resiliencia de Menú y Despacho Offline)
+// Service Worker para Mías Hamburguesas de Lujo (Nivel 0: Resiliencia de Menú y Despacho Offline)
 const CACHE_NAME = 'mias-static-v1';
 const ASSETS_TO_CACHE = [
   '/',

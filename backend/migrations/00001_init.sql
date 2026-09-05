@@ -1,5 +1,5 @@
 -- +goose Up
--- SQL Schema para Mías.8 Hamburguesas de Lujo (PostgreSQL 16)
+-- SQL Schema para Mías Hamburguesas de Lujo (PostgreSQL 16)
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
