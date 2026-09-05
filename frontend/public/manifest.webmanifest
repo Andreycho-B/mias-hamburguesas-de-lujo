@@ -1,0 +1,18 @@
+{
+  "name": "Mías.8 Hamburguesas de Lujo",
+  "short_name": "Mías",
+  "description": "Lo Íntimo Hecho para Compartir — Hamburguesas al carbón y programa de fidelización",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F8F5EE",
+  "theme_color": "#0C0C0E",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/imagenes/marca/isotipo.webp",
+      "sizes": "512x512",
+      "type": "image/webp",
+      "purpose": "any maskable"
+    }
+  ]
+}
