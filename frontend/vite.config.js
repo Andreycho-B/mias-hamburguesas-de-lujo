@@ -4,4 +4,8 @@ import { defineConfig } from 'vite'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [svelte()],
+  server: {
+    host: true, // Expone el servidor en la red local (0.0.0.0)
+    port: 5173,
+  },
 })
