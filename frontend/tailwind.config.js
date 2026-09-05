@@ -19,8 +19,12 @@ export default {
         ash: "#8E8E93",
       },
       fontFamily: {
-        serif: ["'Cormorant Garamond'", "'Playfair Display'", "Georgia", "serif"],
-        sans: ["'Plus Jakarta Sans'", "'Outfit'", "sans-serif"],
+        display: ["'Satoshi'", "'Plus Jakarta Sans'", "sans-serif"],
+        editorial: ["'Cabinet Grotesk'", "'Satoshi'", "sans-serif"],
+        flourish: ["'Playfair Display'", "'Cormorant Garamond'", "serif"],
+        script: ["'Pinyon Script'", "'Italianno'", "'Alex Brush'", "cursive"],
+        serif: ["'Italiana'", "'Cormorant Garamond'", "Georgia", "serif"],
+        sans: ["'Satoshi'", "'Plus Jakarta Sans'", "sans-serif"],
         mono: ["'JetBrains Mono'", "monospace"],
       },
       boxShadow: {
