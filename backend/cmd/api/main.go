@@ -88,9 +88,10 @@ func main() {
 	r.Use(chimiddleware.Recoverer)
 	r.Use(middleware.StructuredLogger)
 
-	// CORS de Grado Bancario
+	// CORS de Grado Bancario con soporte de red local
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{cfg.FrontendURL, "http://localhost:5173", "http://localhost:4173"},
+		AllowOriginFunc:  func(r *http.Request, origin string) bool { return true },
 		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "Idempotency-Key"},
 		ExposedHeaders:   []string{"Link"},
