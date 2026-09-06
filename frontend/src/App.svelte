@@ -19,7 +19,7 @@
   let selectedCategory = $state('hamburguesas');
   let introCompleted = $state(false);
 
-  // Inicializar Lenis Smooth Scroll
+  // Inicializar Lenis Smooth Scroll y bloquear zoom/pellizco permitiendo solo deslizamiento vertical
   onMount(() => {
     const lenis = new Lenis({
       duration: 1.2,
@@ -33,8 +33,31 @@
     }
     requestAnimationFrame(raf);
 
+    // Bloquear gestos multitáctiles de pellizco (zoom)
+    const preventGesture = (e) => e.preventDefault();
+    window.addEventListener('gesturestart', preventGesture, { passive: false });
+    window.addEventListener('gesturechange', preventGesture, { passive: false });
+
+    // Bloquear zoom con touchpad / Ctrl + rueda en desktop (el scroll vertical libre)
+    const preventCtrlWheel = (e) => {
+      if (e.ctrlKey) e.preventDefault();
+    };
+    window.addEventListener('wheel', preventCtrlWheel, { passive: false });
+
+    // Bloquear atajos de teclado de zoom (Ctrl/Cmd con +, -, =, 0)
+    const preventZoomKeys = (e) => {
+      if ((e.ctrlKey || e.metaKey) && ['+', '-', '=', '0'].includes(e.key)) {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener('keydown', preventZoomKeys);
+
     return () => {
       lenis.destroy();
+      window.removeEventListener('gesturestart', preventGesture);
+      window.removeEventListener('gesturechange', preventGesture);
+      window.removeEventListener('wheel', preventCtrlWheel);
+      window.removeEventListener('keydown', preventZoomKeys);
     };
   });
 
@@ -46,8 +69,9 @@
   });
 </script>
 
-<!-- 1. Pantalla de Bienvenida (Intro Screen: 3.5s o clic, fondo crema, 60m cooldown) -->
-<IntroScreen onComplete={() => introCompleted = true} />
+{#if !introCompleted}
+  <IntroScreen onComplete={() => introCompleted = true} />
+{/if}
 
 <div class="min-h-screen flex flex-col bg-char text-bone selection:bg-ember selection:text-white">
   <!-- Encabezado Principal -->

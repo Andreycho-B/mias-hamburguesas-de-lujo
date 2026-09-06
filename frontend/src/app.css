@@ -5,6 +5,10 @@
 @tailwind utilities;
 
 @layer base {
+  html, body {
+    background-color: #050507;
+    color-scheme: dark;
+  }
   html.lenis, html.lenis body {
     height: auto;
   }

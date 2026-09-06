@@ -1,7 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import gsap from 'gsap';
-  import { ChevronRight, X, Clock, ShieldCheck, Flame, FileText } from 'lucide-svelte';
+  import { ChevronRight, X } from 'lucide-svelte';
 
   let { onComplete } = $props();
   let introContainer = $state(null);
@@ -9,36 +9,219 @@
   let isVisible = $state(true);
   let isInfoModalOpen = $state(false);
 
+  let windowWidth = $state(typeof window !== 'undefined' ? window.innerWidth : 1200);
+  let windowHeight = $state(typeof window !== 'undefined' ? window.innerHeight : 800);
+
+  let isShortLandscape = $derived(windowHeight < 560 && windowWidth > windowHeight);
+  let isDesktop = $derived(windowWidth >= 1024 && windowHeight >= 650);
+  let cyRatio = $derived(isShortLandscape ? 0.19 : isDesktop ? 0.22 : 0.28);
+  let cx = $derived(windowWidth * 0.5);
+  let cy = $derived(windowHeight * cyRatio);
+  const r = 44;
+  let bottomReach = $derived(
+    isShortLandscape 
+      ? Math.min(windowHeight * 0.18, 65) 
+      : isDesktop 
+        ? Math.min(windowHeight * 0.22, 170) 
+        : Math.min(windowHeight * 0.28, 240)
+  );
+
+  let pathBase1 = $state(null);
+  let pathSparkCore1 = $state(null);
+  let pathSparkGlow1 = $state(null);
+
+  let pathBase2 = $state(null);
+  let pathSparkCore2 = $state(null);
+  let pathSparkGlow2 = $state(null);
+
+  let pathBase3 = $state(null);
+  let pathSparkCore3 = $state(null);
+  let pathSparkGlow3 = $state(null);
+
+  let pathBase4 = $state(null);
+  let pathSparkCore4 = $state(null);
+  let pathSparkGlow4 = $state(null);
+
+  // 1. Estrella central: Asteroide cerrado continuo de 4 puntas perfectamente simétrico (sellado final uniforme)
+  let astroid_d = $derived(`M ${cx} ${cy - r} A ${r} ${r} 0 0 1 ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx} ${cy + r} A ${r} ${r} 0 0 1 ${cx + r} ${cy} A ${r} ${r} 0 0 1 ${cx} ${cy - r} Z`);
+
+  // 2. Cuatro trayectorias cinemáticas continuas: convergen desde los bordes y trazan con sus estelas cada cuadrante de la estrella
+  let path1_d = $derived(`M ${cx} 0 L ${cx} ${cy - r} A ${r} ${r} 0 0 1 ${cx - r} ${cy}`);
+  let path2_d = $derived(`M 0 ${cy} L ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx} ${cy + r}`);
+  let path3_d = $derived(`M ${cx} ${cy + r + bottomReach} L ${cx} ${cy + r} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`);
+  let path4_d = $derived(`M ${windowWidth} ${cy} L ${cx + r} ${cy} A ${r} ${r} 0 0 1 ${cx} ${cy - r}`);
+
   let animFrameId = null;
   let cleanupGL = null;
+  let cleanupRestrictions = null;
 
   onMount(() => {
-    // Animación de entrada suave y cinematográfica
-    const tl = gsap.timeline();
+    const origHtmlOverflow = document.documentElement.style.overflow;
+    const origBodyOverflow = document.body.style.overflow;
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
 
-    tl.fromTo('.welcome-grid', 
+    let isIntroDone = false;
+
+    // Liberar trazos base una vez que finalice la animación para que SVG dibuje el 100% continuo sin importar giros o cambios de tamaño
+    function releaseBasePaths() {
+      const bases = [pathBase1, pathBase2, pathBase3, pathBase4];
+      bases.forEach(b => {
+        if (b) {
+          gsap.set(b, {
+            clearProps: 'strokeDasharray,strokeDashoffset',
+            opacity: 1
+          });
+        }
+      });
+    }
+
+    // Asegurar que las estelas de chispas queden totalmente invisibles tras el intro
+    function cleanupSparks() {
+      const allSparks = [
+        pathSparkCore1, pathSparkGlow1,
+        pathSparkCore2, pathSparkGlow2,
+        pathSparkCore3, pathSparkGlow3,
+        pathSparkCore4, pathSparkGlow4
+      ];
+      allSparks.forEach(s => {
+        if (s) gsap.set(s, { opacity: 0 });
+      });
+    }
+
+    // Animación cinemática continua y ultrarrápida: aceleración por hardware GPU a 60/120 FPS
+    const tl = gsap.timeline({ 
+      defaults: { ease: 'power3.out' },
+      onComplete: () => {
+        isIntroDone = true;
+        releaseBasePaths();
+        cleanupSparks();
+      }
+    });
+
+    // 1. Fondo WebGL de brasa: emerge con suavidad y fluidez sin filtros CSS que bloqueen el pipeline
+    tl.fromTo('.welcome-bg', 
+      { opacity: 0, y: 35, scale: 1.03 }, 
+      { opacity: 1, y: 0, scale: 1, duration: 1.2, ease: 'power3.out' },
+      0
+    );
+
+    // 2. Convergencia uniforme, sincronizada y fluida de las 4 líneas con estelas que trazan la estrella
+    const sparkLength = 48;
+    const animDelay = 0.18;
+    const animDuration = 0.88;
+    const paths = [
+      { base: pathBase1, sparks: [pathSparkCore1, pathSparkGlow1] },
+      { base: pathBase2, sparks: [pathSparkCore2, pathSparkGlow2] },
+      { base: pathBase3, sparks: [pathSparkCore3, pathSparkGlow3] },
+      { base: pathBase4, sparks: [pathSparkCore4, pathSparkGlow4] }
+    ];
+
+    paths.forEach(({ base, sparks }) => {
+      if (!base) return;
+      const len = base.getTotalLength();
+      const safeLen = Math.ceil(len) + 40;
+
+      // Trazo arquitectónico base (oculto en el gap con offset seguro para evitar residuos subpíxel)
+      gsap.set(base, {
+        strokeDasharray: `${safeLen} ${safeLen * 2}`,
+        strokeDashoffset: safeLen + 5,
+        opacity: 0
+      });
+
+      // Estelas incandescentes duales (núcleo blanco + halo térmico ámbar)
+      sparks.forEach(spark => {
+        if (!spark) return;
+        gsap.set(spark, {
+          strokeDasharray: `${sparkLength} ${len * 2}`,
+          strokeDashoffset: sparkLength,
+          opacity: 0
+        });
+      });
+
+      // Animación continua y simultánea del trazo base hacia cada punta y a través del arco
+      tl.set(base, { opacity: 1 }, animDelay);
+      tl.to(base, {
+        strokeDashoffset: 0,
+        duration: animDuration,
+        ease: 'power3.inOut'
+      }, animDelay);
+
+      // Desplazamiento sincronizado de las estelas incandescentes que recorren la línea y dibujan los pétalos de la estrella
+      sparks.forEach(spark => {
+        if (!spark) return;
+        tl.to(spark, {
+          strokeDashoffset: -(len - sparkLength),
+          duration: animDuration,
+          ease: 'power3.inOut'
+        }, animDelay);
+
+        // Encendido nítido y disolución suave al cerrar los cuadrantes
+        tl.fromTo(spark, 
+          { opacity: 0 }, 
+          { opacity: 1, duration: 0.15, ease: 'power2.out' }, 
+          animDelay
+        );
+        tl.to(spark, {
+          opacity: 0,
+          duration: 0.22,
+          ease: 'power2.out'
+        }, animDelay + animDuration - 0.15);
+      });
+    });
+
+    // Liberar trazos base justo al completarse la convergencia
+    tl.call(() => {
+      releaseBasePaths();
+      cleanupSparks();
+    }, null, animDelay + animDuration + 0.05);
+
+    // 3. Sello hermético, nítido y luminoso de la estrella simétrica al completarse el dibujo de los 4 arcos
+    tl.fromTo('.welcome-astroid-stroke', 
+      { opacity: 0, scale: 0.98 }, 
+      { opacity: 1, scale: 1.0, duration: 0.35, ease: 'power2.out' }, 
+      animDelay + animDuration - 0.10
+    );
+
+    tl.fromTo('.welcome-astroid-fill', 
       { opacity: 0 }, 
-      { opacity: 1, duration: 1.2, ease: 'power2.out' }
-    )
-    .fromTo('.welcome-sidebar', 
-      { opacity: 0, x: -10 }, 
-      { opacity: 0.45, x: 0, duration: 0.8, ease: 'power2.out' }, 
-      '-=0.8'
+      { opacity: 1, duration: 0.35, ease: 'power2.out' }, 
+      animDelay + animDuration - 0.08
+    );
+
+    tl.fromTo('.welcome-reticle-group', 
+      { scale: 1.025 }, 
+      { scale: 1.0, duration: 0.40, ease: 'power2.out' }, 
+      animDelay + animDuration - 0.05
+    );
+
+    // 4. Isotipo de Candado: florece en el centro exacto con autoridad y pop cinemático
+    tl.fromTo('.welcome-isotipo', 
+      { opacity: 0, scale: 0.15 }, 
+      { opacity: 0.85, scale: 1, duration: 0.52, ease: 'back.out(1.8)' }, 
+      animDelay + animDuration - 0.02
+    );
+
+    // 5. Textos y controles editoriales
+    tl.fromTo('.welcome-sidebar', 
+      { opacity: 0, y: 15 }, 
+      { opacity: 0.45, y: 0, duration: 0.6, ease: 'power2.out' }, 
+      1.16
     )
     .fromTo('.welcome-kicker', 
-      { opacity: 0, y: 15 }, 
-      { opacity: 0.85, y: 0, duration: 0.7, ease: 'power2.out' }, 
-      '-=0.6'
+      { opacity: 0, y: 18 }, 
+      { opacity: 0.80, y: 0, duration: 0.6, ease: 'power3.out' }, 
+      1.22
     )
     .fromTo('.welcome-title', 
-      { opacity: 0, y: 20 }, 
-      { opacity: 1, y: 0, duration: 0.9, ease: 'power3.out' }, 
-      '-=0.5'
+      { opacity: 0, y: 22 }, 
+      { opacity: 1, y: 0, duration: 0.7, ease: 'power3.out' }, 
+      1.30
     )
     .fromTo('.welcome-controls', 
-      { opacity: 0, y: 15 }, 
-      { opacity: 1, y: 0, duration: 0.8, ease: 'power2.out' }, 
-      '-=0.4'
+      { opacity: 0, y: 16 }, 
+      { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out' }, 
+      1.40
     );
 
     // Inicialización del shader WebGL de brasa y fuego líquido continuo
@@ -46,13 +229,67 @@
       cleanupGL = initEmberShader(canvasEl);
     }
 
+    // Reajuste inmediato en rotación de pantalla o redimensionado
+    const handleOrientationOrResize = () => {
+      windowWidth = window.innerWidth;
+      windowHeight = window.innerHeight;
+      if (isIntroDone) {
+        releaseBasePaths();
+        cleanupSparks();
+      }
+    };
+
+    window.addEventListener('resize', handleOrientationOrResize);
+    window.addEventListener('orientationchange', () => {
+      handleOrientationOrResize();
+      setTimeout(handleOrientationOrResize, 80);
+      setTimeout(handleOrientationOrResize, 250);
+    });
+
+    // Bloquear zoom, pellizco y deslizamiento EXCLUSIVAMENTE en el contenedor de bienvenida
+    if (introContainer) {
+      const preventTouchMove = (e) => {
+        if (!isInfoModalOpen) {
+          e.preventDefault();
+        }
+      };
+
+      const preventGesture = (e) => {
+        e.preventDefault();
+      };
+
+      const preventWheel = (e) => {
+        if (!isInfoModalOpen) {
+          e.preventDefault();
+        }
+      };
+
+      introContainer.addEventListener('touchmove', preventTouchMove, { passive: false });
+      introContainer.addEventListener('gesturestart', preventGesture, { passive: false });
+      introContainer.addEventListener('gesturechange', preventGesture, { passive: false });
+      introContainer.addEventListener('wheel', preventWheel, { passive: false });
+
+      cleanupRestrictions = () => {
+        if (introContainer) {
+          introContainer.removeEventListener('touchmove', preventTouchMove);
+          introContainer.removeEventListener('gesturestart', preventGesture);
+          introContainer.removeEventListener('gesturechange', preventGesture);
+          introContainer.removeEventListener('wheel', preventWheel);
+        }
+      };
+    }
+
     return () => {
+      document.documentElement.style.overflow = origHtmlOverflow;
+      document.body.style.overflow = origBodyOverflow;
+      window.removeEventListener('resize', handleOrientationOrResize);
       if (cleanupGL) cleanupGL();
+      if (cleanupRestrictions) cleanupRestrictions();
     };
   });
 
   function initEmberShader(canvas) {
-    const gl = canvas.getContext('webgl', { alpha: false, antialias: false });
+    const gl = canvas.getContext('webgl', { alpha: false, antialias: false, powerPreference: 'high-performance' });
     if (!gl) return null;
 
     const vsSource = `
@@ -63,7 +300,7 @@
     `;
 
     const fsSource = `
-      precision highp float;
+      precision mediump float;
       uniform vec2 u_resolution;
       uniform float u_time;
 
@@ -80,31 +317,29 @@
         vec3 c6 = vec3(1.000, 0.900, 0.600); // #ffe699 crema incandescente cálida
         vec3 c7 = vec3(1.000, 0.980, 0.920); // #fffcf0 núcleo blanco térmico
 
-        if (t < 0.12) {
-          return mix(c0, c1, t / 0.12);
-        } else if (t < 0.28) {
-          return mix(c1, c2, (t - 0.12) / 0.16);
-        } else if (t < 0.46) {
-          return mix(c2, c3, (t - 0.28) / 0.18);
-        } else if (t < 0.64) {
-          return mix(c3, c4, (t - 0.46) / 0.18);
-        } else if (t < 0.78) {
-          return mix(c4, c5, (t - 0.64) / 0.14);
-        } else if (t < 0.90) {
-          return mix(c5, c6, (t - 0.78) / 0.12);
-        } else {
-          return mix(c6, c7, (t - 0.90) / 0.10);
-        }
+        if (t < 0.12) return mix(c0, c1, t / 0.12);
+        if (t < 0.28) return mix(c1, c2, (t - 0.12) / 0.16);
+        if (t < 0.46) return mix(c2, c3, (t - 0.28) / 0.18);
+        if (t < 0.64) return mix(c3, c4, (t - 0.46) / 0.18);
+        if (t < 0.78) return mix(c4, c5, (t - 0.64) / 0.14);
+        if (t < 0.90) return mix(c5, c6, (t - 0.78) / 0.12);
+        return mix(c6, c7, (t - 0.90) / 0.10);
       }
 
       void main() {
         vec2 uv = gl_FragCoord.xy / u_resolution.xy;
 
+        // Early-out: la zona superior es negro puro #050507 (ahorra fillrate crítico)
+        if (uv.y > 0.62) {
+          gl_FragColor = vec4(0.020, 0.020, 0.027, 1.0);
+          return;
+        }
+
         // Ritmo lento, uniforme y sedoso (brasa y fuego lento)
         float speed = 0.12;
         float t = u_time * speed;
 
-        // Flujo horizontal continuo y uniforme hacia la derecha de la pantalla (+x)
+        // Flujo horizontal continuo y uniforme hacia la derecha (+x)
         float flow = uv.x * 2.4 - (t * 0.28);
 
         // Onda sinuosa orgánica de brasa que fluye a la derecha
@@ -114,7 +349,7 @@
                     + 0.05 * sin(w1 * 2.0 - 0.8) 
                     + 0.02 * cos(w1 * 3.0 + 0.4);
 
-        // Micro-ondulaciones térmicas fluidas (100% armónicas e infinitas sin cortes)
+        // Micro-ondulaciones térmicas fluidas
         float micro = sin(flow * 6.5 + uv.y * 3.5) * 0.015 
                     + cos(flow * 11.0 - uv.y * 5.0) * 0.008;
         crest += micro;
@@ -143,24 +378,19 @@
 
         float flameHeat = heat * 0.70 + coreGlow * 0.46 + heat2 * 0.30;
 
-        // Delimitación espacial: "solo en la parte donde esta actualmente"
-        // 1. Desvanecimiento superior: la mitad superior queda en negro puro (#050507) para retícula, estrella y títulos
+        // Delimitación espacial y desvanecimiento
         float topFade = smoothstep(0.58, 0.18, uv.y);
-
-        // 2. Presencia hacia el flanco derecho: garantiza que 'Hamburguesas', 'de lujo' y 'del carbón'
-        // mantengan legibilidad absoluta con alto contraste
         float rightPresence = smoothstep(0.20, 0.80, uv.x);
-
-        // 3. Fondo de brasa cálida en la base inferior
         float bottomBase = exp(-uv.y * 3.2) * smoothstep(0.15, 0.85, uv.x) * 0.35;
-
-        // 4. Resplandor oscuro en la esquina inferior izquierda: carbón profundo, CERO tonos rosas
         float cornerEmber = exp(-((uv.x * 2.5) * (uv.x * 2.5) + (uv.y * 3.0) * (uv.y * 3.0))) * 0.18;
 
-        float totalHeat = (flameHeat * topFade * rightPresence) + (bottomBase * topFade) + (cornerEmber * 0.30);
-        totalHeat = clamp(totalHeat, 0.0, 1.0);
+        float totalHeat = clamp((flameHeat * topFade * rightPresence) + (bottomBase * topFade) + (cornerEmber * 0.30), 0.0, 1.0);
 
-        gl_FragColor = vec4(emberPalette(totalHeat), 1.0);
+        // Dithering analógico de alta velocidad (elimina banding sin sobrecargar el compositor con SVG)
+        float dither = (fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453) - 0.5) * (1.8 / 255.0);
+        vec3 col = clamp(emberPalette(totalHeat) + dither, 0.0, 1.0);
+
+        gl_FragColor = vec4(col, 1.0);
       }
     `;
 
@@ -194,15 +424,23 @@
 
     function resize() {
       if (!canvas) return;
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const dpr = Math.min(window.devicePixelRatio || 1, 1.0);
       const w = canvas.parentElement ? canvas.parentElement.clientWidth : window.innerWidth;
       const h = canvas.parentElement ? canvas.parentElement.clientHeight : window.innerHeight;
-      canvas.width = w * dpr;
-      canvas.height = h * dpr;
+      canvas.width = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
       gl.viewport(0, 0, canvas.width, canvas.height);
     }
     resize();
-    window.addEventListener('resize', resize);
+
+    const handleCanvasResize = () => {
+      resize();
+      setTimeout(resize, 80);
+      setTimeout(resize, 250);
+    };
+
+    window.addEventListener('resize', handleCanvasResize);
+    window.addEventListener('orientationchange', handleCanvasResize);
 
     const startTime = performance.now();
     function loop() {
@@ -217,7 +455,8 @@
 
     return () => {
       if (animFrameId) cancelAnimationFrame(animFrameId);
-      window.removeEventListener('resize', resize);
+      window.removeEventListener('resize', handleCanvasResize);
+      window.removeEventListener('orientationchange', handleCanvasResize);
       if (gl) {
         gl.deleteBuffer(buf);
         gl.deleteProgram(prog);
@@ -232,6 +471,11 @@
     if (isInfoModalOpen) return;
     if (!isVisible) return;
 
+    if (cleanupRestrictions) {
+      cleanupRestrictions();
+      cleanupRestrictions = null;
+    }
+
     if (cleanupGL) {
       cleanupGL();
       cleanupGL = null;
@@ -243,6 +487,8 @@
       duration: 0.5,
       ease: 'power2.inOut',
       onComplete: () => {
+        document.documentElement.style.overflow = '';
+        document.body.style.overflow = '';
         isVisible = false;
         onComplete();
       }
@@ -255,105 +501,229 @@
   }
 </script>
 
+<svelte:window bind:innerWidth={windowWidth} bind:innerHeight={windowHeight} />
+
 {#if isVisible}
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div 
     bind:this={introContainer}
     onclick={handleAdvance}
-    class="fixed inset-0 z-50 flex flex-col justify-between select-none cursor-pointer overflow-hidden p-6 sm:p-10 font-sans text-white bg-[#050507]"
+    class="intro-screen-container fixed inset-0 h-[100dvh] z-50 flex flex-col justify-between select-none cursor-pointer overflow-hidden p-6 sm:p-10 font-sans text-white bg-[#050507] touch-none overscroll-none"
+    style="touch-action: none; overscroll-behavior: none; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none;"
   >
     <!-- FONDO DE BRASA Y FUEGO LENTO AL CARBÓN (100% GPU WebGL - Cero cortes, Infinito) -->
-    <div class="absolute inset-0 overflow-hidden pointer-events-none z-0 bg-[#050507]">
+    <div class="welcome-bg absolute inset-0 overflow-hidden pointer-events-none z-0 bg-[#050507]">
       <!-- Canvas de flujo de brasa y magma hacia la derecha -->
       <canvas bind:this={canvasEl} class="absolute inset-0 w-full h-full pointer-events-none z-0"></canvas>
-
-      <!-- Grano sutil analógico / Textura de ruido cinemática Awwwards (elimina banding y da acabado sedoso) -->
-      <svg class="pointer-events-none absolute inset-0 w-full h-full opacity-[0.045] mix-blend-overlay z-[2]" xmlns="http://www.w3.org/2000/svg">
-        <filter id="aurora-grain">
-          <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch" />
-          <feColorMatrix type="saturate" values="0" />
-        </filter>
-        <rect width="100%" height="100%" filter="url(#aurora-grain)" />
-      </svg>
     </div>
 
-    <!-- 1. RETÍCULA ARQUITECTÓNICA CON UNIÓN CURVA (FLARED FILLET) E ISOTIPO -->
+    <!-- 1. RETÍCULA ARQUITECTÓNICA VECTORIAL CONTINUA CON ARCOS TANGENCIALES C1 E ISOTIPO -->
     <div class="welcome-grid absolute inset-0 z-10 pointer-events-none">
-      <!-- Línea Vertical Superior (desde el borde superior hasta la punta superior de la estrella) -->
-      <div 
-        class="absolute w-[1px] bg-white/[0.12] -translate-x-1/2"
-        style="left: 50%; top: 0; height: calc(28% - 44px);"
-      ></div>
-
-      <!-- Línea Vertical Inferior (se desvanece gradualmente hacia la zona media) -->
-      <div 
-        class="absolute w-[1px] -translate-x-1/2 pointer-events-none"
-        style="
-          left: 50%; 
-          top: calc(28% + 44px); 
-          height: 24vh; 
-          background: linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.04) 55%, transparent 100%);
-        "
-      ></div>
-
-      <!-- Línea Horizontal Izquierda (desde el borde izquierdo hasta la punta de la estrella) -->
-      <div 
-        class="absolute h-[1px] bg-white/[0.12] -translate-y-1/2"
-        style="top: 28%; left: 0; width: calc(50% - 44px);"
-      ></div>
-
-      <!-- Línea Horizontal Derecha (desde la punta derecha de la estrella hacia el borde derecho) -->
-      <div 
-        class="absolute h-[1px] bg-white/[0.08] -translate-y-1/2"
-        style="top: 28%; left: calc(50% + 44px); right: 0;"
-      ></div>
-
-      <!-- Unión Curva Flared (Estrella Astroid cóncava R=44px, 88x88px) con el Isotipo Mías en su centro -->
-      <div 
-        class="absolute -translate-x-1/2 -translate-y-1/2 pointer-events-none flex items-center justify-center"
-        style="left: 50%; top: 28%; width: 88px; height: 88px;"
+      <svg 
+        class="absolute inset-0 w-full h-full pointer-events-none overflow-visible"
+        xmlns="http://www.w3.org/2000/svg"
       >
-        <svg 
-          viewBox="0 0 88 88" 
-          class="w-full h-full absolute inset-0 overflow-visible" 
-          fill="none" 
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <!-- Curvas cóncavas de empalme continuo (R=44px) que forman la estrella de cuatro puntas -->
-          <path 
-            d="M 44 0 A 44 44 0 0 1 0 44 A 44 44 0 0 1 44 88 A 44 44 0 0 1 88 44 A 44 44 0 0 1 44 0 Z" 
-            stroke="rgba(255,255,255,0.18)" 
-            stroke-width="1"
-            fill="rgba(255,255,255,0.015)"
-          />
-        </svg>
+        <defs>
+          <!-- Degradado lineal para la línea inferior: 100% nítido en el arco y la parte alta, desvaneciéndose suavemente en la cola inferior -->
+          <linearGradient id="bottomLineGrad" x1="0" y1="100%" x2="0" y2="0%">
+            <stop offset="0%" stop-color="#ffffff" stop-opacity="0" />
+            <stop offset="25%" stop-color="#ffffff" stop-opacity="0.05" />
+            <stop offset="45%" stop-color="#ffffff" stop-opacity="0.15" />
+            <stop offset="100%" stop-color="#ffffff" stop-opacity="0.15" />
+          </linearGradient>
+        </defs>
 
-        <!-- Isotipo del Candado de Corazón Mías calibrado con holgura fina -->
-        <img 
-          src="/imagenes/marca/isotipo.webp" 
-          alt="Mías" 
-          class="w-[48px] h-[48px] object-contain opacity-95 brightness-0 invert select-none drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)]"
-        />
+        <!-- Grupo con origen exacto en el centro del asteroide para el pulso de cierre -->
+        <g class="welcome-reticle-group" style="transform-origin: {cx}px {cy}px;">
+          <!-- 1. Trazo continuo, simétrico y cerrado de la estrella asteroide (sin cortes ni asimetrías) -->
+          <path 
+            class="welcome-astroid-stroke"
+            d={astroid_d}
+            fill="none"
+            stroke="rgba(255, 255, 255, 0.18)"
+            stroke-width="1"
+            vector-effect="non-scaling-stroke"
+            opacity="0"
+          />
+          <!-- Fondo interior del asteroide al cerrarse -->
+          <path 
+            class="welcome-astroid-fill"
+            d={astroid_d}
+            fill="rgba(255,255,255,0.022)"
+            stroke="none"
+            opacity="0"
+          />
+
+          <!-- LÍNEA 1: Superior -> Converge directamente a la punta superior -->
+          <path 
+            bind:this={pathBase1}
+            d={path1_d}
+            fill="none"
+            stroke="rgba(255, 255, 255, 0.15)"
+            stroke-width="1"
+            stroke-linecap="butt"
+            vector-effect="non-scaling-stroke"
+            opacity="0"
+          />
+          <path 
+            bind:this={pathSparkGlow1}
+            d={path1_d}
+            fill="none"
+            stroke="#FF7A00"
+            stroke-width="4.5"
+            stroke-linecap="round"
+            vector-effect="non-scaling-stroke"
+            opacity="0"
+          />
+          <path 
+            bind:this={pathSparkCore1}
+            d={path1_d}
+            fill="none"
+            stroke="#FFF8EE"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            vector-effect="non-scaling-stroke"
+            opacity="0"
+          />
+
+          <!-- LÍNEA 2: Izquierda -> Converge directamente a la punta izquierda -->
+          <path 
+            bind:this={pathBase2}
+            d={path2_d}
+            fill="none"
+            stroke="rgba(255, 255, 255, 0.15)"
+            stroke-width="1"
+            stroke-linecap="butt"
+            vector-effect="non-scaling-stroke"
+            opacity="0"
+          />
+          <path 
+            bind:this={pathSparkGlow2}
+            d={path2_d}
+            fill="none"
+            stroke="#FF7A00"
+            stroke-width="4.5"
+            stroke-linecap="round"
+            vector-effect="non-scaling-stroke"
+            opacity="0"
+          />
+          <path 
+            bind:this={pathSparkCore2}
+            d={path2_d}
+            fill="none"
+            stroke="#FFF8EE"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            vector-effect="non-scaling-stroke"
+            opacity="0"
+          />
+
+          <!-- LÍNEA 3: Inferior -> Converge directamente a la punta inferior -->
+          <path 
+            bind:this={pathBase3}
+            d={path3_d}
+            fill="none"
+            stroke="url(#bottomLineGrad)"
+            stroke-width="1"
+            stroke-linecap="butt"
+            vector-effect="non-scaling-stroke"
+            opacity="0"
+          />
+          <path 
+            bind:this={pathSparkGlow3}
+            d={path3_d}
+            fill="none"
+            stroke="#FF7A00"
+            stroke-width="4.5"
+            stroke-linecap="round"
+            vector-effect="non-scaling-stroke"
+            opacity="0"
+          />
+          <path 
+            bind:this={pathSparkCore3}
+            d={path3_d}
+            fill="none"
+            stroke="#FFF8EE"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            vector-effect="non-scaling-stroke"
+            opacity="0"
+          />
+
+          <!-- LÍNEA 4: Derecha -> Converge directamente a la punta derecha -->
+          <path 
+            bind:this={pathBase4}
+            d={path4_d}
+            fill="none"
+            stroke="rgba(255, 255, 255, 0.15)"
+            stroke-width="1"
+            stroke-linecap="butt"
+            vector-effect="non-scaling-stroke"
+            opacity="0"
+          />
+          <path 
+            bind:this={pathSparkGlow4}
+            d={path4_d}
+            fill="none"
+            stroke="#FF7A00"
+            stroke-width="4.5"
+            stroke-linecap="round"
+            vector-effect="non-scaling-stroke"
+            opacity="0"
+          />
+          <path 
+            bind:this={pathSparkCore4}
+            d={path4_d}
+            fill="none"
+            stroke="#FFF8EE"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            vector-effect="non-scaling-stroke"
+            opacity="0"
+          />
+        </g>
+      </svg>
+
+      <!-- Contenedor concéntrico que garantiza el centrado geométrico perfecto del isotipo en el centro de la estrella tanto en escritorio como en móvil -->
+      <div 
+        class="absolute -translate-x-1/2 -translate-y-1/2 pointer-events-none flex items-center justify-center w-[48px] h-[48px] z-20"
+        style="left: {cx}px; top: {cy}px;"
+      >
+        <div 
+          class="welcome-isotipo w-full h-full bg-[#FF2400] opacity-0 select-none drop-shadow-[0_0_18px_rgba(255,36,0,0.60)] drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)]"
+          style="
+            mask-image: url('/imagenes/marca/isotipo.webp');
+            -webkit-mask-image: url('/imagenes/marca/isotipo.webp');
+            mask-size: contain;
+            -webkit-mask-size: contain;
+            mask-repeat: no-repeat;
+            -webkit-mask-repeat: no-repeat;
+            mask-position: center;
+            -webkit-mask-position: center;
+          "
+          role="img"
+          aria-label="Mías Isotipo"
+        ></div>
       </div>
     </div>
 
     <!-- 2. MARGEN IZQUIERDO: COORDENADAS VERTICALES ("2026" Y "MÍAS") FLANQUEANDO EL EJE HORIZONTAL -->
     <div 
       class="welcome-sidebar absolute left-4 sm:left-6 z-10 flex flex-col items-center pointer-events-none select-none text-[9px] font-mono tracking-[0.28em] text-white/45 uppercase"
-      style="top: 28%; transform: translateY(-50%);"
+      style="top: {cy}px; transform: translateY(-50%);"
     >
       <span class="[writing-mode:vertical-rl] rotate-180 mb-3.5">2026</span>
       <span class="[writing-mode:vertical-rl] rotate-180 mt-3.5">MÍAS</span>
     </div>
 
     <!-- 4. ESPACIO SUPERIOR DE RESPIRACIÓN EDITORIAL -->
-    <div class="flex-1 min-h-[10vh]"></div>
+    <div class="welcome-top-spacer flex-1 min-h-[10vh]"></div>
 
     <!-- 5. BLOQUE DE TITULAR: ELEVADO A LA MITAD DEL CUADRANTE INFERIOR -->
-    <div class="relative z-10 w-full max-w-xl mb-14 sm:mb-20">
-      <!-- Subtítulo Kicker Bienvenido -->
-      <p class="welcome-kicker font-display text-sm sm:text-base font-normal text-white/85 tracking-[0.2em] uppercase mb-2 sm:mb-3">
+    <div class="welcome-title-wrapper relative z-10 w-full max-w-xl mb-14 sm:mb-20">
+      <!-- Subtítulo Kicker Bienvenido elevado más arriba con tipografía font-display font-light -->
+      <p class="welcome-kicker font-display font-light text-xl sm:text-2xl text-white/80 mb-10 sm:mb-14 tracking-tight">
         Bienvenido
       </p>
 
@@ -361,30 +731,30 @@
       <h1 class="welcome-title font-display text-[2.35rem] sm:text-5xl lg:text-6xl tracking-tight text-white leading-[1.26] sm:leading-[1.3] select-none">
         <span class="font-semibold text-white">Hamburguesas</span>
         <!-- Cápsula 1: Alargada y estilizada -->
-        <span class="inline-block w-14 sm:w-16 h-6 sm:h-7 rounded-full border border-white/35 bg-white/[0.03] backdrop-blur-[2px] align-middle mx-1.5"></span>
+        <span class="title-capsule-1 inline-block w-14 sm:w-16 h-6 sm:h-7 rounded-full border border-white/35 bg-white/[0.03] backdrop-blur-[2px] align-middle mx-1.5"></span>
         <br />
-        <!-- de lujo: Mantenido intacto con Pinyon Script -->
+        <!-- de lujo: Mantenido intacto con Pinyon Script en rojo escarlata vivo -->
         <span 
-          class="inline-block align-baseline mr-1.5 pr-0.5 text-[#FFF5EA] text-[3.2rem] sm:text-6xl lg:text-7xl font-normal drop-shadow-[0_2px_12px_rgba(0,0,0,0.35)]"
+          class="title-luxury inline-block align-baseline mr-1.5 pr-0.5 text-[#FF2400] text-[3.2rem] sm:text-6xl lg:text-7xl font-normal drop-shadow-[0_0_20px_rgba(255,36,0,0.45)] drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)]"
           style="font-family: 'Pinyon Script', cursive; font-style: normal;"
         >de lujo</span>
         <!-- Cápsula 2: Alargada como en la referencia -->
-        <span class="inline-block w-12 sm:w-14 h-6 sm:h-7 rounded-full border border-white/35 bg-white/[0.03] backdrop-blur-[2px] align-middle mx-1.5"></span> 
-        <span class="font-light text-white/80">al fuego</span>
+        <span class="title-capsule-2 inline-block w-12 sm:w-14 h-6 sm:h-7 rounded-full border border-white/35 bg-white/[0.03] backdrop-blur-[2px] align-middle mx-1.5"></span> 
+        <span class="font-light text-white/80">a fuego</span>
         <br />
         <span class="font-semibold text-white">del carbón</span> 
         <!-- Cápsula 3: Alargada -->
-        <span class="inline-block w-14 sm:w-16 h-6 sm:h-7 rounded-full border border-white/35 bg-white/[0.03] backdrop-blur-[2px] align-middle mx-1.5"></span>
+        <span class="title-capsule-3 inline-block w-14 sm:w-16 h-6 sm:h-7 rounded-full border border-white/35 bg-white/[0.03] backdrop-blur-[2px] align-middle mx-1.5"></span>
       </h1>
     </div>
 
     <!-- 6. CONTROLES INFERIORES: PLANOS Y ALINEADOS EN LA BASE -->
     <div class="welcome-controls relative z-10 flex items-center justify-between pb-3 sm:pb-5">
-      <!-- Botón Izquierdo: Vidrio esmerilado suave translúcido con isotipo candado -->
+      <!-- Botón Izquierdo: Vidrio esmerilado suave translúcido con isotipo candado circular -->
       <button 
         type="button"
         onclick={toggleInfoModal}
-        class="w-14 h-14 rounded-full border-0 outline-none bg-white/15 backdrop-blur-xl flex items-center justify-center text-white/90 hover:bg-white/25 active:scale-95 transition-all cursor-pointer group shadow-lg shadow-black/15"
+        class="welcome-info-btn w-14 h-14 rounded-full border-0 outline-none bg-white/15 backdrop-blur-xl flex items-center justify-center text-white/90 hover:bg-white/25 active:scale-95 transition-all cursor-pointer group shadow-lg shadow-black/15"
         title="Información, Horarios y Términos Mías"
         aria-label="Ver información y términos"
       >
@@ -395,96 +765,46 @@
         />
       </button>
 
-      <!-- Botón Derecho: Contenedor con halo de luz cálida pulsante y círculo de avance -->
-      <div class="relative flex items-center justify-center">
-        <!-- 1. Halo expansivo de respiración cálida (Aura exterior difusa de brasa) -->
-        <div class="advance-halo-aura pointer-events-none absolute -inset-3 rounded-full"></div>
+      <!-- Botón Derecho: Contenedor con 3 contornos concéntricos blancos organizados y botón de avance en formato píldora -->
+      <div class="welcome-advance-wrapper relative flex items-center justify-center w-24 sm:w-28 h-14">
+        <!-- 3 contornos concéntricos blancos que emanan de manera organizada -->
+        <div class="ripple-ring ripple-ring-1"></div>
+        <div class="ripple-ring ripple-ring-2"></div>
+        <div class="ripple-ring ripple-ring-3"></div>
 
-        <!-- 2. Anillo de pulso beacon sutil (onda de llamada a la acción) -->
-        <div class="advance-halo-ring pointer-events-none absolute -inset-1.5 rounded-full"></div>
-
-        <!-- 3. Botón de avance blanco de alto contraste -->
+        <!-- Botón de avance blanco de alto contraste en formato píldora -->
         <button 
           type="button"
           onclick={handleAdvance}
-          class="relative z-10 w-14 h-14 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 active:scale-95 transition-all cursor-pointer group shadow-[0_4px_24px_rgba(0,0,0,0.40)]"
+          class="welcome-advance-btn relative z-10 w-full h-full rounded-full bg-white text-black border border-black/20 flex items-center justify-center hover:scale-105 active:scale-95 transition-all cursor-pointer group"
           aria-label="Ingresar al restaurante"
         >
-          <ChevronRight class="w-6 h-6 stroke-[2.2] text-black group-hover:translate-x-0.5 transition-transform" />
+          <ChevronRight class="w-6 h-6 stroke-[2.2] text-black group-hover:translate-x-1 transition-transform" />
         </button>
       </div>
     </div>
   </div>
 
-  <!-- 6. MODAL REFINADO DE INFORMACIÓN, HORARIOS Y TÉRMINOS (SE ABRE DESDE EL BOTÓN IZQUIERDO) -->
+  <!-- TARJETA VACÍA COLOR CREMA CÁLIDO CON BORDES IPHONE OCUPANDO TODA LA PANTALLA (CON MARGEN PERIFÉRICO) -->
   {#if isInfoModalOpen}
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div 
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200"
+      class="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 md:p-5 bg-black/75 backdrop-blur-md animate-in fade-in duration-200"
       onclick={(e) => { e.stopPropagation(); isInfoModalOpen = false; }}
     >
       <div 
-        class="bg-[#121114] border border-white/10 text-white w-full max-w-md rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 relative"
+        class="w-full h-full bg-[#FAF6ED] rounded-[38px] sm:rounded-[48px] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.6)] relative overflow-hidden flex flex-col items-center justify-center transition-all border border-black/5"
         onclick={(e) => e.stopPropagation()}
       >
-        <!-- Botón Cerrar -->
+        <!-- Botón Cerrar Minimalista -->
         <button 
           type="button"
           onclick={() => isInfoModalOpen = false}
-          class="absolute top-5 right-5 p-2 rounded-full hover:bg-white/10 text-white/60 hover:text-white transition-colors"
-          aria-label="Cerrar modal de información"
+          class="absolute top-5 right-5 sm:top-7 sm:right-7 w-11 h-11 rounded-full bg-black/[0.06] hover:bg-black/[0.12] active:scale-95 flex items-center justify-center text-char/70 hover:text-char transition-all cursor-pointer shadow-sm"
+          aria-label="Cerrar tarjeta"
         >
-          <X class="w-5 h-5" />
-        </button>
-
-        <!-- Cabecera de la Marca -->
-        <div class="flex items-center gap-3 border-b border-white/10 pb-4">
-          <img 
-            src="/imagenes/marca/isotipo.webp" 
-            alt="Mías" 
-            class="w-10 h-10 object-contain brightness-0 invert"
-          />
-          <div>
-            <h3 class="font-serif text-xl font-bold tracking-wide">Mías Hamburguesas de Lujo</h3>
-            <p class="font-sans text-xs text-white/50">Lo Íntimo Hecho para Compartir</p>
-          </div>
-        </div>
-
-        <!-- Secciones de Información Clave -->
-        <div class="space-y-4 text-xs font-sans leading-relaxed text-white/80">
-          <div class="flex items-start gap-3 p-3 rounded-2xl bg-white/[0.04]">
-            <Clock class="w-4 h-4 text-[#FF9E2C] shrink-0 mt-0.5" />
-            <div>
-              <p class="font-semibold text-white">Horarios Oficiales de Atención</p>
-              <p class="text-white/60 mt-0.5">Sábado a Jueves: 3:00 PM – 9:30 PM<br />Viernes: Cerrado por producción artesanal.</p>
-            </div>
-          </div>
-
-          <div class="flex items-start gap-3 p-3 rounded-2xl bg-white/[0.04]">
-            <Flame class="w-4 h-4 text-[#FF5A1F] shrink-0 mt-0.5" />
-            <div>
-              <p class="font-semibold text-white">Nuestra Artesanía</p>
-              <p class="text-white/60 mt-0.5">Cocción exclusiva al fuego en Horno «Rayo», 160g de carne de res premium sobre Pan Pretzel artesanal y perros calientes en Pan Brioche.</p>
-            </div>
-          </div>
-
-          <div class="flex items-start gap-3 p-3 rounded-2xl bg-white/[0.04]">
-            <ShieldCheck class="w-4 h-4 text-[#4ADE80] shrink-0 mt-0.5" />
-            <div>
-              <p class="font-semibold text-white">Tratamiento de Datos y Fidelización</p>
-              <p class="text-white/60 mt-0.5">Cumplimiento estricto de la Ley 1581 de 2012 (Habeas Data). Programa de sellos por factura física (10 sellos = 1 Original gratis).</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Botón de acción para entrar -->
-        <button 
-          type="button"
-          onclick={() => { isInfoModalOpen = false; handleAdvance(); }}
-          class="w-full py-3.5 rounded-full bg-white text-black font-semibold text-xs uppercase tracking-wider hover:bg-white/90 transition-all shadow-lg"
-        >
-          Entrar al Restaurante
+          <X class="w-5 h-5 stroke-[2.2]" />
         </button>
       </div>
     </div>
@@ -492,60 +812,136 @@
 {/if}
 
 <style>
-  /* 1. Aura cálida pulsante (resplandor de brasa suave y continuo) */
-  .advance-halo-aura {
-    background: radial-gradient(
-      circle at center,
-      rgba(255, 200, 80, 0.95) 0%,
-      rgba(255, 125, 25, 0.75) 45%,
-      rgba(230, 50, 10, 0.35) 70%,
-      transparent 90%
-    );
-    filter: blur(12px);
+  /* Tres contornos concéntricos blancos que emanan organizadamente del botón de llamada a la acción */
+  .ripple-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 9999px;
+    pointer-events: none;
+    border: 1px solid rgba(255, 255, 255, 0.70);
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.15);
     will-change: transform, opacity;
-    animation: advance-aura-pulse 2.4s ease-in-out infinite alternate;
+    animation: ripple-emanate 3s cubic-bezier(0.15, 0.65, 0.35, 1) infinite;
   }
 
-  @keyframes advance-aura-pulse {
+  .ripple-ring-1 {
+    animation-delay: 0s;
+  }
+
+  .ripple-ring-2 {
+    animation-delay: -1s;
+  }
+
+  .ripple-ring-3 {
+    animation-delay: -2s;
+  }
+
+  @keyframes ripple-emanate {
     0% {
-      transform: scale(0.90);
-      opacity: 0.50;
+      transform: scale(1);
+      opacity: 0.85;
+      border-color: rgba(255, 255, 255, 0.80);
+      box-shadow: 0 0 8px rgba(255, 255, 255, 0.20);
     }
-    50% {
-      transform: scale(1.42);
-      opacity: 1.0;
+    40% {
+      opacity: 0.40;
+      border-color: rgba(255, 255, 255, 0.45);
+      box-shadow: 0 0 12px rgba(255, 255, 255, 0.10);
     }
     100% {
-      transform: scale(1.15);
-      opacity: 0.75;
-    }
-  }
-
-  /* 2. Anillo térmico de expansión suave (beacon micro-interactivo de brasa) */
-  .advance-halo-ring {
-    border: 1.5px solid rgba(255, 210, 90, 0.90);
-    will-change: transform, opacity;
-    animation: advance-beacon-wave 2.4s cubic-bezier(0.15, 0.85, 0.25, 1) infinite;
-  }
-
-  @keyframes advance-beacon-wave {
-    0% {
-      transform: scale(0.95);
-      opacity: 0.90;
-      border-color: rgba(255, 220, 110, 0.95);
-      box-shadow: 0 0 10px rgba(255, 180, 40, 0.6);
-    }
-    60% {
-      transform: scale(1.68);
-      opacity: 0.25;
-      border-color: rgba(255, 130, 25, 0.50);
-      box-shadow: 0 0 18px rgba(255, 110, 15, 0.3);
-    }
-    100% {
-      transform: scale(1.90);
+      transform: scale(1.50);
       opacity: 0;
-      border-color: transparent;
+      border-color: rgba(255, 255, 255, 0);
       box-shadow: none;
+    }
+  }
+
+  /* REGLAS RESPONSIVAS PARA DISPOSITIVOS MÓVILES EN APISADO (LANDSCAPE) Y PANTALLAS BAJAS */
+  @media (max-height: 560px) {
+    .intro-screen-container {
+      padding: 8px 16px !important;
+      padding-top: max(8px, env(safe-area-inset-top)) !important;
+      padding-bottom: max(8px, env(safe-area-inset-bottom)) !important;
+      padding-left: max(16px, env(safe-area-inset-left)) !important;
+      padding-right: max(16px, env(safe-area-inset-right)) !important;
+    }
+
+    .welcome-top-spacer {
+      min-height: 0px !important;
+      flex: 0 0 0px !important;
+    }
+
+    .welcome-title-wrapper {
+      margin-bottom: 6px !important;
+      max-width: 92% !important;
+    }
+
+    .welcome-kicker {
+      font-size: 0.82rem !important;
+      margin-bottom: 3px !important;
+    }
+
+    .welcome-title {
+      font-size: 1.35rem !important;
+      line-height: 1.15 !important;
+    }
+
+    .welcome-title :global(.title-capsule-1),
+    .welcome-title :global(.title-capsule-3) {
+      width: 32px !important;
+      height: 14px !important;
+    }
+
+    .welcome-title :global(.title-capsule-2) {
+      width: 24px !important;
+      height: 14px !important;
+    }
+
+    .welcome-title :global(.title-luxury) {
+      font-size: 1.95rem !important;
+    }
+
+    .welcome-sidebar {
+      font-size: 7px !important;
+      letter-spacing: 0.18em !important;
+      opacity: 0.25 !important;
+    }
+
+    .welcome-controls {
+      padding-bottom: 2px !important;
+    }
+
+    .welcome-info-btn {
+      width: 40px !important;
+      height: 40px !important;
+    }
+
+    .welcome-info-btn img {
+      width: 17px !important;
+      height: 17px !important;
+    }
+
+    .welcome-advance-wrapper {
+      width: 64px !important;
+      height: 40px !important;
+    }
+
+    .welcome-advance-btn :global(svg) {
+      width: 18px !important;
+      height: 18px !important;
+    }
+  }
+
+  @media (max-height: 420px) {
+    .welcome-sidebar {
+      display: none !important;
+    }
+    .welcome-title {
+      font-size: 1.22rem !important;
+      line-height: 1.12 !important;
+    }
+    .welcome-title :global(.title-luxury) {
+      font-size: 1.75rem !important;
     }
   }
 </style>
