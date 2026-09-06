@@ -395,15 +395,24 @@
         />
       </button>
 
-      <!-- Botón Derecho: Círculo blanco de alto contraste con flecha de avance -->
-      <button 
-        type="button"
-        onclick={handleAdvance}
-        class="w-14 h-14 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 active:scale-95 transition-all cursor-pointer group shadow-lg shadow-black/20"
-        aria-label="Ingresar al restaurante"
-      >
-        <ChevronRight class="w-6 h-6 stroke-[2.2] text-black group-hover:translate-x-0.5 transition-transform" />
-      </button>
+      <!-- Botón Derecho: Contenedor con halo de luz cálida pulsante y círculo de avance -->
+      <div class="relative flex items-center justify-center">
+        <!-- 1. Halo expansivo de respiración cálida (Aura exterior difusa de brasa) -->
+        <div class="advance-halo-aura pointer-events-none absolute -inset-3 rounded-full"></div>
+
+        <!-- 2. Anillo de pulso beacon sutil (onda de llamada a la acción) -->
+        <div class="advance-halo-ring pointer-events-none absolute -inset-1.5 rounded-full"></div>
+
+        <!-- 3. Botón de avance blanco de alto contraste -->
+        <button 
+          type="button"
+          onclick={handleAdvance}
+          class="relative z-10 w-14 h-14 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 active:scale-95 transition-all cursor-pointer group shadow-[0_4px_24px_rgba(0,0,0,0.40)]"
+          aria-label="Ingresar al restaurante"
+        >
+          <ChevronRight class="w-6 h-6 stroke-[2.2] text-black group-hover:translate-x-0.5 transition-transform" />
+        </button>
+      </div>
     </div>
   </div>
 
@@ -483,5 +492,61 @@
 {/if}
 
 <style>
+  /* 1. Aura cálida pulsante (resplandor de brasa suave y continuo) */
+  .advance-halo-aura {
+    background: radial-gradient(
+      circle at center,
+      rgba(255, 200, 80, 0.95) 0%,
+      rgba(255, 125, 25, 0.75) 45%,
+      rgba(230, 50, 10, 0.35) 70%,
+      transparent 90%
+    );
+    filter: blur(12px);
+    will-change: transform, opacity;
+    animation: advance-aura-pulse 2.4s ease-in-out infinite alternate;
+  }
+
+  @keyframes advance-aura-pulse {
+    0% {
+      transform: scale(0.90);
+      opacity: 0.50;
+    }
+    50% {
+      transform: scale(1.42);
+      opacity: 1.0;
+    }
+    100% {
+      transform: scale(1.15);
+      opacity: 0.75;
+    }
+  }
+
+  /* 2. Anillo térmico de expansión suave (beacon micro-interactivo de brasa) */
+  .advance-halo-ring {
+    border: 1.5px solid rgba(255, 210, 90, 0.90);
+    will-change: transform, opacity;
+    animation: advance-beacon-wave 2.4s cubic-bezier(0.15, 0.85, 0.25, 1) infinite;
+  }
+
+  @keyframes advance-beacon-wave {
+    0% {
+      transform: scale(0.95);
+      opacity: 0.90;
+      border-color: rgba(255, 220, 110, 0.95);
+      box-shadow: 0 0 10px rgba(255, 180, 40, 0.6);
+    }
+    60% {
+      transform: scale(1.68);
+      opacity: 0.25;
+      border-color: rgba(255, 130, 25, 0.50);
+      box-shadow: 0 0 18px rgba(255, 110, 15, 0.3);
+    }
+    100% {
+      transform: scale(1.90);
+      opacity: 0;
+      border-color: transparent;
+      box-shadow: none;
+    }
+  }
 </style>
 
