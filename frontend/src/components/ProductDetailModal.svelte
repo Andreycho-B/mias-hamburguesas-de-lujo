@@ -13,7 +13,7 @@
     { id: 'cocacola', name: 'Coca-Cola 400ml', price: 4000, img: '/imagenes/bebidas/cocacola.webp' }
   ];
 
-  let totalPrice = $derived(() => {
+  let totalPrice = $derived.by(() => {
     if (!product) return 0;
     let total = product.price;
     if (includeCombo) total += 11000;
@@ -49,17 +49,17 @@
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div 
-    class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-md p-0 sm:p-4 overflow-y-auto"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-[12px] sm:p-5 md:p-6 overflow-y-auto"
     onclick={() => store.selectedProduct = null}
   >
     <div 
-      class="bg-char-card w-full max-w-lg sm:rounded-3xl border hairline-dark overflow-hidden flex flex-col max-h-[92vh] sm:max-h-[88vh] shadow-2xl relative"
+      class="bg-char-card w-full max-w-lg rounded-[42px] sm:rounded-[48px] border hairline-dark overflow-hidden flex flex-col max-h-[92vh] sm:max-h-[88vh] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.6)] relative"
       onclick={(e) => e.stopPropagation()}
     >
       <!-- Botón de Cierre -->
       <button 
         onclick={() => store.selectedProduct = null}
-        class="absolute top-4 right-4 z-10 w-9 h-9 rounded-full bg-char/70 text-bone flex items-center justify-center border hairline-dark hover:bg-ember transition-colors"
+        class="absolute top-5 right-5 z-10 w-9 h-9 rounded-full bg-char/70 text-bone flex items-center justify-center border hairline-dark hover:bg-ember transition-colors"
       >
         <X class="w-5 h-5" />
       </button>
@@ -152,7 +152,7 @@
           class="w-full py-3.5 px-6 rounded-full bg-ember hover:bg-ember-light text-white font-mono font-bold tracking-wider text-sm flex items-center justify-between transition-all shadow-ember active:scale-[0.98]"
         >
           <span>Pedir y pagar</span>
-          <span>{formatPrice(totalPrice())}</span>
+          <span>{formatPrice(totalPrice)}</span>
         </button>
       </div>
     </div>

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 
 	"mias-backend/internal/database/db"
 )
@@ -37,6 +38,10 @@ type ProductDTO struct {
 }
 
 func (s *CatalogService) GetPublicMenu(ctx context.Context) (*CatalogResponse, error) {
+	if s.queries == nil {
+		return nil, errors.New("servicio de base de datos no disponible")
+	}
+
 	categories, err := s.queries.ListActiveCategories(ctx)
 	if err != nil {
 		return nil, err

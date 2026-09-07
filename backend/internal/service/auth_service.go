@@ -61,6 +61,10 @@ type UserDTO struct {
 
 // LoginStaff autentica a Meseros, Cajeros y Administrador con Argon2id
 func (s *AuthService) LoginStaff(ctx context.Context, req StaffLoginRequest) (*AuthResponse, error) {
+	if s.queries == nil {
+		return nil, errors.New("servicio de base de datos no disponible")
+	}
+
 	user, err := s.queries.GetUserByEmail(ctx, req.Email)
 	if err != nil {
 		return nil, ErrInvalidPassword
@@ -102,8 +106,24 @@ func (s *AuthService) LoginStaff(ctx context.Context, req StaffLoginRequest) (*A
 
 // LoginOAuth autentica o registra a clientes mediante Google OAuth con Habeas Data
 func (s *AuthService) LoginOAuth(ctx context.Context, req OAuthLoginRequest) (*AuthResponse, error) {
+	if s.queries == nil {
+		return nil, errors.New("servicio de base de datos no disponible")
+	}
+
 	if !req.HabeasData {
 		return nil, errors.New("debe aceptar la política de tratamiento de datos (Ley 1581) para continuar")
+	}
+
+	if req.Email == "" {
+		return nil, errors.New("el correo electrónico es obligatorio")
+	}
+
+	// Blindaje Zero-Trust: Impedir suplantación de cuentas de personal a través del flujo OAuth de clientes
+	existingUser, err := s.queries.GetUserByEmail(ctx, req.Email)
+	if err == nil {
+		if existingUser.Role != "customer" {
+			return nil, errors.New("acceso no permitido: las cuentas de personal deben ingresar exclusivamente mediante la terminal de operaciones")
+		}
 	}
 
 	avatar := pgtype.Text{String: req.AvatarURL, Valid: req.AvatarURL != ""}
@@ -119,9 +139,13 @@ func (s *AuthService) LoginOAuth(ctx context.Context, req OAuthLoginRequest) (*A
 		return nil, err
 	}
 
+	if user.Role != "customer" {
+		return nil, errors.New("rol de usuario no autorizado para acceso cliente")
+	}
+
 	userID := uuidutil.FromPG(user.ID)
 
-	tokens, err := pkgjwt.GenerateTokenPair(userID, user.Role, s.jwtSecret)
+	tokens, err := pkgjwt.GenerateTokenPair(userID, "customer", s.jwtSecret)
 	if err != nil {
 		return nil, err
 	}
@@ -134,7 +158,7 @@ func (s *AuthService) LoginOAuth(ctx context.Context, req OAuthLoginRequest) (*A
 			FullName:  user.FullName,
 			AvatarURL: user.AvatarUrl.String,
 			Phone:     user.Phone.String,
-			Role:      user.Role,
+			Role:      "customer",
 			CreatedAt: user.CreatedAt.Time,
 		},
 	}, nil
@@ -142,6 +166,10 @@ func (s *AuthService) LoginOAuth(ctx context.Context, req OAuthLoginRequest) (*A
 
 // RefreshSession rota el Refresh Token y emite un nuevo Access Token
 func (s *AuthService) RefreshSession(ctx context.Context, refreshToken string) (*pkgjwt.TokenPair, error) {
+	if s.queries == nil {
+		return nil, errors.New("servicio de base de datos no disponible")
+	}
+
 	claims, err := pkgjwt.ValidateToken(refreshToken, s.jwtSecret, "refresh")
 	if err != nil {
 		return nil, err

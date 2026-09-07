@@ -68,8 +68,8 @@ func main() {
 	sseHub := service.NewSSEHub()
 	authService := service.NewAuthService(queries, cfg.JWTSecret)
 	catalogService := service.NewCatalogService(queries)
-	orderService := service.NewOrderService(queries, sseHub)
-	stampService := service.NewStampService(queries, sseHub)
+	orderService := service.NewOrderService(pool, queries, sseHub)
+	stampService := service.NewStampService(pool, queries, sseHub)
 
 	// 5. Inicializar Handlers HTTP
 	authHandler := handler.NewAuthHandler(authService)

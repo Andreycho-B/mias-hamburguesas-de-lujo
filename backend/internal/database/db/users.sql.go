@@ -152,6 +152,29 @@ func (q *Queries) GetUserByID(ctx context.Context, id pgtype.UUID) (User, error)
 	return i, err
 }
 
+const getUserByIDForUpdate = `-- name: GetUserByIDForUpdate :one
+SELECT id, email, full_name, avatar_url, phone, role, password_hash, last_order_at, created_at, updated_at FROM users
+WHERE id = $1 LIMIT 1 FOR UPDATE
+`
+
+func (q *Queries) GetUserByIDForUpdate(ctx context.Context, id pgtype.UUID) (User, error) {
+	row := q.db.QueryRow(ctx, getUserByIDForUpdate, id)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.FullName,
+		&i.AvatarUrl,
+		&i.Phone,
+		&i.Role,
+		&i.PasswordHash,
+		&i.LastOrderAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const listUsers = `-- name: ListUsers :many
 SELECT id, email, full_name, avatar_url, phone, role, password_hash, last_order_at, created_at, updated_at FROM users
 ORDER BY created_at DESC

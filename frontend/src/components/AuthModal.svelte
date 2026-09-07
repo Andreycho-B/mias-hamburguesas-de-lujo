@@ -74,11 +74,11 @@
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div 
-    class="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-[12px] sm:p-5 md:p-6"
     onclick={() => store.isAuthModalOpen = false}
   >
     <div 
-      class="bg-char-card w-full max-w-md rounded-3xl border hairline-dark overflow-hidden shadow-2xl p-6 sm:p-8 relative"
+      class="bg-char-card w-full max-w-md rounded-[42px] sm:rounded-[48px] border hairline-dark overflow-hidden shadow-[0_25px_60px_-15px_rgba(0,0,0,0.6)] p-6 sm:p-8 relative"
       onclick={(e) => e.stopPropagation()}
     >
       <button 

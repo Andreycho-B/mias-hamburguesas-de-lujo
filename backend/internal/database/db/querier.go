@@ -37,6 +37,7 @@ type Querier interface {
 	GetTopSellingProducts(ctx context.Context, limit int32) ([]GetTopSellingProductsRow, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id pgtype.UUID) (User, error)
+	GetUserByIDForUpdate(ctx context.Context, id pgtype.UUID) (User, error)
 	GetUserStampBalance(ctx context.Context, userID pgtype.UUID) (int32, error)
 	ListActiveCategories(ctx context.Context) ([]Category, error)
 	ListActiveDeliveryOrders(ctx context.Context) ([]Order, error)

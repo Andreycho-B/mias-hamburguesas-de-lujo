@@ -72,6 +72,9 @@
     document.documentElement.style.overflow = 'hidden';
     document.body.style.overflow = 'hidden';
 
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    if (metaTheme) metaTheme.setAttribute('content', '#050507');
+
     // Precarga y decodificación inmediata en paralelo de todas las imágenes críticas
     preloadCriticalImages();
 
@@ -305,6 +308,8 @@
     return () => {
       document.documentElement.style.overflow = origHtmlOverflow;
       document.body.style.overflow = origBodyOverflow;
+      const metaTheme = document.querySelector('meta[name="theme-color"]');
+      if (metaTheme) metaTheme.setAttribute('content', '#FAF6EE');
       window.removeEventListener('resize', handleOrientationOrResize);
       if (cleanupGL) cleanupGL();
       if (cleanupRestrictions) cleanupRestrictions();
@@ -678,6 +683,16 @@
       cleanupGL();
       cleanupGL = null;
     }
+
+    // Preparar el fondo para el desvanecimiento hacia el Home (beige suave #FAF6EE)
+    document.documentElement.classList.remove('theme-intro');
+    document.documentElement.classList.add('theme-home');
+    document.documentElement.style.backgroundColor = '#FAF6EE';
+    document.documentElement.style.colorScheme = 'light';
+    const metaTheme = document.getElementById('theme-color-meta') || document.querySelector('meta[name="theme-color"]');
+    if (metaTheme) metaTheme.setAttribute('content', '#FAF6EE');
+    const metaApple = document.getElementById('apple-status-bar-meta') || document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+    if (metaApple) metaApple.setAttribute('content', 'default');
 
     gsap.to(introContainer, {
       opacity: 0,

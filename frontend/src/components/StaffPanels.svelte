@@ -1,6 +1,17 @@
 <script>
+  import { onMount } from 'svelte';
   import { store } from '../lib/store.svelte.js';
   import { playChime } from '../lib/audio.js';
+  import { 
+    getStaffPendingInStoreOrdersAPI, 
+    getStaffActiveDeliveryOrdersAPI,
+    markOrderAsPaidAPI,
+    updateDeliveryStatusAPI,
+    getStaffPendingStampsAPI,
+    reviewStaffStampAPI,
+    getStaffPendingRedemptionsAPI,
+    approveRedemptionAPI 
+  } from '../lib/api.js';
   import { 
     CheckCircle, XCircle, Printer, Volume2, Shield, Utensils, 
     Bike, Award, DollarSign, TrendingUp, Sparkles, AlertTriangle 
@@ -9,7 +20,7 @@
   let currentStaffTab = $state('cashier'); // 'waiter', 'cashier', 'admin'
   let printedOrder = $state(null);
 
-  // Muestras operativas en memoria para control de personal
+  // Muestras operativas en memoria para control de personal con sincronización API
   let inStoreOrders = $state([
     { id: '1', code: 'ORD-A101', customer: 'Andrés Gómez', total: 38000, status: 'PENDING_PAYMENT', items: '2x Dorada, 1x Combo', time: '18:42' },
     { id: '2', code: 'ORD-A102', customer: 'Valentina Ruiz', total: 23000, status: 'PAID', items: '1x Criolla', time: '18:45' }
@@ -28,9 +39,73 @@
     { id: '6', customer: 'Marcos Peña', stampsCount: 10, targetItem: 'Hamburguesa Original Gratis', time: '18:52' }
   ]);
 
-  function handleMarkPaid(order) {
+  onMount(async () => {
+    try {
+      const [orders, deliveries, stamps, redems] = await Promise.all([
+        getStaffPendingInStoreOrdersAPI(),
+        getStaffActiveDeliveryOrdersAPI(),
+        getStaffPendingStampsAPI(),
+        getStaffPendingRedemptionsAPI()
+      ]);
+      if (orders && orders.length > 0) {
+        inStoreOrders = orders.map(o => ({
+          id: o.id,
+          code: o.code,
+          customer: o.delivery_name || 'Comensal Salón',
+          total: o.total_amount,
+          status: o.status,
+          items: `${o.order_type === 'in_store' ? 'Consumo en Salón' : 'Para Llevar'} • Total $${o.total_amount.toLocaleString('es-CO')}`,
+          time: new Date(o.created_at).toLocaleTimeString()
+        }));
+      }
+      if (deliveries && deliveries.length > 0) {
+        deliveryOrders = deliveries.map(d => ({
+          id: d.id,
+          code: d.code,
+          customer: d.delivery_name || 'Cliente Domicilio',
+          phone: d.delivery_phone || '321 252 0881',
+          address: d.delivery_address || 'Sin dirección',
+          total: d.total_amount,
+          status: d.status,
+          time: new Date(d.created_at).toLocaleTimeString(),
+          payment: d.payment_method || 'Efectivo'
+        }));
+      }
+      if (stamps && stamps.length > 0) {
+        stampRequests = stamps.map(s => ({
+          id: s.id,
+          receiptNumber: s.receipt_number,
+          customer: s.customer_name || 'Comensal Mías',
+          orderCode: s.order_code || 'ORD',
+          burgersCount: s.burgers_count,
+          total: s.total_amount || 0,
+          time: new Date(s.created_at).toLocaleTimeString()
+        }));
+      }
+      if (redems && redems.length > 0) {
+        redemptions = redems.map(r => ({
+          id: r.id,
+          customer: r.customer_name || 'Comensal VIP',
+          stampsCount: r.current_stamps || 10,
+          targetItem: 'Hamburguesa Original Gratis',
+          time: new Date(r.created_at).toLocaleTimeString()
+        }));
+      }
+    } catch (err) {
+      console.warn('[StaffPanels] Operando con datos locales Anillo 0', err);
+    }
+  });
+
+  async function handleMarkPaid(order) {
     order.status = 'PAID';
     playChime();
+    if (order.id && !order.id.startsWith('ord-') && order.id.length > 5) {
+      try {
+        await markOrderAsPaidAPI(order.id);
+      } catch (err) {
+        console.warn('[Staff] Error marcando pago en API', err);
+      }
+    }
   }
 
   function handlePrintReceipt(order) {
@@ -40,20 +115,41 @@
     }, 150);
   }
 
-  function handleApproveStamp(req) {
+  async function handleApproveStamp(req) {
     stampRequests = stampRequests.filter(r => r.id !== req.id);
     playChime();
+    if (req.id && req.id.length > 5 && !req.id.startsWith('req-')) {
+      try {
+        await reviewStaffStampAPI(req.id, true);
+      } catch (err) {
+        console.warn('[Staff] Error aprobando sello en API', err);
+      }
+    }
     alert(`Factura #${req.receiptNumber} aprobada. Se acreditaron ${req.burgersCount} sellos al cliente.`);
   }
 
-  function handleRejectStamp(req) {
+  async function handleRejectStamp(req) {
     stampRequests = stampRequests.filter(r => r.id !== req.id);
+    if (req.id && req.id.length > 5 && !req.id.startsWith('req-')) {
+      try {
+        await reviewStaffStampAPI(req.id, false);
+      } catch (err) {
+        console.warn('[Staff] Error rechazando sello en API', err);
+      }
+    }
     alert(`Factura #${req.receiptNumber} rechazada.`);
   }
 
-  function handleApproveRedemption(red) {
+  async function handleApproveRedemption(red) {
     redemptions = redemptions.filter(r => r.id !== red.id);
     playChime();
+    if (red.id && red.id.length > 5 && !red.id.startsWith('red-')) {
+      try {
+        await approveRedemptionAPI(red.id);
+      } catch (err) {
+        console.warn('[Staff] Error aprobando redención en API', err);
+      }
+    }
     alert(`Redención de ${red.customer} aprobada. Entregar Hamburguesa Original sin costo.`);
   }
 </script>

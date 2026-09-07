@@ -1,4 +1,5 @@
 // Store reactivo con Runes de Svelte 5 (Anillo 0: Datos locales con sincronización)
+import { getCatalogAPI, getStampBalanceAPI } from './api.js';
 
 const SEED_CATEGORIES = [
   { id: 1, slug: 'hamburguesas', name: 'Hamburguesas', sort_order: 1 },
@@ -198,6 +199,94 @@ const SEED_PRODUCTS = [
     is_bestseller: false,
     is_chef_choice: false,
     is_in_stock: true
+  },
+  {
+    id: 16,
+    category_id: 5,
+    slug: 'combo-papa-gaseosa',
+    name: 'Combo Papa a la Francesa + Gaseosa',
+    description: 'Acompañamiento clásico para hamburguesa, perro o choriperro con papas crujientes y refresco helado.',
+    price: 11000,
+    is_bestseller: true,
+    is_chef_choice: false,
+    is_in_stock: true
+  },
+  {
+    id: 17,
+    category_id: 5,
+    slug: 'papa-francesa',
+    name: 'Porción Papa Francesa',
+    description: 'Porción individual de papa a la francesa crujiente dorada al punto de sal.',
+    price: 8000,
+    is_bestseller: false,
+    is_chef_choice: false,
+    is_in_stock: true
+  },
+  {
+    id: 18,
+    category_id: 5,
+    slug: 'papa-nativa',
+    name: 'Porción Papa Nativa',
+    description: 'Porción de papa nativa colombiana rústica al carbón con alioli artesanal.',
+    price: 9000,
+    is_bestseller: true,
+    is_chef_choice: true,
+    is_in_stock: true
+  },
+  {
+    id: 19,
+    category_id: 5,
+    slug: 'tocineta-extra',
+    name: 'Tocineta Crujiente Extra',
+    description: 'Porción adicional de tocineta ahumada crujiente cortada gruesa.',
+    price: 5000,
+    is_bestseller: false,
+    is_chef_choice: false,
+    is_in_stock: true
+  },
+  {
+    id: 20,
+    category_id: 5,
+    slug: 'carne-extra',
+    name: 'Carne de Hamburguesa Extra',
+    description: '160gr adicionales de carne de res premium al carbón.',
+    price: 8000,
+    is_bestseller: false,
+    is_chef_choice: false,
+    is_in_stock: true
+  },
+  {
+    id: 21,
+    category_id: 5,
+    slug: 'queso-extra',
+    name: 'Queso Fundido Extra',
+    description: 'Porción de queso mozzarella o cheddar fundido sobre tu plato.',
+    price: 5000,
+    is_bestseller: false,
+    is_chef_choice: false,
+    is_in_stock: true
+  },
+  {
+    id: 22,
+    category_id: 5,
+    slug: 'pepinillos-extra',
+    name: 'Pepinillos Agridulces',
+    description: 'Porción de pepinillos encurtidos artesanales crocantes.',
+    price: 4000,
+    is_bestseller: false,
+    is_chef_choice: false,
+    is_in_stock: true
+  },
+  {
+    id: 23,
+    category_id: 5,
+    slug: 'salsa-de-la-casa',
+    name: 'Salsa de la Casa',
+    description: 'Tarro individual de salsa artesanal de la casa.',
+    price: 4000,
+    is_bestseller: false,
+    is_chef_choice: false,
+    is_in_stock: true
   }
 ];
 
@@ -210,6 +299,7 @@ class AppStore {
   activeOrders = $state([]);
   selectedProduct = $state(null); // Producto abierto en pantalla completa
   isCartOpen = $state(false);
+  isSidebarOpen = $state(false);
   isOrderModeModalOpen = $state(false);
   isDeliveryWizardOpen = $state(false);
   isAuthModalOpen = $state(false);
@@ -242,6 +332,35 @@ class AppStore {
 
       const savedStamps = localStorage.getItem('mias_stamps');
       if (savedStamps) this.stampBalance = parseInt(savedStamps, 10);
+    } catch {}
+
+    // Sincronizar dinámicamente con PostgreSQL manteniendo Anillo 0 como respaldo
+    this.refreshCatalog();
+    if (this.user) {
+      this.refreshStampBalance();
+    }
+  }
+
+  async refreshCatalog() {
+    try {
+      const data = await getCatalogAPI();
+      if (data && data.products && data.products.length > 0) {
+        this.products = data.products;
+        if (data.categories && data.categories.length > 0) {
+          this.categories = data.categories;
+        }
+      }
+    } catch (err) {
+      console.warn('[Store] Operando con catálogo local Anillo 0', err);
+    }
+  }
+
+  async refreshStampBalance() {
+    try {
+      const res = await getStampBalanceAPI();
+      if (res && typeof res.active_stamps === 'number') {
+        this.setStampBalance(res.active_stamps);
+      }
     } catch {}
   }
 
@@ -302,6 +421,9 @@ class AppStore {
     if (typeof window !== 'undefined') {
       localStorage.setItem('mias_user', JSON.stringify(user));
     }
+    if (user) {
+      this.refreshStampBalance();
+    }
   }
 
   logout() {
@@ -334,6 +456,18 @@ class AppStore {
     if (typeof window !== 'undefined') {
       localStorage.setItem('mias_stamps', stamps.toString());
     }
+  }
+
+  toggleSidebar() {
+    this.isSidebarOpen = !this.isSidebarOpen;
+  }
+
+  openSidebar() {
+    this.isSidebarOpen = true;
+  }
+
+  closeSidebar() {
+    this.isSidebarOpen = false;
   }
 }
 

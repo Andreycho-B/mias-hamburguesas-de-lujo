@@ -4,8 +4,16 @@
 
 @layer base {
   html, body {
+    margin: 0;
+    padding: 0;
+  }
+  html.theme-intro, html.theme-intro body {
     background-color: #050507;
     color-scheme: dark;
+  }
+  html.theme-home, html.theme-home body {
+    background-color: #FAF6EE;
+    color-scheme: light;
   }
   html.lenis, html.lenis body {
     height: auto;
@@ -32,12 +40,12 @@
   border-color: rgba(0, 0, 0, 0.08);
 }
 
-/* Safe Area Inset para móviles con notch */
+/* Safe Area Inset para móviles con notch y Dynamic Island */
 .pb-safe {
-  padding-bottom: calc(env(safe-area-inset-bottom, 16px) + 16px);
+  padding-bottom: max(1rem, calc(env(safe-area-inset-bottom, 0px) + 1rem));
 }
 .pt-safe {
-  padding-top: calc(env(safe-area-inset-top, 16px) + 12px);
+  padding-top: max(1.25rem, calc(env(safe-area-inset-top, 0px) + 0.85rem));
 }
 
 /* Estilos de Impresión Térmica ESC/POS (80mm / 58mm) */

@@ -1,33 +1,79 @@
 <!doctype html>
-<html lang="es" style="background-color: #050507; color-scheme: dark;">
+<html lang="es">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/webp" href="/imagenes/marca/isotipo.webp" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <meta name="color-scheme" content="dark" />
-    <meta name="theme-color" content="#050507" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#FAF6EE" id="theme-color-meta" />
     <meta name="description" content="Mías Hamburguesas de Lujo. Lo Íntimo Hecho para Compartir. Hamburguesas artesanales al carbón y programa de fidelización." />
     
     <!-- iOS Safari PWA Standalone Configuration -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" id="apple-status-bar-meta" />
     <meta name="apple-mobile-web-app-title" content="Mías" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
 
     <title>Mías Hamburguesas de Lujo | Lo Íntimo Hecho para Compartir</title>
 
-    <!-- Prevención inmediata de parpadeo blanco (FOUC): fondo negro obsidiana instantáneo -->
+    <!-- Detección síncrona instantánea antes del primer renderizado: previene el parpadeo de color -->
+    <script>
+      (function() {
+        try {
+          var key = 'mias_intro_seen_at';
+          var saved = localStorage.getItem(key);
+          var isIntroDone = false;
+          if (saved) {
+            var time = parseInt(saved, 10);
+            if (!isNaN(time) && (Date.now() - time) < 3600000) {
+              isIntroDone = true;
+            }
+          }
+          var root = document.documentElement;
+          var metaTheme = document.getElementById('theme-color-meta');
+          var metaApple = document.getElementById('apple-status-bar-meta');
+          if (isIntroDone) {
+            root.classList.add('theme-home');
+            root.style.backgroundColor = '#FAF6EE';
+            root.style.colorScheme = 'light';
+            if (metaTheme) metaTheme.setAttribute('content', '#FAF6EE');
+            if (metaApple) metaApple.setAttribute('content', 'default');
+          } else {
+            root.classList.add('theme-intro');
+            root.style.backgroundColor = '#050507';
+            root.style.colorScheme = 'dark';
+            if (metaTheme) metaTheme.setAttribute('content', '#050507');
+            if (metaApple) metaApple.setAttribute('content', 'black-translucent');
+          }
+        } catch (e) {
+          document.documentElement.classList.add('theme-intro');
+          document.documentElement.style.backgroundColor = '#050507';
+        }
+      })();
+    </script>
+
+    <!-- Estilos inmediatos anti-parpadeo sincronizados por clase de tema -->
     <style>
       html, body {
-        background-color: #050507 !important;
-        color: #EDE8DC;
-        color-scheme: dark;
         margin: 0;
         padding: 0;
       }
+      html.theme-intro, 
+      html.theme-intro body, 
+      html.theme-intro #app {
+        background-color: #050507 !important;
+        color: #EDE8DC;
+        color-scheme: dark;
+      }
+      html.theme-home, 
+      html.theme-home body, 
+      html.theme-home #app {
+        background-color: #FAF6EE !important;
+        color: #0C0C0E;
+        color-scheme: light;
+      }
       #app {
-        background-color: #050507;
         min-height: 100vh;
       }
     </style>
@@ -56,7 +102,7 @@
     <link rel="preload" as="image" href="/imagenes/local/restaurante_mias_desde_fuera.webp" type="image/webp" fetchpriority="high" />
     <link rel="preload" as="image" href="/imagenes/marca/isotipo.webp" type="image/webp" fetchpriority="high" />
   </head>
-  <body class="bg-char text-bone font-sans antialiased selection:bg-ember selection:text-white min-h-screen" style="background-color: #050507; color-scheme: dark; touch-action: pan-y; overscroll-behavior-y: none;">
+  <body class="font-sans antialiased selection:bg-ember selection:text-white min-h-screen" style="touch-action: pan-y;">
     <div id="app"></div>
     <script type="module" src="/src/main.js"></script>
     <script>

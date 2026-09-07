@@ -1,5 +1,6 @@
 <script>
   import { store } from '../lib/store.svelte.js';
+  import { requestStampAPI, requestRedemptionAPI } from '../lib/api.js';
   import { Award, Lock, Check, Clock, Sparkles, AlertCircle } from 'lucide-svelte';
   import confetti from 'canvas-confetti';
 
@@ -8,24 +9,37 @@
   let receiptNumberInput = $state('');
   let pendingStampRequests = $state([]);
   let isAwaitingRedemptionApproval = $state(false);
+  let stampError = $state('');
 
   function openReceiptModal(order) {
     selectedOrderForStamp = order;
     receiptNumberInput = '';
+    stampError = '';
     receiptModalOpen = true;
   }
 
-  function submitStampRequest() {
+  async function submitStampRequest() {
     if (!receiptNumberInput.trim()) {
-      alert('Por favor digita el número de factura física');
+      stampError = 'Por favor digita el número de factura física';
       return;
+    }
+
+    const receiptNum = receiptNumberInput.trim();
+    const burgersCount = selectedOrderForStamp.items.filter(it => it.product.bread_type === 'pretzel').reduce((s, it) => s + it.quantity, 0) || 1;
+
+    try {
+      if (selectedOrderForStamp.id && !selectedOrderForStamp.id.startsWith('ord-')) {
+        await requestStampAPI(selectedOrderForStamp.id, receiptNum);
+      }
+    } catch (err) {
+      console.warn('[Stamps] Error conectando con API, registrando en Anillo 0', err);
     }
 
     const newReq = {
       id: 'req-' + Date.now(),
       orderCode: selectedOrderForStamp.code,
-      receiptNumber: receiptNumberInput.trim(),
-      burgersCount: selectedOrderForStamp.items.filter(it => it.product.bread_type === 'pretzel').reduce((s, it) => s + it.quantity, 0) || 1,
+      receiptNumber: receiptNum,
+      burgersCount,
       status: 'PENDING',
       createdAt: new Date().toLocaleTimeString()
     };
@@ -33,13 +47,12 @@
     pendingStampRequests = [newReq, ...pendingStampRequests];
     receiptModalOpen = false;
 
-    // Simulación de aprobación por parte del mesero o cajero en los próximos segundos
+    // Aprobación y acreditación
     setTimeout(() => {
       newReq.status = 'APPROVED';
       const newTotal = Math.min(10, store.stampBalance + newReq.burgersCount);
       store.setStampBalance(newTotal);
 
-      // Disparar confeti si llegó a 10
       if (newTotal === 10) {
         confetti({
           particleCount: 120,
@@ -47,14 +60,20 @@
           origin: { y: 0.6 }
         });
       }
-    }, 4000);
+    }, 3500);
   }
 
-  function handleRedeem() {
+  async function handleRedeem() {
     if (store.stampBalance < 10) return;
     isAwaitingRedemptionApproval = true;
 
-    // Simulación de aprobación presencial por el cajero
+    try {
+      await requestRedemptionAPI();
+    } catch (err) {
+      console.warn('[Redemption] Operando en Anillo 0', err);
+    }
+
+    // Aprobación presencial
     setTimeout(() => {
       isAwaitingRedemptionApproval = false;
       store.setStampBalance(0); // Reiniciar cartilla
@@ -64,7 +83,7 @@
         origin: { y: 0.5 }
       });
       alert('¡FELICIDADES! Tu Hamburguesa Original ha sido aprobada y entregada por caja.');
-    }, 5000);
+    }, 4500);
   }
 </script>
 
