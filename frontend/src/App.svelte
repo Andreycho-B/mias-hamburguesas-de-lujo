@@ -12,10 +12,16 @@
   import StaffPanels from './components/StaffPanels.svelte';
   import AuthModal from './components/AuthModal.svelte';
   import SidebarMenu from './components/SidebarMenu.svelte';
+  import IntroScreen from './components/IntroScreen.svelte';
   import { Sparkles, Award } from 'lucide-svelte';
 
   let homeRootEl = $state(null);
   let selectedCategory = $state('hamburguesas');
+  let introCompleted = $state(false);
+
+  function handleIntroComplete() {
+    introCompleted = true;
+  }
 
   // Inicializar Lenis Smooth Scroll y bloquear zoom/pellizco permitiendo solo deslizamiento vertical
   onMount(() => {
@@ -83,6 +89,10 @@
   const isMenuCategoryView = $derived(['menu', 'hamburguesas', 'perros', 'de_la_casa', 'adicionales', 'bebidas'].includes(store.currentView));
   const isStaff = $derived(Boolean(store.user && ['waiter', 'cashier', 'admin'].includes(store.user.role)) || store.currentView === 'staff');
 </script>
+
+{#if !introCompleted}
+  <IntroScreen onComplete={handleIntroComplete} />
+{/if}
 
 {#if isStaff}
   <!-- TERMINAL EXCLUSIVA DEL PERSONAL (MESEROS / CAJA / ADMIN) -->
