@@ -32,6 +32,10 @@ export default {
         gold: "0 0 25px -5px rgba(197, 160, 89, 0.3)",
         ember: "0 0 25px -5px rgba(193, 18, 31, 0.4)",
       },
+      borderRadius: {
+        card: "42px",
+        "card-lg": "48px",
+      },
     },
   },
   plugins: [],

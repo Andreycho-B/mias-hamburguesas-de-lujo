@@ -51,6 +51,7 @@
       alt={product.name}
       class="max-h-44 w-auto object-contain drop-shadow-2xl group-hover:scale-105 transition-transform duration-300"
       loading="lazy"
+      decoding="async"
     />
   </div>
 
