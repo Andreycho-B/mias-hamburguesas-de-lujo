@@ -1,5 +1,5 @@
 // Store reactivo con Runes de Svelte 5 (Anillo 0: Datos locales con sincronización)
-import { getCatalogAPI, getStampBalanceAPI, getOrderByCodeAPI } from './api.js';
+import { API_BASE, getCatalogAPI, getStampBalanceAPI, getOrderByCodeAPI } from './api.js';
 
 const SEED_CATEGORIES = [
   { id: 1, slug: 'hamburguesas', name: 'Hamburguesas', sort_order: 1 },
@@ -461,9 +461,8 @@ class AppStore {
 
     // Conexión SSE para eventos de órdenes en vivo
     try {
-      const apiBase = import.meta.env.VITE_API_URL || (window.location.hostname ? `http://${window.location.hostname}:8080/api/v1` : 'http://localhost:8080/api/v1');
       const token = localStorage.getItem('mias_access_token') || '';
-      const sseUrl = `${apiBase}/events/orders${token ? `?token=${token}` : ''}`;
+      const sseUrl = `${API_BASE}/events/orders${token ? `?token=${token}` : ''}`;
       const es = new EventSource(sseUrl);
 
       es.addEventListener('order_paid', (e) => {

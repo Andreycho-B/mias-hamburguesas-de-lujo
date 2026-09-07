@@ -19,17 +19,44 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	log.Printf("[MIGRATE] Connecting to PostgreSQL at %s...", cfg.DatabaseURL)
-	pool, err := pgxpool.New(ctx, cfg.DatabaseURL)
+	// Ciclo de reintentos para permitir que la base de datos en la nube termine de iniciar
+	var pool *pgxpool.Pool
+	var err error
+	maxRetries := 6
+	for i := 1; i <= maxRetries; i++ {
+		log.Printf("[MIGRATE] Conectando a PostgreSQL (intento %d/%d)...", i, maxRetries)
+		connectCtx, cancelConnect := context.WithTimeout(context.Background(), 8*time.Second)
+		pool, err = pgxpool.New(connectCtx, cfg.DatabaseURL)
+		if err == nil {
+			if pingErr := pool.Ping(connectCtx); pingErr == nil {
+				cancelConnect()
+				log.Printf("[MIGRATE] Conexión establecida exitosamente.")
+				break
+			} else {
+				pool.Close()
+				err = pingErr
+			}
+		}
+		cancelConnect()
+		if i < maxRetries {
+			log.Printf("[MIGRATE] Base de datos no lista aún (%v). Reintentando en 3s...", err)
+			time.Sleep(3 * time.Second)
+		}
+	}
 	if err != nil {
-		log.Fatalf("[MIGRATE] Failed to connect: %v", err)
+		log.Fatalf("[MIGRATE] Error crítico al conectar a PostgreSQL tras %d intentos: %v", maxRetries, err)
 	}
 	defer pool.Close()
 
-	if err := pool.Ping(ctx); err != nil {
-		log.Fatalf("[MIGRATE] Ping failed: %v", err)
+	// Idempotencia: Verificar si la tabla 'users' ya existe para evitar errores en reinicios
+	var usersTableExists bool
+	err = pool.QueryRow(ctx, "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'users')").Scan(&usersTableExists)
+	if err == nil && usersTableExists {
+		var count int
+		_ = pool.QueryRow(ctx, "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public'").Scan(&count)
+		log.Printf("[MIGRATE SUCCESS] Base de datos ya inicializada previamente (%d tablas públicas). Omitiendo migración.", count)
+		return
 	}
-	log.Printf("[MIGRATE] Connected successfully.")
 
 	// Determine migrations folder path
 	migrationsDir := "migrations"

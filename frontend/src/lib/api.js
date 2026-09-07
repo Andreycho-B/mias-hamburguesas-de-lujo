@@ -1,4 +1,20 @@
-const API_BASE = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' && window.location.hostname ? `http://${window.location.hostname}:8080/api/v1` : 'http://localhost:8080/api/v1');
+function resolveApiBase() {
+  let url = import.meta.env.VITE_API_URL;
+  if (!url) {
+    return typeof window !== 'undefined' && window.location.hostname
+      ? `http://${window.location.hostname}:8080/api/v1`
+      : 'http://localhost:8080/api/v1';
+  }
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    url = `https://${url}`;
+  }
+  if (!url.endsWith('/api/v1')) {
+    url = url.replace(/\/+$/, '') + '/api/v1';
+  }
+  return url;
+}
+
+export const API_BASE = resolveApiBase();
 
 function getAuthHeaders() {
   const token = typeof window !== 'undefined' ? localStorage.getItem('mias_access_token') : null;
