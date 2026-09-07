@@ -46,6 +46,28 @@ export async function staffLoginAPI(email, password) {
 }
 
 /**
+ * Autentica o registra cliente mediante OAuth / Google
+ */
+export async function oauthLoginAPI({ email, full_name, avatar_url, phone = '', habeas_data_accepted = true }) {
+  const res = await fetch(`${API_BASE}/auth/oauth`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email,
+      full_name: full_name || email.split('@')[0],
+      avatar_url: avatar_url || '',
+      phone: phone || '',
+      habeas_data_accepted: !!habeas_data_accepted
+    })
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Error al autenticar con Google');
+  }
+  return data;
+}
+
+/**
  * Registra una comanda en el backend
  */
 export async function createOrderAPI(orderPayload) {
@@ -243,3 +265,38 @@ export async function approveRedemptionAPI(redemptionID) {
   if (!res.ok) throw new Error(data.error || 'Error al aprobar redención');
   return data;
 }
+
+/**
+ * Endpoints Admin: Obtener métricas consolidadas de ventas, auditoría y rating
+ */
+export async function getAdminMetricsAPI() {
+  try {
+    const res = await fetch(`${API_BASE}/admin/metrics`, {
+      headers: getAuthHeaders()
+    });
+    if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.warn('[API] Error al cargar métricas de admin desde backend', err);
+    return null;
+  }
+}
+
+/**
+ * Endpoints Admin: Conmutar disponibilidad de stock de producto en carta
+ */
+export async function toggleProductStockAPI(productId, inStock) {
+  try {
+    const res = await fetch(`${API_BASE}/admin/catalog/products/${productId}/stock`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ is_in_stock: inStock })
+    });
+    if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.warn('[API] Error conmutando stock de producto en backend', err);
+    return null;
+  }
+}
+

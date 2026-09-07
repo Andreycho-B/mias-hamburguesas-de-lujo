@@ -1,227 +1,929 @@
 <script>
   import { store } from '../lib/store.svelte.js';
-  import { staffLoginAPI } from '../lib/api.js';
-  import { X, Shield, User, Lock, Mail, Loader2, AlertCircle } from 'lucide-svelte';
+  import { staffLoginAPI, oauthLoginAPI } from '../lib/api.js';
+  import { 
+    ChevronLeft,
+    Mail, 
+    Lock, 
+    User, 
+    Phone,
+    Eye, 
+    EyeOff, 
+    AlertCircle, 
+    Loader2,
+    Award,
+    ShoppingBag,
+    LogOut,
+    Check,
+    ArrowRight,
+    Utensils,
+    Sparkles,
+    MessageCircle,
+    MapPin
+  } from 'lucide-svelte';
 
-  let mode = $state('customer'); // 'customer', 'staff'
-  let email = $state('cajero@mias.com');
-  let password = $state('CajeroMias2026!');
-  let staffRoleSelect = $state('cashier'); // 'waiter', 'cashier', 'admin'
+  // Modos de vista: 'login' o 'register' (cuando no hay sesión activa)
+  let viewMode = $state('login');
+  
+  // Campos del formulario de autenticación
+  let email = $state('');
+  let password = $state('');
+  let fullName = $state('');
+  let rememberMe = $state(true);
+  let showPassword = $state(false);
+
+  // Estados de interacción
   let isLoading = $state(false);
   let errorMessage = $state('');
+  let profileSavedMessage = $state('');
 
-  function selectPreset(role) {
-    staffRoleSelect = role;
-    if (role === 'admin') {
-      email = 'admin@mias.com';
-      password = 'AdminMias2026!';
-    } else if (role === 'cashier') {
-      email = 'cajero@mias.com';
-      password = 'CajeroMias2026!';
-    } else if (role === 'waiter') {
-      email = 'mesero@mias.com';
-      password = 'MeseroMias2026!';
+  // Datos editables de perfil
+  let profilePhone = $state('');
+  let profileAddress = $state('');
+  let favoriteBread = $state('pretzel');
+  let notifyWhatsApp = $state(true);
+
+  // Sincronizar datos del usuario cuando se abre el perfil
+  $effect(() => {
+    if (store.user) {
+      profilePhone = store.user.phone || '';
+      profileAddress = store.user.address || 'Carrera 11 # 15-40, Sogamoso';
+      if (typeof window !== 'undefined') {
+        const savedBread = localStorage.getItem('mias_pref_bread');
+        if (savedBread) favoriteBread = savedBread;
+        const savedNotify = localStorage.getItem('mias_pref_notify');
+        if (savedNotify !== null) notifyWhatsApp = savedNotify === 'true';
+      }
+    }
+  });
+
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
+
+  // Bloquear el scroll del fondo (home) permitiendo scroll nativo completo dentro de la pantalla del modal
+  $effect(() => {
+    if (store.isAuthModalOpen) {
+      const prevOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+
+      return () => {
+        document.body.style.overflow = prevOverflow;
+      };
+    }
+  });
+
+  function resetFeedback() {
+    errorMessage = '';
+    profileSavedMessage = '';
+  }
+
+  function setMode(mode) {
+    viewMode = mode;
+    resetFeedback();
+  }
+
+  // Flujo Google OAuth (Píldora Gorda)
+  function handleGoogleClick() {
+    resetFeedback();
+
+    if (!googleClientId || googleClientId.trim() === '' || googleClientId.includes('TU_CLIENT_ID')) {
+      store.setUser({
+        id: 'usr-g-' + Math.random().toString(36).substring(2, 9),
+        full_name: 'Cliente Google',
+        email: 'cliente.google@gmail.com',
+        avatar_url: '',
+        role: 'customer'
+      });
+      return;
+    }
+
+    if (typeof window === 'undefined' || !window.google?.accounts?.oauth2) {
+      errorMessage = 'Conectando con Google, intenta nuevamente en un momento.';
+      return;
+    }
+
+    isLoading = true;
+
+    try {
+      const client = window.google.accounts.oauth2.initTokenClient({
+        client_id: googleClientId,
+        scope: 'email profile openid',
+        callback: async (tokenResponse) => {
+          if (tokenResponse.error) {
+            isLoading = false;
+            errorMessage = 'Error en autenticación de Google';
+            return;
+          }
+
+          try {
+            const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+              headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
+            });
+
+            if (!userInfoRes.ok) throw new Error('Error al obtener perfil');
+            const googleProfile = await userInfoRes.json();
+
+            const authPayload = {
+              email: googleProfile.email,
+              full_name: googleProfile.name || googleProfile.email.split('@')[0],
+              avatar_url: googleProfile.picture || '',
+              phone: '',
+              habeas_data_accepted: true
+            };
+
+            let backendData = null;
+            try {
+              backendData = await oauthLoginAPI(authPayload);
+            } catch (apiErr) {
+              console.warn('[Google OAuth] Fallback local', apiErr);
+            }
+
+            if (backendData?.tokens) {
+              localStorage.setItem('mias_access_token', backendData.tokens.access_token);
+              localStorage.setItem('mias_refresh_token', backendData.tokens.refresh_token);
+              store.setUser(backendData.user);
+            } else {
+              store.setUser({
+                id: 'usr-g-' + Math.random().toString(36).substring(2, 9),
+                full_name: googleProfile.name,
+                email: googleProfile.email,
+                avatar_url: googleProfile.picture,
+                role: 'customer'
+              });
+            }
+          } catch (err) {
+            errorMessage = err.message || 'Error al procesar login de Google';
+          } finally {
+            isLoading = false;
+          }
+        }
+      });
+
+      client.requestAccessToken();
+    } catch (err) {
+      isLoading = false;
+      errorMessage = 'Error iniciando conexión con Google';
     }
   }
 
-  function handleGoogleLogin() {
-    store.setUser({
-      id: 'usr-' + Math.random().toString(36).substring(2, 9),
-      full_name: 'Cliente Mías',
-      email: 'cliente@gmail.com',
-      role: 'customer'
-    });
-    store.isAuthModalOpen = false;
-  }
+  // Envío Unificado: Maneja acceso transparente para personal y clientes
+  async function handleLoginSubmit() {
+    const cleanEmail = email.trim();
+    const cleanPassword = password.trim();
 
-  async function handleStaffLogin() {
-    if (!email.trim() || !password.trim()) {
-      errorMessage = 'Por favor ingresa usuario y contraseña';
+    if (!cleanEmail || !cleanPassword) {
+      errorMessage = 'Ingresa tu correo y contraseña';
+      return;
+    }
+
+    if (viewMode === 'register' && !fullName.trim()) {
+      errorMessage = 'Ingresa tu nombre completo';
       return;
     }
 
     isLoading = true;
     errorMessage = '';
 
-    try {
-      const data = await staffLoginAPI(email.trim(), password.trim());
-      if (data && data.tokens) {
-        localStorage.setItem('mias_access_token', data.tokens.access_token);
-        localStorage.setItem('mias_refresh_token', data.tokens.refresh_token);
-        store.setUser(data.user);
-        store.staffRole = data.user.role;
-      } else {
-        // Fallback local
-        store.setUser({
-          id: 'staff-' + staffRoleSelect,
-          full_name: staffRoleSelect === 'admin' ? 'Administrador General' : staffRoleSelect === 'cashier' ? 'Cajero Principal' : 'Mesero Sala',
-          email: email.trim(),
-          role: staffRoleSelect
-        });
-        store.staffRole = staffRoleSelect;
+    if (viewMode === 'register') {
+      try {
+        const authData = await oauthLoginAPI({
+          email: cleanEmail,
+          full_name: fullName.trim(),
+          avatar_url: '',
+          phone: '',
+          habeas_data_accepted: true
+        }).catch(() => null);
+
+        if (authData?.tokens) {
+          localStorage.setItem('mias_access_token', authData.tokens.access_token);
+          localStorage.setItem('mias_refresh_token', authData.tokens.refresh_token);
+          store.setUser(authData.user);
+        } else {
+          store.setUser({
+            id: 'usr-' + Math.random().toString(36).substring(2, 9),
+            full_name: fullName.trim(),
+            email: cleanEmail,
+            role: 'customer'
+          });
+        }
+      } catch (err) {
+        errorMessage = err.message || 'Error al crear la cuenta';
+      } finally {
+        isLoading = false;
       }
-      store.currentView = 'staff';
-      store.isAuthModalOpen = false;
+      return;
+    }
+
+    // Modo Login
+    try {
+      const staffData = await staffLoginAPI(cleanEmail, cleanPassword).catch(() => null);
+
+      if (staffData && staffData.user && (staffData.user.role === 'waiter' || staffData.user.role === 'cashier' || staffData.user.role === 'admin')) {
+        if (staffData.tokens) {
+          localStorage.setItem('mias_access_token', staffData.tokens.access_token);
+          localStorage.setItem('mias_refresh_token', staffData.tokens.refresh_token);
+        }
+        store.setUser(staffData.user);
+        store.staffRole = staffData.user.role;
+        store.currentView = 'staff';
+        store.isAuthModalOpen = false;
+        return;
+      }
+
+      // Fallback staff offline demo
+      if (cleanEmail === 'admin@mias.com' && cleanPassword === 'AdminMias2026!') {
+        store.setUser({ id: 'staff-admin', full_name: 'Administrador General', email: cleanEmail, role: 'admin' });
+        store.staffRole = 'admin';
+        store.currentView = 'staff';
+        store.isAuthModalOpen = false;
+        return;
+      }
+      if (cleanEmail === 'cajero@mias.com' && cleanPassword === 'CajeroMias2026!') {
+        store.setUser({ id: 'staff-cashier', full_name: 'Cajero Principal', email: cleanEmail, role: 'cashier' });
+        store.staffRole = 'cashier';
+        store.currentView = 'staff';
+        store.isAuthModalOpen = false;
+        return;
+      }
+      if (cleanEmail === 'mesero@mias.com' && cleanPassword === 'MeseroMias2026!') {
+        store.setUser({ id: 'staff-waiter', full_name: 'Mesero Sala', email: cleanEmail, role: 'waiter' });
+        store.staffRole = 'waiter';
+        store.currentView = 'staff';
+        store.isAuthModalOpen = false;
+        return;
+      }
+
+      // Autenticar cliente
+      const clientData = await oauthLoginAPI({
+        email: cleanEmail,
+        full_name: cleanEmail.split('@')[0],
+        avatar_url: '',
+        phone: '',
+        habeas_data_accepted: true
+      }).catch(() => null);
+
+      if (clientData?.tokens) {
+        localStorage.setItem('mias_access_token', clientData.tokens.access_token);
+        localStorage.setItem('mias_refresh_token', clientData.tokens.refresh_token);
+        store.setUser(clientData.user);
+      } else {
+        store.setUser({
+          id: 'usr-' + Math.random().toString(36).substring(2, 9),
+          full_name: cleanEmail.split('@')[0],
+          email: cleanEmail,
+          role: 'customer'
+        });
+      }
     } catch (err) {
-      errorMessage = err.message || 'Error al autenticar con el servidor';
+      errorMessage = 'Credenciales no válidas';
     } finally {
       isLoading = false;
     }
   }
+
+  function handleSaveProfile() {
+    if (!store.user) return;
+    const updatedUser = { 
+      ...store.user, 
+      phone: profilePhone.trim(),
+      address: profileAddress.trim()
+    };
+    store.setUser(updatedUser);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('mias_pref_bread', favoriteBread);
+      localStorage.setItem('mias_pref_notify', String(notifyWhatsApp));
+    }
+    profileSavedMessage = 'Datos guardados correctamente';
+    setTimeout(() => {
+      profileSavedMessage = '';
+    }, 2500);
+  }
+
+  function handleLogout() {
+    store.logout();
+    setMode('login');
+  }
+
+  function handleBack() {
+    if (!store.user && viewMode === 'register') {
+      viewMode = 'login';
+    } else {
+      store.isAuthModalOpen = false;
+    }
+  }
+
+  function goToStamps() {
+    store.isAuthModalOpen = false;
+    store.currentView = 'stamps';
+  }
 </script>
 
 {#if store.isAuthModalOpen}
-  <!-- svelte-ignore a11y_click_events_have_key_events -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <!-- VISTA A PANTALLA COMPLETA RESPONSIVA CON data-lenis-prevent (GARANTIZA SCROLL FLUIDO EN MÓVIL Y DESKTOP) -->
   <div 
-    class="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-[12px] sm:p-5 md:p-6"
-    onclick={() => store.isAuthModalOpen = false}
+    data-lenis-prevent
+    onwheel={(e) => e.stopPropagation()}
+    ontouchmove={(e) => e.stopPropagation()}
+    class="fixed inset-0 z-50 w-full h-full min-h-[100dvh] bg-[#FAF6EE] text-[#0C0C0E] overflow-y-auto overscroll-contain"
+    style="touch-action: pan-y; -webkit-overflow-scrolling: touch; padding-top: max(1rem, env(safe-area-inset-top, 0px)); padding-bottom: max(5rem, calc(env(safe-area-inset-bottom, 0px) + 3rem)); padding-left: max(1rem, env(safe-area-inset-left, 0px)); padding-right: max(1rem, env(safe-area-inset-right, 0px));"
   >
-    <div 
-      class="bg-char-card w-full max-w-md rounded-[42px] sm:rounded-[48px] border hairline-dark overflow-hidden shadow-[0_25px_60px_-15px_rgba(0,0,0,0.6)] p-6 sm:p-8 relative"
-      onclick={(e) => e.stopPropagation()}
-    >
-      <button 
-        onclick={() => store.isAuthModalOpen = false}
-        class="absolute top-5 right-5 p-2 rounded-full hover:bg-white/5 text-ash hover:text-bone"
-      >
-        <X class="w-5 h-5" />
-      </button>
-
-      <div class="text-center mb-6">
-        <img 
-          src="/imagenes/marca/isotipo.webp" 
-          alt="Mías" 
-          class="w-12 h-12 mx-auto mb-2"
-        />
-        <h3 class="font-serif text-3xl font-bold text-bone">Iniciar Sesión</h3>
-        <p class="text-xs text-ash mt-1">Accede a tu perfil o terminal operativa</p>
-      </div>
-
-      <!-- Selector Modo Cliente vs Personal -->
-      <div class="grid grid-cols-2 gap-2 p-1 rounded-xl bg-char border hairline-dark mb-6 text-xs font-mono">
-        <button
-          onclick={() => mode = 'customer'}
-          class="py-2 rounded-lg font-bold transition-all {mode === 'customer' ? 'bg-gold text-char shadow' : 'text-ash hover:text-bone'}"
+    <!-- Contenedor con flujo vertical natural -->
+    <div data-lenis-prevent class="w-full max-w-md mx-auto py-2 sm:py-4 flex flex-col space-y-6">
+      
+      <!-- 1. Cabecera Superior: Botón Atrás Circular Blanco Plano del Menú -->
+      <header class="flex items-center justify-between w-full pb-1 shrink-0">
+        <button 
+          type="button"
+          onclick={handleBack}
+          class="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white border border-black/5 flex items-center justify-center text-[#3A3A3C] hover:bg-black/5 active:scale-90 transition-all cursor-pointer group shrink-0"
+          aria-label="Volver"
         >
-          Cliente
+          <ChevronLeft class="w-6 h-6 sm:w-7 sm:h-7 stroke-[2.2] -translate-x-0.5 group-hover:-translate-x-1 transition-transform" />
         </button>
-        <button
-          onclick={() => mode = 'staff'}
-          class="py-2 rounded-lg font-bold transition-all {mode === 'staff' ? 'bg-gold text-char shadow' : 'text-ash hover:text-bone'}"
-        >
-          Personal / Caja
-        </button>
-      </div>
 
-      {#if mode === 'customer'}
-        <div class="space-y-4 text-center">
-          <p class="text-xs text-ash leading-relaxed">
-            Inicia sesión con Google para acumular sellos, consultar tus comandas y redimir tu hamburguesa gratis.
-          </p>
+        <span class="font-display font-extrabold text-base sm:text-lg text-[#0C0C0E] tracking-tight">
+          {store.user ? 'Mi Perfil' : 'Acceso Mías'}
+        </span>
 
+        <!-- Botón Salir o Isotipo -->
+        {#if store.user}
           <button
-            onclick={handleGoogleLogin}
-            class="w-full py-3.5 px-6 rounded-full bg-white hover:bg-cream text-char font-mono font-bold text-xs flex items-center justify-center gap-3 transition-colors shadow-lg"
+            type="button"
+            onclick={handleLogout}
+            class="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white border border-black/5 flex items-center justify-center text-[#8E8E93] hover:text-[#FF2400] active:scale-90 transition-all cursor-pointer shrink-0"
+            title="Cerrar sesión"
+            aria-label="Cerrar sesión"
           >
-            <svg class="w-4 h-4" viewBox="0 0 24 24">
-              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
-              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
-            </svg>
-            Continuar con Google
+            <LogOut class="w-5 h-5 stroke-[2]" />
           </button>
-        </div>
-      {:else}
-        <!-- Preajustes Rápidos de Demostración y Auditoría -->
-        <div class="mb-4">
-          <span class="text-[10px] font-mono uppercase tracking-widest text-ash block mb-1.5">Acceso Rápido Auditores / Staff:</span>
-          <div class="grid grid-cols-3 gap-1.5">
-            <button
-              type="button"
-              onclick={() => selectPreset('cashier')}
-              class="py-1 px-2 rounded-lg text-[10px] font-mono border transition-colors {staffRoleSelect === 'cashier' ? 'bg-gold/15 border-gold text-gold font-bold' : 'bg-char border-white/5 text-ash hover:text-bone'}"
-            >
-              Caja
-            </button>
-            <button
-              type="button"
-              onclick={() => selectPreset('waiter')}
-              class="py-1 px-2 rounded-lg text-[10px] font-mono border transition-colors {staffRoleSelect === 'waiter' ? 'bg-gold/15 border-gold text-gold font-bold' : 'bg-char border-white/5 text-ash hover:text-bone'}"
-            >
-              Mesero
-            </button>
-            <button
-              type="button"
-              onclick={() => selectPreset('admin')}
-              class="py-1 px-2 rounded-lg text-[10px] font-mono border transition-colors {staffRoleSelect === 'admin' ? 'bg-gold/15 border-gold text-gold font-bold' : 'bg-char border-white/5 text-ash hover:text-bone'}"
-            >
-              Admin
-            </button>
+        {:else}
+          <div class="w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center shrink-0">
+            <img 
+              src="/imagenes/marca/isotipo.webp" 
+              alt="Mías" 
+              class="w-7 h-7 object-contain opacity-85"
+            />
+          </div>
+        {/if}
+      </header>
+
+      {#if store.user}
+        <!-- ========================================================================= -->
+        <!-- CASO A: PERFIL DE USUARIO                                                 -->
+        <!-- ========================================================================= -->
+        
+        <!-- SECCIÓN 1: TARJETA DE PERFIL HERO (EXACTA A LA REFERENCIA CON PALETA MÍAS) -->
+        <div class="bg-white border border-black/10 rounded-[38px] overflow-hidden shadow-none">
+          
+          <!-- Banner Superior Gastronómico con Botón Tipo "Follow +" -->
+          <div class="h-40 sm:h-48 w-full relative bg-[#0C0C0E] overflow-hidden">
+            <img 
+              src="/imagenes/local/restaurante_mias_desde_dentro.webp" 
+              alt="Ambiente Mías" 
+              class="w-full h-full object-cover opacity-80"
+            />
+            <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-black/10"></div>
+
+            <!-- Botón Flotante Superior Derecho (Fiel a la referencia "Follow +") -->
+            <div class="absolute top-4 right-4">
+              <span class="px-4 py-1.5 rounded-full bg-white/95 backdrop-blur-md border border-black/10 text-xs font-mono font-bold text-[#0C0C0E] flex items-center gap-1.5 shadow-xs">
+                <span>Club Mías</span>
+                <span class="text-[#FF2400] font-black">★</span>
+              </span>
+            </div>
+          </div>
+
+          <!-- Avatar Superpuesto y Barra de Experiencia / Nivel "exp. ||||||||||||" -->
+          <div class="px-6 pt-0 pb-6 -mt-14 sm:-mt-16 relative z-10">
+            <div class="flex items-end justify-between gap-3">
+              <!-- Avatar Circular con Anillo de Acento Rojo Vivo (#FF2400) -->
+              <div class="w-24 h-24 sm:w-26 sm:h-26 rounded-full border-4 border-white overflow-hidden bg-[#0C0C0E] text-white flex items-center justify-center font-display font-black text-2xl sm:text-3xl shrink-0 ring-2 ring-[#FF2400]/50 shadow-sm">
+                {#if store.user.avatar_url}
+                  <img 
+                    src={store.user.avatar_url} 
+                    alt={store.user.full_name} 
+                    class="w-full h-full object-cover"
+                  />
+                {:else}
+                  <span>{store.user.full_name?.charAt(0).toUpperCase() || 'M'}</span>
+                {/if}
+              </div>
+
+              <!-- Indicador "exp. ||||||||||||" fiel a la imagen de referencia -->
+              <div class="pb-1 text-right">
+                <div class="flex items-center gap-1.5 justify-end">
+                  <span class="text-xs font-mono text-[#8E8E93] lowercase">exp.</span>
+                  <div class="flex items-center gap-0.5 sm:gap-1">
+                    {#each Array(16) as _, i}
+                      <div 
+                        class="w-1 sm:w-1.5 h-3.5 rounded-full transition-all {i < Math.min(16, (store.stampBalance * 2) || 4) ? 'bg-[#FF2400]' : 'bg-[#EDE8DC]'}"
+                      ></div>
+                    {/each}
+                  </div>
+                </div>
+                <span class="text-[10px] font-mono uppercase text-[#8E8E93] tracking-widest block mt-1.5">
+                  Nivel • {store.stampBalance >= 10 ? 'VIP Gold' : (store.stampBalance >= 5 ? 'Sibarita' : 'Comensal')}
+                </span>
+              </div>
+            </div>
+
+            <!-- Nombre y Biografía del Comensal -->
+            <div class="mt-4">
+              <h1 class="font-display font-black text-2xl sm:text-3xl text-[#0C0C0E] tracking-tight leading-tight">
+                {store.user.full_name}
+              </h1>
+              <p class="text-xs sm:text-sm text-[#8E8E93] font-medium mt-1 leading-snug">
+                Comensal de Honor • Experiencia Gastronómica al Carbón
+              </p>
+            </div>
+
+            <!-- Fila de 3 Métricas en Caja Píldora (Likes / Posts / Views de la referencia) -->
+            <div class="mt-5 p-3.5 sm:p-4 rounded-2xl bg-[#EDE8DC]/50 border border-black/5 grid grid-cols-3 text-center divide-x divide-black/5">
+              <div>
+                <span class="font-display font-extrabold text-lg sm:text-xl text-[#FF2400] block leading-none">
+                  {store.stampBalance}
+                </span>
+                <span class="text-[10px] font-mono uppercase text-[#8E8E93] tracking-wider block mt-1.5">
+                  Sellos
+                </span>
+              </div>
+              <div>
+                <span class="font-display font-extrabold text-lg sm:text-xl text-[#0C0C0E] block leading-none">
+                  {store.activeOrders.length || 0}
+                </span>
+                <span class="text-[10px] font-mono uppercase text-[#8E8E93] tracking-wider block mt-1.5">
+                  Comandas
+                </span>
+              </div>
+              <div>
+                <span class="font-display font-extrabold text-lg sm:text-xl text-[#0C0C0E] block leading-none">
+                  {store.stampBalance >= 10 ? '1 Gratis' : `${10 - (store.stampBalance % 10)} faltan`}
+                </span>
+                <span class="text-[10px] font-mono uppercase text-[#8E8E93] tracking-wider block mt-1.5">
+                  Meta Gratis
+                </span>
+              </div>
+            </div>
+
+            <!-- Accesos Rápidos de Redes y Contacto (Pie de la tarjeta en la referencia) -->
+            <div class="mt-4 pt-4 border-t border-black/5 grid grid-cols-3 divide-x divide-black/5 text-center text-[#8E8E93]">
+              <a 
+                href="https://instagram.com" 
+                target="_blank" 
+                rel="noreferrer"
+                class="flex items-center justify-center gap-1.5 text-xs font-mono hover:text-[#FF2400] transition-colors py-1 cursor-pointer"
+                title="Instagram @mias"
+              >
+                <svg class="w-4 h-4 fill-none stroke-current stroke-2 shrink-0" viewBox="0 0 24 24">
+                  <rect width="20" height="20" x="2" y="2" rx="5" ry="5"/>
+                  <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
+                  <line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/>
+                </svg>
+                <span>@mias</span>
+              </a>
+              <a 
+                href="https://wa.me/573212520881" 
+                target="_blank" 
+                rel="noreferrer"
+                class="flex items-center justify-center gap-1.5 text-xs font-mono hover:text-[#FF2400] transition-colors py-1 cursor-pointer"
+                title="WhatsApp de Atención"
+              >
+                <svg class="w-4 h-4 fill-none stroke-current stroke-2 shrink-0" viewBox="0 0 24 24">
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                </svg>
+                <span>WhatsApp</span>
+              </a>
+              <span class="flex items-center justify-center gap-1.5 text-xs font-mono text-[#8E8E93] py-1">
+                <MapPin class="w-3.5 h-3.5 text-[#FF2400] shrink-0" />
+                <span>Sogamoso</span>
+              </span>
+            </div>
           </div>
         </div>
 
-        {#if errorMessage}
-          <div class="p-3 rounded-xl bg-ember/15 border border-ember/30 text-ember-light text-xs flex items-center gap-2 mb-4 font-mono">
-            <AlertCircle class="w-4 h-4 shrink-0" />
-            <span>{errorMessage}</span>
+        <!-- Acceso Directo a Terminal para Personal (Staff) -->
+        {#if store.user.role === 'admin' || store.user.role === 'cashier' || store.user.role === 'waiter'}
+          <div class="p-5 rounded-[28px] bg-white border border-black/10 text-center space-y-2">
+            <span class="text-xs font-mono font-bold uppercase text-[#FF2400] block tracking-wider">
+              Turno Operativo Activo ({store.user.role})
+            </span>
+            <button
+              type="button"
+              onclick={() => { store.isAuthModalOpen = false; store.currentView = 'staff'; }}
+              class="w-full min-h-[56px] rounded-full bg-[#0C0C0E] hover:bg-black text-white font-display font-extrabold text-base flex items-center justify-center gap-2 active:scale-[0.97] transition-all cursor-pointer"
+            >
+              <span>Acceder a la Terminal</span>
+              <ArrowRight class="w-5 h-5" />
+            </button>
           </div>
         {/if}
 
-        <form onsubmit={(e) => { e.preventDefault(); handleStaffLogin(); }} class="space-y-4">
-          <div>
-            <label for="am-role" class="text-xs font-mono uppercase tracking-wider text-ash block mb-1">Puesto de Operación</label>
-            <select
-              id="am-role"
-              bind:value={staffRoleSelect}
-              onchange={(e) => selectPreset(e.target.value)}
-              class="w-full px-4 py-2.5 rounded-xl bg-char border hairline-dark text-bone font-mono text-xs focus:outline-none focus:border-gold"
-            >
-              <option value="waiter">Mesero (Sala / Sellos)</option>
-              <option value="cashier">Cajero (Caja Central)</option>
-              <option value="admin">Administrador (Control Total BI)</option>
-            </select>
+        <!-- SECCIÓN 2: FIDELIZACIÓN (PROGRAMA DE SELLOS) -->
+        <div class="bg-white border border-black/10 rounded-[36px] p-6 sm:p-7 space-y-5 shadow-none">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <Award class="w-5 h-5 text-[#FF2400]" />
+              <h2 class="font-display font-extrabold text-xl sm:text-2xl text-[#0C0C0E] tracking-tight">
+                Programa de Sellos
+              </h2>
+            </div>
+            <span class="min-h-[32px] px-3.5 rounded-full bg-[#EDE8DC] text-xs font-mono font-bold text-[#0C0C0E] flex items-center">
+              {store.stampBalance} de 10 Sellos
+            </span>
           </div>
 
-          <div>
-            <label for="am-email" class="text-xs font-mono uppercase tracking-wider text-ash block mb-1">Correo Electrónico</label>
-            <input 
-              id="am-email"
-              type="email"
-              bind:value={email}
-              placeholder="personal@mias.com"
-              class="w-full px-4 py-2.5 rounded-xl bg-char border hairline-dark text-bone text-xs focus:outline-none focus:border-gold"
-              required
-            />
+          <!-- Leyenda de Estados de Sellos -->
+          <div class="flex items-center justify-center gap-6 py-1 border-y border-black/5 text-xs font-medium">
+            <div class="flex items-center gap-2">
+              <div class="w-4 h-4 rounded-full bg-[#FF2400] flex items-center justify-center text-white">
+                <Check class="w-2.5 h-2.5 stroke-[3]" />
+              </div>
+              <span class="text-[#0C0C0E]">Acumulados ({store.stampBalance})</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="w-4 h-4 rounded-full bg-[#EDE8DC] border border-black/15"></div>
+              <span class="text-[#8E8E93]">Pendientes ({Math.max(0, 10 - store.stampBalance)})</span>
+            </div>
           </div>
 
-          <div>
-            <label for="am-pass" class="text-xs font-mono uppercase tracking-wider text-ash block mb-1">Contraseña</label>
-            <input 
-              id="am-pass"
-              type="password"
-              bind:value={password}
-              placeholder="••••••••"
-              class="w-full px-4 py-2.5 rounded-xl bg-char border hairline-dark text-bone text-xs focus:outline-none focus:border-gold"
-              required
-            />
+          <!-- Grilla Táctil de 10 Sellos (2 Filas de 5 Círculos Grandes) -->
+          <div class="grid grid-cols-5 gap-2.5 py-1">
+            {#each Array(10) as _, i}
+              <div class="flex flex-col items-center gap-1">
+                <div 
+                  class="w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center font-display font-extrabold text-sm transition-all {i < store.stampBalance ? 'bg-[#FF2400] text-white shadow-xs' : 'bg-[#EDE8DC] text-[#8E8E93] border border-black/10'}"
+                >
+                  {#if i < store.stampBalance}
+                    <Check class="w-5 h-5 stroke-[2.5]" />
+                  {:else}
+                    <span>0{i + 1}</span>
+                  {/if}
+                </div>
+                <span class="text-[10px] font-mono text-[#8E8E93]">S-{i + 1}</span>
+              </div>
+            {/each}
           </div>
+
+          <div class="p-4 rounded-2xl bg-[#EDE8DC]/50 border border-black/5">
+            <p class="text-xs text-[#0C0C0E] leading-relaxed">
+              {#if store.stampBalance >= 10}
+                <strong class="text-emerald-700 font-bold block mb-1">¡Felicidades! Has completado tu cartilla.</strong>
+                Pide tu Hamburguesa Original gratis con tu mesero o en tu próximo pedido en línea.
+              {:else}
+                Acumula sellos por cada hamburguesa registrada en tus comandas. Te faltan <strong class="text-[#FF2400] font-bold">{10 - store.stampBalance} sellos</strong> para tu hamburguesa gratis.
+              {/if}
+            </p>
+          </div>
+
+          <!-- Botón Fat-Finger para ir a la Cartilla Completa -->
+          <button
+            type="button"
+            onclick={goToStamps}
+            class="w-full min-h-[60px] sm:min-h-[64px] rounded-full bg-[#FF2400] hover:bg-[#E02000] active:scale-[0.97] text-white font-display font-extrabold text-base sm:text-lg tracking-tight transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer pt-0.5"
+          >
+            <span>Ver Pasaporte y Redimir</span>
+            <ArrowRight class="w-5 h-5" />
+          </button>
+        </div>
+
+        <!-- SECCIÓN 3: COMANDAS Y PEDIDOS RECIENTES -->
+        <div class="bg-white border border-black/10 rounded-[36px] p-6 sm:p-7 space-y-4 shadow-none">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <ShoppingBag class="w-5 h-5 text-[#0C0C0E]" />
+              <h2 class="font-display font-extrabold text-xl text-[#0C0C0E]">Mis Comandas</h2>
+            </div>
+            <span class="text-xs font-mono font-bold text-[#8E8E93]">
+              {store.activeOrders.length} {store.activeOrders.length === 1 ? 'orden' : 'órdenes'}
+            </span>
+          </div>
+
+          {#if store.activeOrders.length > 0}
+            <div class="space-y-2.5 pt-1">
+              {#each store.activeOrders.slice(0, 3) as order}
+                <div class="p-4 rounded-2xl bg-[#EDE8DC] flex items-center justify-between">
+                  <div>
+                    <span class="font-mono text-xs font-bold text-[#FF2400]">#{order.code}</span>
+                    <p class="text-sm text-[#0C0C0E] font-display font-extrabold mt-0.5">${order.total?.toLocaleString('es-CO')}</p>
+                  </div>
+                  <span class="text-xs font-mono font-bold px-3 py-1 rounded-full bg-white border border-black/10 text-[#0C0C0E]">
+                    {order.status || 'En cocina'}
+                  </span>
+                </div>
+              {/each}
+            </div>
+          {:else}
+            <div class="p-5 rounded-2xl bg-[#EDE8DC]/40 border border-black/5 text-center space-y-3">
+              <p class="text-xs text-[#8E8E93]">
+                No tienes comandas registradas en este dispositivo actualmente.
+              </p>
+              <button
+                type="button"
+                onclick={() => { store.isAuthModalOpen = false; store.currentView = 'menu'; }}
+                class="min-h-[46px] px-6 rounded-full bg-[#0C0C0E] text-white text-xs font-display font-bold hover:bg-black active:scale-95 transition-all cursor-pointer"
+              >
+                Explorar la Carta
+              </button>
+            </div>
+          {/if}
+        </div>
+
+        <!-- SECCIÓN 4: DATOS DE CONTACTO Y ENTREGA A DOMICILIO -->
+        <div class="bg-white border border-black/10 rounded-[36px] p-6 sm:p-7 space-y-4 shadow-none">
+          <div class="flex items-center gap-2">
+            <Phone class="w-5 h-5 text-[#FF2400]" />
+            <h2 class="font-display font-extrabold text-xl text-[#0C0C0E]">
+              Contacto y Domicilio
+            </h2>
+          </div>
+          <p class="text-xs text-[#8E8E93] leading-relaxed">
+            Recibe avisos de estado por WhatsApp y registra tu dirección habitual para entregas a domicilio en Sogamoso.
+          </p>
+
+          <div class="space-y-3 pt-1">
+            <!-- Teléfono WhatsApp -->
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none text-[#0C0C0E]">
+                <Phone class="w-5 h-5 stroke-[2]" />
+              </div>
+              <input 
+                type="tel"
+                bind:value={profilePhone}
+                placeholder="Teléfono WhatsApp (ej. 321 252 0881)"
+                class="w-full min-h-[58px] rounded-full py-4 pl-14 pr-5 bg-[#EDE8DC] border border-black/10 text-[#0C0C0E] placeholder:text-[#8E8E93] text-base font-sans focus:outline-none focus:border-black/30 transition-colors"
+              />
+            </div>
+
+            <!-- Dirección habitual -->
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none text-[#0C0C0E]">
+                <MapPin class="w-5 h-5 stroke-[2]" />
+              </div>
+              <input 
+                type="text"
+                bind:value={profileAddress}
+                placeholder="Dirección o barrio (ej. Carrera 11 # 15-40)"
+                class="w-full min-h-[58px] rounded-full py-4 pl-14 pr-5 bg-[#EDE8DC] border border-black/10 text-[#0C0C0E] placeholder:text-[#8E8E93] text-base font-sans focus:outline-none focus:border-black/30 transition-colors"
+              />
+            </div>
+          </div>
+
+          {#if profileSavedMessage}
+            <span class="text-xs font-bold text-emerald-700 block text-center py-1">{profileSavedMessage}</span>
+          {/if}
 
           <button
-            type="submit"
-            disabled={isLoading}
-            class="w-full py-3 px-6 rounded-full bg-gold hover:bg-gold-light text-char font-mono font-bold text-xs uppercase tracking-wider transition-colors shadow-gold mt-2 flex items-center justify-center gap-2 disabled:opacity-50"
+            type="button"
+            onclick={handleSaveProfile}
+            class="w-full min-h-[56px] rounded-full bg-[#0C0C0E] hover:bg-black text-white font-display font-extrabold text-sm active:scale-[0.97] transition-all cursor-pointer"
           >
-            {#if isLoading}
-              <Loader2 class="w-4 h-4 animate-spin" />
-              <span>Verificando Credenciales...</span>
-            {:else}
-              <span>Acceder a la Terminal</span>
-            {/if}
+            Guardar Datos
           </button>
-        </form>
+        </div>
+
+        <!-- SECCIÓN 5: PREFERENCIAS GASTRONÓMICAS -->
+        <div class="bg-white border border-black/10 rounded-[36px] p-6 sm:p-7 space-y-4 shadow-none">
+          <div class="flex items-center gap-2">
+            <Utensils class="w-5 h-5 text-[#FF2400]" />
+            <h2 class="font-display font-extrabold text-xl text-[#0C0C0E]">
+              Preferencias del Comensal
+            </h2>
+          </div>
+          <p class="text-xs text-[#8E8E93]">
+            Personaliza tu experiencia culinaria para agilizar tus futuras comandas.
+          </p>
+
+          <div class="space-y-3 pt-1">
+            <!-- Selección de Pan Predilecto -->
+            <div>
+              <span class="text-xs font-mono font-bold text-[#0C0C0E] block mb-2">
+                Pan Artesanal Favorito
+              </span>
+              <div class="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onclick={() => favoriteBread = 'pretzel'}
+                  class="min-h-[52px] p-3 rounded-2xl border text-xs font-display font-bold transition-all text-center cursor-pointer {favoriteBread === 'pretzel' ? 'bg-[#FF2400] text-white border-[#FF2400]' : 'bg-[#EDE8DC] text-[#0C0C0E] border-black/10'}"
+                >
+                  Pan Pretzel (Insignia)
+                </button>
+                <button
+                  type="button"
+                  onclick={() => favoriteBread = 'brioche'}
+                  class="min-h-[52px] p-3 rounded-2xl border text-xs font-display font-bold transition-all text-center cursor-pointer {favoriteBread === 'brioche' ? 'bg-[#FF2400] text-white border-[#FF2400]' : 'bg-[#EDE8DC] text-[#0C0C0E] border-black/10'}"
+                >
+                  Pan Brioche Dorado
+                </button>
+              </div>
+            </div>
+
+            <!-- Notificaciones WhatsApp -->
+            <div class="pt-2 flex items-center justify-between p-3.5 rounded-2xl bg-[#EDE8DC]/50 border border-black/5">
+              <div>
+                <span class="text-xs font-bold text-[#0C0C0E] block">Avisos de Comanda por WhatsApp</span>
+                <span class="text-[11px] text-[#8E8E93]">Te escribimos cuando tu smash esté lista</span>
+              </div>
+              <button
+                type="button"
+                onclick={() => notifyWhatsApp = !notifyWhatsApp}
+                class="w-12 h-7 rounded-full transition-colors cursor-pointer relative p-0.5 {notifyWhatsApp ? 'bg-[#FF2400]' : 'bg-black/20'}"
+                aria-label="Alternar notificaciones WhatsApp"
+              >
+                <div class="w-6 h-6 rounded-full bg-white transition-transform {notifyWhatsApp ? 'translate-x-5' : 'translate-x-0'}"></div>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECCIÓN 6: CERRAR SESIÓN (FAT-FINGER) -->
+        <div class="pt-2 pb-6">
+          <button
+            type="button"
+            onclick={handleLogout}
+            class="w-full min-h-[60px] sm:min-h-[64px] rounded-full bg-white hover:bg-[#FAF6EE] text-[#8E8E93] hover:text-[#FF2400] active:scale-[0.97] border border-black/15 font-display font-extrabold text-base tracking-tight transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <LogOut class="w-5 h-5" />
+            <span>Cerrar Sesión</span>
+          </button>
+        </div>
+
+      {:else}
+        <!-- ========================================================================= -->
+        <!-- CASO B: USUARIO NO AUTENTICADO -> LOGIN / REGISTRO                       -->
+        <!-- ========================================================================= -->
+        <main class="w-full py-4 space-y-6 flex-1">
+          
+          <!-- Título y Subtítulo Fieles a la Referencia -->
+          <div>
+            {#if viewMode === 'register'}
+              <h1 class="font-display font-extrabold text-3xl sm:text-4xl text-[#0C0C0E] tracking-tight leading-none">
+                Crear Cuenta
+              </h1>
+              <p class="text-sm text-[#8E8E93] mt-2 font-medium">
+                Regístrate para continuar
+              </p>
+            {:else}
+              <h1 class="font-display font-extrabold text-3xl sm:text-4xl text-[#0C0C0E] tracking-tight leading-none">
+                ¡Bienvenido de nuevo!
+              </h1>
+              <p class="text-sm text-[#8E8E93] mt-2 font-medium">
+                Inicia sesión para continuar
+              </p>
+            {/if}
+          </div>
+
+          <!-- Alerta de Error (Diseño Plano) -->
+          {#if errorMessage}
+            <div class="p-4 rounded-2xl bg-[#FF2400]/10 border border-[#FF2400]/30 text-[#FF2400] text-sm flex items-center gap-3 mb-6 font-medium">
+              <AlertCircle class="w-5 h-5 shrink-0 stroke-[2.5]" />
+              <span>{errorMessage}</span>
+            </div>
+          {/if}
+
+          <form onsubmit={(e) => { e.preventDefault(); handleLoginSubmit(); }} class="space-y-4">
+            
+            {#if viewMode === 'register'}
+              <!-- Nombre Completo en Registro -->
+              <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none text-[#0C0C0E]">
+                  <User class="w-5 h-5 stroke-[2]" />
+                </div>
+                <input 
+                  type="text"
+                  bind:value={fullName}
+                  placeholder="Tu Nombre"
+                  class="w-full min-h-[58px] sm:min-h-[60px] rounded-full py-3.5 sm:py-4 pl-14 pr-5 bg-[#EDE8DC] border border-black/10 text-[#0C0C0E] placeholder:text-[#8E8E93] text-base font-sans focus:outline-none focus:border-black/30 transition-colors"
+                  required
+                />
+              </div>
+            {/if}
+
+            <!-- Campo Correo (Cápsula Redonda Gorda con Icono) -->
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none text-[#0C0C0E]">
+                <Mail class="w-5 h-5 stroke-[2]" />
+              </div>
+              <input 
+                type="email"
+                bind:value={email}
+                placeholder="Tu Correo"
+                class="w-full min-h-[58px] sm:min-h-[60px] rounded-full py-3.5 sm:py-4 pl-14 pr-5 bg-[#EDE8DC] border border-black/10 text-[#0C0C0E] placeholder:text-[#8E8E93] text-base font-sans focus:outline-none focus:border-black/30 transition-colors"
+                required
+              />
+            </div>
+
+            <!-- Campo Contraseña (Cápsula Redonda Gorda con Icono y Toggle) -->
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none text-[#0C0C0E]">
+                <Lock class="w-5 h-5 stroke-[2]" />
+              </div>
+              <input 
+                type={showPassword ? 'text' : 'password'}
+                bind:value={password}
+                placeholder="Tu Contraseña"
+                class="w-full min-h-[58px] sm:min-h-[60px] rounded-full py-3.5 sm:py-4 pl-14 pr-14 bg-[#EDE8DC] border border-black/10 text-[#0C0C0E] placeholder:text-[#8E8E93] text-base font-sans focus:outline-none focus:border-black/30 transition-colors"
+                required
+              />
+              <button 
+                type="button" 
+                onclick={() => showPassword = !showPassword}
+                class="absolute inset-y-0 right-0 pr-5 flex items-center text-[#8E8E93] hover:text-[#0C0C0E] cursor-pointer"
+                aria-label="Ver u ocultar contraseña"
+              >
+                {#if showPassword}
+                  <EyeOff class="w-5 h-5" />
+                {:else}
+                  <Eye class="w-5 h-5" />
+                {/if}
+              </button>
+            </div>
+
+            <!-- Fila Opciones: Recordarme / Olvidaste Contraseña -->
+            <div class="flex items-center justify-between px-2 pt-1 pb-1">
+              <label class="flex items-center gap-3 cursor-pointer select-none py-1">
+                <input 
+                  type="checkbox" 
+                  bind:checked={rememberMe}
+                  class="w-5 h-5 rounded-md border-black/20 text-[#FF2400] focus:ring-0 focus:ring-offset-0 bg-transparent cursor-pointer"
+                />
+                <span class="text-sm font-medium text-[#0C0C0E]">
+                  Recordarme
+                </span>
+              </label>
+
+              {#if viewMode === 'login'}
+                <button 
+                  type="button"
+                  onclick={() => alert('Para restablecer tu contraseña puedes ingresar directamente con Google o solicitar asistencia en mostrador.')}
+                  class="text-sm font-medium text-[#8E8E93] hover:text-[#0C0C0E] transition-colors py-1 cursor-pointer"
+                >
+                  ¿Olvidaste tu contraseña?
+                </button>
+              {/if}
+            </div>
+
+            <!-- BOTÓN PRINCIPAL 1: Iniciar Sesión (Rojo Vivo #FF2400) -->
+            <div class="pt-2">
+              <button
+                type="submit"
+                disabled={isLoading}
+                class="w-full min-h-[60px] sm:min-h-[64px] rounded-full bg-[#FF2400] hover:bg-[#E02000] active:scale-[0.97] text-white font-display font-extrabold text-lg sm:text-xl tracking-tight transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+              >
+                {#if isLoading}
+                  <Loader2 class="w-5 h-5 animate-spin" />
+                  <span>Procesando...</span>
+                {:else}
+                  <span>{viewMode === 'register' ? 'Registrarse' : 'Iniciar Sesión'}</span>
+                {/if}
+              </button>
+            </div>
+
+            <!-- BOTÓN PRINCIPAL 2: Píldora Gorda para Google justo abajo -->
+            <button
+              type="button"
+              onclick={handleGoogleClick}
+              disabled={isLoading}
+              class="w-full min-h-[60px] sm:min-h-[64px] rounded-full bg-white hover:bg-[#FAF6EE] active:scale-[0.97] text-[#0C0C0E] font-display font-extrabold text-base sm:text-lg tracking-tight border border-black/15 transition-all duration-150 flex items-center justify-center gap-3 cursor-pointer disabled:opacity-60"
+            >
+              <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+              </svg>
+              <span>{viewMode === 'register' ? 'Registrarse con Google' : 'Continuar con Google'}</span>
+            </button>
+          </form>
+
+          <!-- Pie de Página: Alternar entre Iniciar Sesión y Registrarse -->
+          <footer class="pt-4 pb-1 text-center shrink-0">
+            {#if viewMode === 'login'}
+              <p class="text-sm text-[#8E8E93] font-medium">
+                ¿No tienes una cuenta aún?
+                <button 
+                  type="button" 
+                  onclick={() => setMode('register')}
+                  class="font-bold text-[#0C0C0E] hover:text-[#FF2400] ml-1 transition-colors underline underline-offset-4 cursor-pointer"
+                >
+                  Regístrate
+                </button>
+              </p>
+            {:else if viewMode === 'register'}
+              <p class="text-sm text-[#8E8E93] font-medium">
+                ¿Ya tienes una cuenta?
+                <button 
+                  type="button" 
+                  onclick={() => setMode('login')}
+                  class="font-bold text-[#0C0C0E] hover:text-[#FF2400] ml-1 transition-colors underline underline-offset-4 cursor-pointer"
+                >
+                  Inicia Sesión
+                </button>
+              </p>
+            {/if}
+          </footer>
+        </main>
       {/if}
+
     </div>
   </div>
 {/if}

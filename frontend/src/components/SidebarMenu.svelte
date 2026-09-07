@@ -144,17 +144,25 @@
         <div class="bg-white rounded-[26px] p-4 border border-black/[0.06] shadow-2xs">
           {#if store.user}
             <div class="flex items-center justify-between gap-3">
-              <div class="flex items-center gap-3 min-w-0">
-                <div class="w-11 h-11 rounded-full bg-[#18181b] text-white flex items-center justify-center font-display font-black text-sm shrink-0 border border-black/10">
-                  {store.user.full_name?.charAt(0).toUpperCase() || 'M'}
-                </div>
+              <button 
+                type="button"
+                onclick={() => { store.closeSidebar(); store.isAuthModalOpen = true; }}
+                class="flex items-center gap-3 min-w-0 text-left cursor-pointer group flex-1"
+              >
+                {#if store.user.avatar_url}
+                  <img src={store.user.avatar_url} alt={store.user.full_name} class="w-11 h-11 rounded-full object-cover border border-black/10 shrink-0" />
+                {:else}
+                  <div class="w-11 h-11 rounded-full bg-[#18181b] text-white flex items-center justify-center font-display font-black text-sm shrink-0 border border-black/10">
+                    {store.user.full_name?.charAt(0).toUpperCase() || 'M'}
+                  </div>
+                {/if}
                 <div class="min-w-0">
-                  <span class="text-[10px] font-mono uppercase text-ash tracking-wider block">Comensal Mías</span>
-                  <h3 class="font-display font-extrabold text-sm sm:text-base text-[#0C0C0E] truncate">
+                  <span class="text-[10px] font-mono uppercase text-ash tracking-wider block">Mi Perfil</span>
+                  <h3 class="font-display font-extrabold text-sm sm:text-base text-[#0C0C0E] truncate group-hover:text-[#FF2400] transition-colors">
                     {store.user.full_name}
                   </h3>
                 </div>
-              </div>
+              </button>
 
               <!-- Sellos y Desconexión -->
               <div class="flex items-center gap-2 shrink-0">

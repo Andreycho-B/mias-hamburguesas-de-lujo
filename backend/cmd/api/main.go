@@ -171,8 +171,9 @@ func main() {
 			})
 		})
 
-		// Server-Sent Events para Personal
+		// Server-Sent Events para Personal y Clientes
 		api.With(middleware.RequireAuth).Get("/events/staff", sseHandler.StreamStaffEvents)
+		api.Get("/events/orders", sseHandler.StreamOrderEvents)
 
 		// Panel Ejecutivo de Administración
 		api.Route("/admin", func(admin chi.Router) {

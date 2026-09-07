@@ -1,5 +1,5 @@
 // Store reactivo con Runes de Svelte 5 (Anillo 0: Datos locales con sincronización)
-import { getCatalogAPI, getStampBalanceAPI } from './api.js';
+import { getCatalogAPI, getStampBalanceAPI, getOrderByCodeAPI } from './api.js';
 
 const SEED_CATEGORIES = [
   { id: 1, slug: 'hamburguesas', name: 'Hamburguesas', sort_order: 1 },
@@ -316,6 +316,7 @@ class AppStore {
 
   constructor() {
     this.loadPersistedData();
+    this.initOrderTracking();
   }
 
   loadPersistedData() {
@@ -325,7 +326,13 @@ class AppStore {
       if (savedCart) this.cart = JSON.parse(savedCart);
 
       const savedUser = localStorage.getItem('mias_user');
-      if (savedUser) this.user = JSON.parse(savedUser);
+      if (savedUser) {
+        this.user = JSON.parse(savedUser);
+        if (this.user && ['waiter', 'cashier', 'admin'].includes(this.user.role)) {
+          this.staffRole = this.user.role;
+          this.currentView = 'staff';
+        }
+      }
 
       const savedOrders = localStorage.getItem('mias_orders');
       if (savedOrders) this.activeOrders = JSON.parse(savedOrders);
@@ -418,6 +425,15 @@ class AppStore {
 
   setUser(user) {
     this.user = user;
+    if (user && ['waiter', 'cashier', 'admin'].includes(user.role)) {
+      this.staffRole = user.role;
+      this.currentView = 'staff';
+    } else {
+      this.staffRole = null;
+      if (this.currentView === 'staff') {
+        this.currentView = 'menu';
+      }
+    }
     if (typeof window !== 'undefined') {
       localStorage.setItem('mias_user', JSON.stringify(user));
     }
@@ -429,9 +445,76 @@ class AppStore {
   logout() {
     this.user = null;
     this.staffRole = null;
+    this.currentView = 'menu';
+    this.isSidebarOpen = false;
+    this.isCartOpen = false;
+    this.isAuthModalOpen = false;
     if (typeof window !== 'undefined') {
       localStorage.removeItem('mias_user');
+      localStorage.removeItem('mias_access_token');
+      localStorage.removeItem('mias_refresh_token');
     }
+  }
+
+  initOrderTracking() {
+    if (typeof window === 'undefined') return;
+
+    // Conexión SSE para eventos de órdenes en vivo
+    try {
+      const apiBase = import.meta.env.VITE_API_URL || (window.location.hostname ? `http://${window.location.hostname}:8080/api/v1` : 'http://localhost:8080/api/v1');
+      const token = localStorage.getItem('mias_access_token') || '';
+      const sseUrl = `${apiBase}/events/orders${token ? `?token=${token}` : ''}`;
+      const es = new EventSource(sseUrl);
+
+      es.addEventListener('order_paid', (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          const payload = data.data || data;
+          if (payload?.code) {
+            this.updateOrderStatus(payload.code, 'PAID');
+            this.refreshStampBalance();
+          }
+        } catch {}
+      });
+
+      es.addEventListener('delivery_status_updated', (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          const payload = data.data || data;
+          if (payload?.code && payload?.status) {
+            this.updateOrderStatus(payload.code, payload.status);
+          }
+        } catch {}
+      });
+
+      es.addEventListener('stamp_request_reviewed', () => {
+        this.refreshStampBalance();
+      });
+    } catch (err) {
+      console.warn('[Store] SSE no iniciado', err);
+    }
+
+    // Polling resiliente cada 3.5 segundos para sincronizar el estado de órdenes activas del cliente
+    setInterval(async () => {
+      if (this.staffRole || ['waiter', 'cashier', 'admin'].includes(this.user?.role)) return;
+
+      const pendingOrders = this.activeOrders.filter(o => 
+        o.status !== 'PAID' && o.status !== 'DELIVERED' && o.status !== 'CANCELLED'
+      );
+
+      for (const ord of pendingOrders) {
+        if (!ord.code) continue;
+        try {
+          const res = await getOrderByCodeAPI(ord.code);
+          if (res && res.order && res.order.status && res.order.status !== ord.status) {
+            this.updateOrderStatus(ord.code, res.order.status);
+            if (res.order.status === 'PAID') {
+              this.refreshStampBalance();
+            }
+          }
+        } catch {}
+      }
+    }, 3500);
   }
 
   addOrder(order) {

@@ -249,6 +249,47 @@
   </div>
 </section>
 
+<!-- SECCIÓN EDITORIAL A PANTALLA COMPLETA (CONTINUACIÓN DIRECTA DE LA CARTA) -->
+<section 
+  class="relative w-full min-h-[100dvh] flex flex-col justify-between items-center py-10 sm:py-16 px-4 sm:px-6 select-none overflow-hidden rounded-none bg-[#0D0204]"
+>
+  <!-- 1. IMAGEN PEGADA A LOS LATERALES (ANCHO TOTAL 100% SIN HUECOS NEGROS) -->
+  <div class="absolute inset-0 w-full h-full p-0 z-0">
+    <img 
+      src="/imagenes/historia/horno_a_carbon.webp" 
+      alt="Horno al Carbón Rayo" 
+      class="w-full h-full min-w-full object-cover object-center filter contrast-[1.04] brightness-100 select-none pointer-events-none"
+      style="mask-image: linear-gradient(180deg, transparent 0%, black 14%, black 86%, transparent 100%); -webkit-mask-image: linear-gradient(180deg, transparent 0%, black 14%, black 86%, transparent 100%);"
+      loading="eager"
+    />
+  </div>
+
+  <!-- 2. VELO OSCURO PERIMETRAL QUE DIFUMINA CUALQUIER LÍNEA DE CORTE EN LOS 4 COSTADOS -->
+  <!-- Fundido superior -->
+  <div class="absolute top-0 left-0 right-0 h-36 bg-gradient-to-b from-[#0D0204] via-[#0D0204]/80 to-transparent pointer-events-none z-10"></div>
+  <!-- Fundido inferior -->
+  <div class="absolute bottom-0 left-0 right-0 h-44 bg-gradient-to-t from-[#0D0204] via-[#0D0204]/90 to-transparent pointer-events-none z-10"></div>
+  <!-- Velo lateral izquierdo y derecho suavizado con menor sombra -->
+  <div 
+    class="absolute inset-0 pointer-events-none z-10"
+    style="background: linear-gradient(90deg, rgba(13,2,4,0.55) 0%, rgba(13,2,4,0.20) 10%, transparent 28%, transparent 72%, rgba(13,2,4,0.20) 90%, rgba(13,2,4,0.55) 100%);"
+  ></div>
+
+  <!-- Resplandor sutil de brasa detrás del horno -->
+  <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[320px] sm:w-[500px] h-[320px] sm:h-[500px] bg-[#FF2400]/12 rounded-full blur-3xl pointer-events-none z-10"></div>
+
+  <!-- 3. TÍTULO EN LA ZONA SUPERIOR (ENCIMA DE LA IMAGEN EN TIPOGRAFÍA DE "CARTA") -->
+  <div class="relative z-20 text-center px-4 max-w-xl mx-auto pt-6 sm:pt-10 md:pt-12">
+    <h2 class="font-flourish italic text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-normal tracking-tight text-[#F7F4EC] leading-[1.12] drop-shadow-[0_4px_24px_rgba(0,0,0,0.95)]">
+      El Arte<br />
+      <span class="font-flourish italic">de la Brasa</span>
+    </h2>
+  </div>
+
+  <!-- Espacio inferior limpio -->
+  <div class="relative z-20 pb-12 sm:pb-16"></div>
+</section>
+
 <style>
   /* MICRO-INTERACCIÓN: CHEVRON MÓRFICO A FLECHA */
   .category-arrow-circle {

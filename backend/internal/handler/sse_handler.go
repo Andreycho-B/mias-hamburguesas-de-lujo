@@ -24,3 +24,11 @@ func (h *SSEHandler) StreamStaffEvents(w http.ResponseWriter, r *http.Request) {
 
 	h.hub.ServeHTTP(w, r, role)
 }
+
+func (h *SSEHandler) StreamOrderEvents(w http.ResponseWriter, r *http.Request) {
+	role, _ := middleware.GetUserRole(r.Context())
+	if role == "" {
+		role = "customer"
+	}
+	h.hub.ServeHTTP(w, r, role)
+}

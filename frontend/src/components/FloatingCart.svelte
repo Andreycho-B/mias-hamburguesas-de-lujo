@@ -20,13 +20,16 @@
     Send, 
     Copy, 
     CheckCircle2,
-    Pencil,
     MessageSquare,
     DollarSign,
     CreditCard,
-    QrCode,
-    Bell,
-    Building2
+    Award,
+    MapPin,
+    Phone,
+    User,
+    FileText,
+    Flame,
+    Utensils
   } from 'lucide-svelte';
 
   let orderBtnEl = $state(null);
@@ -35,29 +38,47 @@
   let isModalAnimating = false;
   let recentlyAddedUpsellId = $state(null);
 
-  // Máquina de estados interna de la comanda
-  let cartStep = $state('cart'); // 'cart' | 'mode' | 'delivery_form' | 'ticket'
-  let selectedMode = $state('in_store'); // 'in_store' | 'takeout' | 'delivery'
-  let waiterStep = $state('name'); // 'name' | 'phone' | 'address' | 'notes' | 'payment'
-  let chatScrollEl = $state(null);
-  let waiterFeedback = $state('');
-  let tableNumber = $state('');
+  // Pasos de la comanda: 'cart' | 'mode' | 'delivery_form' | 'ticket'
+  let cartStep = $state('cart');
+  let selectedMode = $state('delivery'); // 'delivery' | 'takeout' | 'in_store'
+  
+  // Datos del cliente para la orden
   let customerName = $state(store.user?.full_name || '');
   let customerPhone = $state(store.user?.phone || '');
-  let deliveryAddress = $state('');
-  let deliveryNeighborhood = $state('');
+  let deliveryAddress = $state(store.user?.address || '');
+  let deliveryNeighborhood = $state('Centro');
   let deliveryNotes = $state('');
-  let paymentMethod = $state('Efectivo');
+  let tableNumber = $state('1');
+
+  // Método de pago
+  let paymentMethod = $state('Efectivo'); // 'Efectivo' | 'Nequi / Daviplata' | 'Datáfono contraentrega'
   let cashAmount = $state('');
-  let deliveryFee = 6000;
+  let formError = $state('');
+
+  const deliveryFee = 6000;
   let createdOrder = $state(null);
   let isCopied = $state(false);
 
-  let deliveryTotal = $derived(store.cartSubtotal + deliveryFee);
+  let liveTicketOrder = $derived(
+    createdOrder ? (store.activeOrders.find(o => o.code === createdOrder.code) || createdOrder) : null
+  );
+
+  // Sincronizar datos si el usuario inicia sesión o cambia su perfil
+  $effect(() => {
+    if (store.user) {
+      if (!customerName) customerName = store.user.full_name || '';
+      if (!customerPhone) customerPhone = store.user.phone || '';
+      if (!deliveryAddress && store.user.address) deliveryAddress = store.user.address;
+    }
+  });
+
+  let currentDeliveryFee = $derived(selectedMode === 'delivery' ? deliveryFee : 0);
+  let currentTotal = $derived(store.cartSubtotal + currentDeliveryFee);
+
   let cashChange = $derived.by(() => {
     const val = parseInt(cashAmount, 10);
-    if (!isNaN(val) && val >= deliveryTotal) {
-      return val - deliveryTotal;
+    if (!isNaN(val) && val >= currentTotal) {
+      return val - currentTotal;
     }
     return 0;
   });
@@ -70,15 +91,11 @@
     }).format(val || 0);
   }
 
-  // Catálogo de productos sugeridos para la sección "¿Algo más?"
+  // Catálogo de productos sugeridos ("¿Deseas acompañar tu hamburguesa?")
   const upsellItems = [
-    // 1. Bebidas
     {
       id: 14,
       category_id: 4,
-      categoryLabel: 'Bebida',
-      categorySlug: 'bebidas',
-      slug: 'gaseosa',
       name: 'Coca-Cola 400ml',
       price: 4000,
       image_url: '/imagenes/bebidas/cocacola.webp'
@@ -86,276 +103,94 @@
     {
       id: 15,
       category_id: 4,
-      categoryLabel: 'Bebida',
-      categorySlug: 'bebidas',
-      slug: 'bretana',
       name: 'Bretaña en Vidrio',
       price: 5000,
       image_url: '/imagenes/bebidas/bretana-vidrio.png'
     },
     {
-      id: 13,
-      category_id: 4,
-      categoryLabel: 'Bebida',
-      categorySlug: 'bebidas',
-      slug: 'agua-con-gas',
-      name: 'Agua con Gas',
-      price: 3000,
-      image_url: '/imagenes/bebidas/agua_con_gas.webp'
-    },
-    // 2. Adicionales
-    {
       id: 17,
       category_id: 5,
-      categoryLabel: 'Adicional',
-      categorySlug: 'adicionales',
-      slug: 'papa-francesa',
-      name: 'Papa Francesa',
+      name: 'Papas Francesas',
       price: 8000,
       image_url: ''
-    },
-    {
-      id: 18,
-      category_id: 5,
-      categoryLabel: 'Adicional',
-      categorySlug: 'adicionales',
-      slug: 'papa-nativa',
-      name: 'Papa Nativa al Carbón',
-      price: 9000,
-      image_url: ''
-    },
-    {
-      id: 19,
-      category_id: 5,
-      categoryLabel: 'Adicional',
-      categorySlug: 'adicionales',
-      slug: 'tocineta-extra',
-      name: 'Tocineta Crujiente Extra',
-      price: 5000,
-      image_url: ''
-    },
-    // 3. De la Casa
-    {
-      id: 10,
-      category_id: 3,
-      categoryLabel: 'De la Casa',
-      categorySlug: 'de_la_casa',
-      slug: 'salchipapa',
-      name: 'Salchipapa Tradicional',
-      price: 22000,
-      image_url: '/imagenes/de_la_casa/salchi_papa.png'
     }
   ];
 
-  function handleAddUpsell(item) {
-    store.addToCart(item, false, []);
-    recentlyAddedUpsellId = item.id;
+  function handleAddUpsell(product) {
+    store.addToCart(product, false, []);
+    recentlyAddedUpsellId = product.id;
     setTimeout(() => {
-      if (recentlyAddedUpsellId === item.id) {
+      if (recentlyAddedUpsellId === product.id) {
         recentlyAddedUpsellId = null;
       }
     }, 1200);
   }
 
-  function goToCategory(slug) {
-    closeOrderModal();
-    store.currentView = slug;
-  }
-
   function handleContinueToMode() {
     if (store.cart.length === 0) return;
     cartStep = 'mode';
-  }
-
-  async function scrollToBottom() {
-    await tick();
-    if (chatScrollEl) {
-      chatScrollEl.scrollTo({
-        top: chatScrollEl.scrollHeight + 300,
-        behavior: 'smooth'
-      });
-    }
-  }
-
-  function handleBackStep() {
-    waiterFeedback = '';
-    if (cartStep === 'delivery_form') {
-      if (waiterStep === 'payment') {
-        waiterStep = 'notes';
-      } else if (waiterStep === 'notes') {
-        waiterStep = 'address';
-      } else if (waiterStep === 'address') {
-        waiterStep = 'phone';
-      } else if (waiterStep === 'phone') {
-        waiterStep = 'name';
-      } else {
-        cartStep = 'mode';
-      }
-      scrollToBottom();
-    } else if (cartStep === 'mode') {
-      cartStep = 'cart';
-    } else if (cartStep === 'ticket') {
-      resetAndClose();
-    }
+    formError = '';
   }
 
   function handleSelectMode(mode) {
     selectedMode = mode;
-    waiterFeedback = '';
-    if (mode === 'delivery') {
-      waiterStep = 'name';
-      cartStep = 'delivery_form';
-      scrollToBottom();
-    } else {
-      createInStoreOrTakeoutOrder(mode);
+    cartStep = 'delivery_form';
+    formError = '';
+  }
+
+  function handleBackStep() {
+    formError = '';
+    if (cartStep === 'ticket') {
+      cartStep = 'cart';
+    } else if (cartStep === 'delivery_form') {
+      cartStep = 'mode';
+    } else if (cartStep === 'mode') {
+      cartStep = 'cart';
     }
   }
 
-  function submitName() {
-    waiterFeedback = '';
-    if (!customerName.trim()) {
-      waiterFeedback = '¿Me indicas tu nombre, por favor? Así sabremos a nombre de quién va el pedido.';
-      return;
-    }
-    if (!customerPhone.trim()) {
-      waiterStep = 'phone';
-    } else if (!deliveryAddress.trim() || !deliveryNeighborhood.trim()) {
-      waiterStep = 'address';
+  function selectQuickCash(amount) {
+    if (amount === 'exact') {
+      cashAmount = String(currentTotal);
     } else {
-      waiterStep = 'notes';
+      cashAmount = String(amount);
     }
-    scrollToBottom();
-  }
-
-  function submitPhone() {
-    waiterFeedback = '';
-    if (!customerPhone.trim()) {
-      waiterFeedback = 'Indícanos tu celular o WhatsApp para mantenerte informado del despacho.';
-      return;
-    }
-    if (!deliveryAddress.trim() || !deliveryNeighborhood.trim()) {
-      waiterStep = 'address';
-    } else {
-      waiterStep = 'notes';
-    }
-    scrollToBottom();
-  }
-
-  function submitAddress() {
-    waiterFeedback = '';
-    if (!deliveryAddress.trim()) {
-      waiterFeedback = 'Por favor escribe la dirección exacta (calle, carrera, número, torre/apto).';
-      return;
-    }
-    if (!deliveryNeighborhood.trim()) {
-      waiterFeedback = 'Indícanos también el barrio o sector para coordinar la ruta del repartidor.';
-      return;
-    }
-    waiterStep = 'notes';
-    scrollToBottom();
   }
 
   function toggleQuickNote(note) {
-    waiterFeedback = '';
-    if (note.includes('Sin notas')) {
-      deliveryNotes = 'Sin notas adicionales';
-      return;
-    }
-    if (deliveryNotes === 'Sin notas adicionales') {
-      deliveryNotes = note;
-      return;
-    }
     if (deliveryNotes.includes(note)) {
-      deliveryNotes = deliveryNotes
-        .replace(note, '')
-        .replace(/,\s*,/g, ',')
-        .replace(/^,\s*|,\s*$/g, '')
-        .trim();
+      deliveryNotes = deliveryNotes.replace(note, '').replace(/,\s*,/g, ',').trim();
     } else {
       deliveryNotes = deliveryNotes ? `${deliveryNotes}, ${note}` : note;
     }
   }
 
-  function submitNotes() {
-    waiterFeedback = '';
-    waiterStep = 'payment';
-    scrollToBottom();
-  }
+  async function handleFinalizeOrder() {
+    formError = '';
 
-  function setCashPreset(amount) {
-    cashAmount = amount.toString();
-  }
-
-  async function createInStoreOrTakeoutOrder(mode) {
-    let code = 'ORD-' + Math.floor(1000 + Math.random() * 9000);
-    let orderId = 'ord-' + Date.now();
-
-    const apiItems = store.cart.map(it => ({
-      product_id: it.product.id,
-      quantity: it.quantity,
-      customizations: {
-        combo: it.combo,
-        extras: it.extras || []
-      }
-    }));
-
-    try {
-      const apiRes = await createOrderAPI({
-        order_type: 'in_store',
-        items: apiItems,
-        delivery_name: customerName.trim() || 'Cliente Mías',
-        payment_method: 'Pago en Caja Física'
-      });
-      if (apiRes && apiRes.order) {
-        code = apiRes.order.code;
-        orderId = apiRes.order.id;
-      }
-    } catch (err) {
-      console.warn('[Order] Operando localmente con Anillo 0', err);
-    }
-
-    const order = {
-      id: orderId,
-      code,
-      type: mode,
-      modeLabel: mode === 'in_store' ? 'Consumo en Salón' : 'Para Llevar en Barra',
-      status: 'PENDING_PAYMENT',
-      customer_name: customerName.trim() || 'Cliente Mías',
-      table_number: tableNumber.trim() || '',
-      items: [...store.cart],
-      subtotal: store.cartSubtotal,
-      delivery_fee: 0,
-      total: store.cartSubtotal,
-      payment_method: 'Pago en Caja Física',
-      created_at: new Date().toISOString()
-    };
-
-    store.addOrder(order);
-    createdOrder = order;
-    store.clearCart();
-    cartStep = 'ticket';
-  }
-
-  async function handleConfirmDelivery() {
-    waiterFeedback = '';
     if (!customerName.trim()) {
-      waiterStep = 'name';
-      waiterFeedback = 'Falta registrar el nombre del cliente.';
+      formError = 'Por favor ingresa tu nombre para registrar la comanda.';
       return;
     }
     if (!customerPhone.trim()) {
-      waiterStep = 'phone';
-      waiterFeedback = 'Falta el número de WhatsApp de contacto.';
-      return;
-    }
-    if (!deliveryAddress.trim() || !deliveryNeighborhood.trim()) {
-      waiterStep = 'address';
-      waiterFeedback = 'Falta la dirección exacta o el barrio de entrega.';
+      formError = 'Por favor ingresa tu número de WhatsApp para notificarte.';
       return;
     }
 
-    let code = 'DOM-' + Math.floor(1000 + Math.random() * 9000);
-    let orderId = 'dom-' + Date.now();
+    if (selectedMode === 'delivery') {
+      if (!deliveryAddress.trim() || !deliveryNeighborhood.trim()) {
+        formError = 'Por favor completa la dirección y el barrio de entrega en Sogamoso.';
+        return;
+      }
+    } else if (selectedMode === 'in_store') {
+      if (!tableNumber.trim()) {
+        formError = 'Por favor ingresa el número de mesa en el restaurante.';
+        return;
+      }
+    }
+
+    let code = (selectedMode === 'delivery' ? 'DOM-' : 'ORD-') + Math.floor(1000 + Math.random() * 9000);
+    let orderId = (selectedMode === 'delivery' ? 'dom-' : 'ord-') + Date.now();
 
     const apiItems = store.cart.map(it => ({
       product_id: it.product.id,
@@ -368,11 +203,11 @@
 
     try {
       const apiRes = await createOrderAPI({
-        order_type: 'delivery',
+        order_type: selectedMode,
         items: apiItems,
         delivery_name: customerName.trim(),
         delivery_phone: customerPhone.trim(),
-        delivery_address: `${deliveryAddress.trim()}, Barrio ${deliveryNeighborhood.trim()}`,
+        delivery_address: selectedMode === 'delivery' ? `${deliveryAddress.trim()}, Barrio ${deliveryNeighborhood.trim()}` : '',
         delivery_notes: deliveryNotes.trim(),
         payment_method: paymentMethod,
         cash_change_amount: parseInt(cashAmount, 10) || 0
@@ -382,23 +217,24 @@
         orderId = apiRes.order.id;
       }
     } catch (err) {
-      console.warn('[Delivery] Operando localmente con Anillo 0', err);
+      console.warn('[Order API] Guardado local Anillo 0', err);
     }
 
     const order = {
       id: orderId,
       code,
-      type: 'delivery',
-      modeLabel: 'A Domicilio',
-      status: 'IN_PREPARATION',
+      type: selectedMode,
+      modeLabel: selectedMode === 'delivery' ? 'A Domicilio' : selectedMode === 'takeout' ? 'Para Llevar' : 'Consumo en Salón',
+      status: selectedMode === 'delivery' ? 'IN_PREPARATION' : 'PENDING_PAYMENT',
       customer_name: customerName.trim(),
       customer_phone: customerPhone.trim(),
-      delivery_address: `${deliveryAddress.trim()}, Barrio ${deliveryNeighborhood.trim()}`,
+      delivery_address: selectedMode === 'delivery' ? `${deliveryAddress.trim()}, Barrio ${deliveryNeighborhood.trim()}` : '',
+      table_number: selectedMode === 'in_store' ? tableNumber.trim() : '',
       delivery_notes: deliveryNotes.trim(),
       items: [...store.cart],
       subtotal: store.cartSubtotal,
-      delivery_fee: deliveryFee,
-      total: deliveryTotal,
+      delivery_fee: currentDeliveryFee,
+      total: currentTotal,
       payment_method: paymentMethod,
       cash_change_amount: parseInt(cashAmount, 10) || 0,
       created_at: new Date().toISOString()
@@ -427,188 +263,46 @@
       msg += `*Notas:* ${createdOrder.delivery_notes}\n`;
     }
 
-    msg += `\n*Detalle de Productos:*\n`;
+    msg += `\n*Detalle de Platos:*\n`;
     createdOrder.items.forEach((it) => {
       msg += `• ${it.quantity}x ${it.product.name} (${formatCOP(it.totalPrice)})\n`;
-      if (it.combo) msg += `   - Con Combo (Papas + Gaseosa)\n`;
+      if (it.combo) msg += `   - Con Combo (Papas y Bebida)\n`;
     });
 
     msg += `\n*Subtotal:* ${formatCOP(createdOrder.subtotal)}\n`;
     if (createdOrder.delivery_fee > 0) {
       msg += `*Costo Domicilio:* ${formatCOP(createdOrder.delivery_fee)}\n`;
     }
-    msg += `*TOTAL:* ${formatCOP(createdOrder.total)}\n` +
-      `*Pago:* ${createdOrder.payment_method}\n`;
+    msg += `*TOTAL A PAGAR:* ${formatCOP(createdOrder.total)}\n` +
+      `*Método de Pago:* ${createdOrder.payment_method}\n`;
+
+    if (createdOrder.payment_method === 'Efectivo' && createdOrder.cash_change_amount > 0) {
+      msg += `*Paga con:* ${formatCOP(createdOrder.cash_change_amount)}\n` +
+        `*Cambio requerido:* ${formatCOP(createdOrder.cash_change_amount - createdOrder.total)}\n`;
+    }
 
     const encoded = encodeURIComponent(msg);
     const waURL = `https://api.whatsapp.com/send?phone=573212520881&text=${encoded}`;
     window.open(waURL, '_blank');
   }
 
-  function copyOrderCode() {
-    if (!createdOrder) return;
-    try {
-      navigator.clipboard?.writeText(createdOrder.code);
-      isCopied = true;
-      setTimeout(() => isCopied = false, 2000);
-    } catch {}
+  function copyNequi() {
+    navigator.clipboard?.writeText('3212520881');
+    isCopied = true;
+    setTimeout(() => isCopied = false, 2000);
   }
 
-  function resetAndClose() {
-    closeOrderModal();
-    setTimeout(() => {
-      cartStep = 'cart';
-      createdOrder = null;
-    }, 280);
+  function goToStampsFromTicket() {
+    store.isCartOpen = false;
+    store.currentView = 'stamps';
   }
 
-  async function openOrderModal(e) {
-    if (e) e.stopPropagation();
-    if (isModalAnimating) return;
-    isModalAnimating = true;
-
-    // Feedback táctil del botón de origen
-    if (orderBtnEl) {
-      gsap.fromTo(orderBtnEl, 
-        { scale: 0.94 }, 
-        { scale: 1, duration: 0.25, ease: 'power2.out', force3D: true }
-      );
-    }
-
-    store.isCartOpen = true;
-    await tick();
-
-    if (!orderCardEl || !orderBackdropEl) {
-      isModalAnimating = false;
-      return;
-    }
-
-    let originX = '50%';
-    let originY = '50%';
-
-    if (orderBtnEl) {
-      const btnRect = orderBtnEl.getBoundingClientRect();
-      const cardRect = orderCardEl.getBoundingClientRect();
-      const btnCenterX = btnRect.left + btnRect.width / 2;
-      const btnCenterY = btnRect.top + btnRect.height / 2;
-      originX = `${Math.round(btnCenterX - cardRect.left)}px`;
-      originY = `${Math.round(btnCenterY - cardRect.top)}px`;
-    }
-
-    gsap.killTweensOf([orderBackdropEl, orderCardEl]);
-
-    gsap.set(orderCardEl, {
-      transformOrigin: `${originX} ${originY}`,
-      scale: 0.18,
-      opacity: 0,
-      force3D: true
-    });
-
-    gsap.set(orderBackdropEl, {
-      opacity: 0,
-      force3D: true
-    });
-
-    const tl = gsap.timeline({
-      onComplete: () => {
-        isModalAnimating = false;
-        if (orderCardEl) {
-          gsap.set(orderCardEl, { clearProps: 'transform' });
-        }
-      }
-    });
-
-    // 1. Fondo oscuro cinematográfico
-    tl.to(orderBackdropEl, {
-      opacity: 1,
-      duration: 0.28,
-      ease: 'power2.out',
-      force3D: true
-    }, 0);
-
-    // 2. Expansión fluida de la tarjeta estilo Apple Spring
-    tl.to(orderCardEl, {
-      scale: 1,
-      opacity: 1,
-      duration: 0.30,
-      ease: 'power2.out',
-      force3D: true
-    }, 0);
+  function closeOrderModal() {
+    store.isCartOpen = false;
   }
-
-  function closeOrderModal(e) {
-    if (e) e.stopPropagation();
-    if (isModalAnimating || !store.isCartOpen) return;
-    if (!orderCardEl || !orderBackdropEl) {
-      store.isCartOpen = false;
-      return;
-    }
-
-    isModalAnimating = true;
-
-    let originX = '50%';
-    let originY = '50%';
-
-    if (orderBtnEl) {
-      const btnRect = orderBtnEl.getBoundingClientRect();
-      const cardRect = orderCardEl.getBoundingClientRect();
-      const btnCenterX = btnRect.left + btnRect.width / 2;
-      const btnCenterY = btnRect.top + btnRect.height / 2;
-      originX = `${Math.round(btnCenterX - cardRect.left)}px`;
-      originY = `${Math.round(btnCenterY - cardRect.top)}px`;
-    }
-
-    gsap.killTweensOf([orderBackdropEl, orderCardEl]);
-
-    gsap.set(orderCardEl, {
-      transformOrigin: `${originX} ${originY}`,
-      force3D: true
-    });
-
-    const tl = gsap.timeline({
-      onComplete: () => {
-        store.isCartOpen = false;
-        isModalAnimating = false;
-      }
-    });
-
-    // Colapso en espejo de la tarjeta hacia el botón
-    tl.to(orderCardEl, {
-      scale: 0.18,
-      opacity: 0,
-      duration: 0.22,
-      ease: 'power2.in',
-      force3D: true
-    }, 0);
-
-    // Desvanecimiento del fondo oscuro
-    tl.to(orderBackdropEl, {
-      opacity: 0,
-      duration: 0.20,
-      ease: 'power2.in',
-      force3D: true
-    }, 0.02);
-  }
-
-  $effect(() => {
-    // Si isCartOpen se activó externamente
-    if (store.isCartOpen && !isModalAnimating && !orderCardEl) {
-      openOrderModal();
-    }
-  });
-
-  $effect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape' && store.isCartOpen) {
-        closeOrderModal();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  });
 </script>
 
-<!-- BOTÓN FLOTANTE "MI ORDEN" (Activo en la pantalla de inicio Carta cuando hay productos) -->
+<!-- BOTÓN FLOTANTE "MI ORDEN" (VISIBLE CUANDO HAY PRODUCTOS Y EL CARRITO ESTÁ CERRADO) -->
 {#if store.cartCount > 0 && !store.isCartOpen && store.currentView === 'menu'}
   <div 
     in:fly={{ y: 28, duration: 340, easing: backOut }}
@@ -618,1038 +312,711 @@
     <button
       bind:this={orderBtnEl}
       type="button"
-      onclick={openOrderModal}
-      class="pill-action-btn min-h-[76px] sm:min-h-[82px] md:min-h-[88px] rounded-full bg-white text-[#3A3A3C] font-display font-extrabold text-lg sm:text-xl md:text-2xl tracking-tight border border-black/30 shadow-xl hover:shadow-2xl hover:bg-[#FAF6EE] active:scale-[0.97] transition-all duration-150 flex items-center justify-center gap-3.5 cursor-pointer select-none px-7 sm:px-9 shrink-0"
-      aria-label="Ver mi orden ({store.cartCount} productos añadidos)"
+      onclick={() => store.isCartOpen = true}
+      class="min-h-[70px] sm:min-h-[76px] rounded-full bg-[#0C0C0E] text-white font-display font-black text-lg sm:text-xl tracking-tight border border-black/10 shadow-xl hover:bg-black active:scale-[0.97] transition-all flex items-center justify-center gap-3.5 cursor-pointer select-none px-7 sm:px-8 shrink-0"
+      aria-label="Ver comanda ({store.cartCount} items)"
     >
-      <span>Mi orden</span>
-      <span class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#FF2400] text-white text-xs sm:text-sm font-mono font-bold flex items-center justify-center shadow-xs animate-in zoom-in duration-200 shrink-0">
+      <ShoppingBag class="w-5 h-5 text-[#FF2400]" />
+      <span>Mi Comanda</span>
+      <span class="w-7 h-7 rounded-full bg-[#FF2400] text-white text-xs font-mono font-bold flex items-center justify-center shadow-xs shrink-0">
         {store.cartCount}
       </span>
     </button>
   </div>
 {/if}
 
-<!-- TARJETA MODAL "MI ORDEN" (Global con flujo de comanda integrado, aislamiento de scroll y ticket de autor) -->
+<!-- VISTA DE COMANDA Y CHECKOUT A PANTALLA COMPLETA FAT-FINGER -->
 {#if store.isCartOpen}
-  <!-- svelte-ignore a11y_click_events_have_key_events -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div 
-    bind:this={orderBackdropEl}
     data-lenis-prevent
-    class="welcome-modal-backdrop fixed inset-0 h-[100dvh] z-[100] flex items-center justify-center bg-[#050507]/94 lg:backdrop-blur-sm cursor-pointer will-change-[opacity]"
-    style="touch-action: pan-y;"
-    onclick={closeOrderModal}
+    onwheel={(e) => e.stopPropagation()}
+    ontouchmove={(e) => e.stopPropagation()}
+    class="fixed inset-0 z-50 w-full h-full min-h-[100dvh] bg-[#FAF6EE] text-[#0C0C0E] overflow-y-auto overscroll-contain"
+    style="touch-action: pan-y; -webkit-overflow-scrolling: touch; padding-top: max(1rem, env(safe-area-inset-top, 0px)); padding-bottom: max(5rem, calc(env(safe-area-inset-bottom, 0px) + 3rem)); padding-left: max(1rem, env(safe-area-inset-left, 0px)); padding-right: max(1rem, env(safe-area-inset-right, 0px));"
   >
-    <div 
-      bind:this={orderCardEl}
-      data-lenis-prevent
-      class="welcome-card-modal w-full h-full lg:max-w-[94vw] xl:max-w-[1440px] 2xl:max-w-[1560px] lg:h-[88vh] xl:h-[90vh] bg-[#FAF6EE] shadow-2xl lg:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.6)] relative border border-black/30 rounded-[38px] sm:rounded-[48px] overflow-hidden cursor-default flex flex-col p-5 sm:p-7 md:p-9 lg:p-10 justify-between text-[#3A3A3C]"
-      style="container-type: inline-size; touch-action: pan-y;"
-      onclick={(e) => e.stopPropagation()}
-    >
-      <!-- BOTÓN VOLVER FLOTANTE (Visible en los pasos internos para poder editar la orden) -->
-      {#if cartStep !== 'cart'}
+    <div data-lenis-prevent class="w-full max-w-lg mx-auto py-2 sm:py-4 flex flex-col space-y-6">
+      
+      <!-- 1. Cabecera Unificada con Botón Volver y Botón Cerrar -->
+      <header class="flex items-center justify-between w-full pb-1 shrink-0">
+        {#if cartStep !== 'cart'}
+          <button 
+            type="button"
+            onclick={handleBackStep}
+            class="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white border border-black/5 flex items-center justify-center text-[#3A3A3C] hover:bg-black/5 active:scale-90 transition-all cursor-pointer group shrink-0"
+            aria-label="Volver al paso anterior"
+          >
+            <ChevronLeft class="w-6 h-6 sm:w-7 sm:h-7 stroke-[2.2] -translate-x-0.5 group-hover:-translate-x-1 transition-transform" />
+          </button>
+        {:else}
+          <div class="w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center shrink-0">
+            <img 
+              src="/imagenes/marca/isotipo.webp" 
+              alt="Mías" 
+              class="w-7 h-7 object-contain opacity-85"
+            />
+          </div>
+        {/if}
+
+        <div class="text-center flex-1 px-2">
+          <span class="font-mono text-[10px] sm:text-xs uppercase tracking-widest text-[#8E8E93] font-bold block">
+            {#if cartStep === 'cart'}
+              Mías • Comanda Gastronómica
+            {:else if cartStep === 'mode'}
+              Paso 1 de 2 • Modalidad
+            {:else if cartStep === 'delivery_form'}
+              Paso 2 de 2 • Entrega y Pago
+            {:else}
+              Orden Procesada
+            {/if}
+          </span>
+          <h1 class="font-display font-black text-xl sm:text-2xl text-[#0C0C0E] tracking-tight leading-tight">
+            {#if cartStep === 'cart'}
+              Tu Comanda
+            {:else if cartStep === 'mode'}
+              ¿Dónde Disfrutas?
+            {:else if cartStep === 'delivery_form'}
+              {selectedMode === 'delivery' ? 'Datos de Domicilio' : selectedMode === 'takeout' ? 'Datos de Retiro' : 'Mesa en Salón'}
+            {:else}
+              ¡Comanda en Marcha!
+            {/if}
+          </h1>
+        </div>
+
         <button 
           type="button"
-          onclick={handleBackStep}
-          class="absolute top-5 left-5 lg:top-7 lg:left-7 w-10 h-10 rounded-full bg-white border border-black/10 hover:bg-black/5 active:scale-95 flex items-center justify-center text-char/80 hover:text-char transition-all cursor-pointer shadow-xs z-30 shrink-0 animate-in fade-in zoom-in duration-150"
-          aria-label="Volver al paso anterior"
-          title="Volver"
+          onclick={closeOrderModal}
+          class="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white border border-black/5 flex items-center justify-center text-[#3A3A3C] hover:text-[#FF2400] active:scale-90 transition-all cursor-pointer shrink-0"
+          aria-label="Cerrar comanda"
         >
-          <ChevronLeft class="w-5 h-5 stroke-[2.5] -translate-x-0.5" />
+          <X class="w-6 h-6 stroke-[2.2]" />
         </button>
-      {/if}
+      </header>
 
-      <!-- BOTÓN CERRAR FLOTANTE APPLE STANDARD (top-5 right-5) -->
-      <button 
-        type="button"
-        onclick={closeOrderModal}
-        class="absolute top-5 right-5 lg:top-7 lg:right-7 w-10 h-10 rounded-full bg-black/[0.06] hover:bg-black/[0.12] active:scale-95 flex items-center justify-center text-char/80 hover:text-char transition-all cursor-pointer shadow-sm z-30 shrink-0"
-        aria-label="Cerrar orden"
-      >
-        <X class="w-5 h-5 stroke-[2.2]" />
-      </button>
-
-      <!-- CONTENEDOR CENTRALIZADO -->
-      <div class="w-full max-w-md md:max-w-lg lg:max-w-xl mx-auto flex-1 flex flex-col justify-between min-h-0 h-full">
-
-        <!-- =======================================================
-             FASE 1: LISTADO DE PRODUCTOS Y SECCIÓN "¿ALGO MÁS?"
-             ======================================================= -->
-        {#if cartStep === 'cart'}
-          <!-- Cabecera -->
-          <header class="select-none pr-14 shrink-0 flex items-center justify-between pt-1">
-            <div>
-              <h2 class="font-display font-black text-2xl sm:text-3xl md:text-4xl tracking-tight text-[#0C0C0E] leading-none">
-                Mi Orden
-              </h2>
-              <span class="text-[10px] sm:text-xs font-mono font-semibold uppercase tracking-widest text-ash mt-1 block">
-                Mías • Lo Íntimo Hecho para Compartir
-              </span>
+      <!-- ========================================================================= -->
+      <!-- FASE 1: LISTADO DE PRODUCTOS Y SELECCIÓN "¿ALGO MÁS?"                     -->
+      <!-- ========================================================================= -->
+      {#if cartStep === 'cart'}
+        {#if store.cart.length === 0}
+          <div class="bg-white border border-black/10 rounded-[36px] p-8 text-center space-y-4 my-auto shadow-none">
+            <div class="w-20 h-20 rounded-full bg-[#EDE8DC] mx-auto flex items-center justify-center text-[#8E8E93]">
+              <ShoppingBag class="w-8 h-8 stroke-[1.8]" />
             </div>
-          </header>
-
-          {#if store.cart.length === 0}
-            <!-- Estado Vacío -->
-            <div class="flex-1 flex flex-col items-center justify-center text-center p-4 select-none my-auto">
-              <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-white border border-black/[0.06] flex items-center justify-center shadow-xs mb-4">
-                <ShoppingBag class="w-9 h-9 text-ash/60 stroke-[1.6]" />
-              </div>
-              <p class="font-display font-bold text-xl sm:text-2xl text-[#0C0C0E]">
-                Tu orden está vacía
-              </p>
-              <p class="text-xs sm:text-sm text-ash mt-1 max-w-xs">
-                Explora nuestra carta gastronómica y añade tus platos favoritos para comenzar.
-              </p>
-              <button
-                type="button"
-                onclick={() => {
-                  closeOrderModal();
-                  store.currentView = 'hamburguesas';
-                }}
-                class="mt-5 px-6 py-3 rounded-full bg-[#FF2400] hover:bg-[#E02000] text-white font-display font-extrabold text-sm sm:text-base shadow-sm hover:shadow active:scale-95 transition-all cursor-pointer flex items-center gap-2"
-              >
-                <span>Ver Hamburguesas</span>
-              </button>
-            </div>
-          {:else}
-            <!-- Lista Desplazable de Productos con aislamiento de scroll -->
-            <div 
-              class="flex-1 min-h-0 overflow-y-auto my-3 sm:my-4 pr-0.5 space-y-3 sm:space-y-3.5 select-none"
-              style="scrollbar-width: none; overscroll-behavior: contain; touch-action: pan-y;"
-              onwheel={(e) => e.stopPropagation()}
-              ontouchmove={(e) => e.stopPropagation()}
+            <h2 class="font-display font-extrabold text-2xl text-[#0C0C0E]">Tu comanda está vacía</h2>
+            <p class="text-xs sm:text-sm text-[#8E8E93] max-w-xs mx-auto">
+              Explora nuestra carta gastronómica y añade tus hamburguesas favoritas al carbón.
+            </p>
+            <button
+              type="button"
+              onclick={() => { closeOrderModal(); store.currentView = 'hamburguesas'; }}
+              class="w-full min-h-[58px] rounded-full bg-[#FF2400] text-white font-display font-extrabold text-base hover:bg-[#E02000] active:scale-[0.97] transition-all cursor-pointer"
             >
-              {#each store.cart as item (item.id)}
-                <div class="bg-white rounded-[28px] sm:rounded-[34px] border border-black/[0.08] shadow-xs hover:shadow-sm transition-all flex items-center justify-between p-3 sm:p-4 gap-2.5 sm:gap-3.5 select-none relative">
-                  <!-- Miniatura -->
-                  <div class="w-16 h-16 sm:w-20 sm:h-20 shrink-0 flex items-center justify-center">
+              Explorar Hamburguesas
+            </button>
+          </div>
+        {:else}
+          <!-- Lista de Tarjetas Gordas de Productos -->
+          <div class="space-y-3.5">
+            {#each store.cart as item (item.id)}
+              <div class="bg-white border border-black/10 rounded-[32px] p-4 sm:p-5 flex items-center gap-3.5 sm:gap-4 shadow-none">
+                <!-- Imagen o Icono del Producto -->
+                <div class="w-20 h-20 sm:w-22 sm:h-22 rounded-2xl bg-[#EDE8DC] flex items-center justify-center shrink-0 overflow-hidden border border-black/5">
+                  {#if item.product?.image_url}
                     <img 
-                      src={item.product?.image_url || '/imagenes/hamburguesas/Orignal.webp'} 
-                      alt={item.product?.name || 'Producto'} 
-                      class="w-full h-full object-contain pointer-events-none select-none drop-shadow-sm"
-                      loading="lazy"
+                      src={item.product.image_url} 
+                      alt={item.product?.name} 
+                      class="w-full h-full object-contain"
                     />
-                  </div>
+                  {:else}
+                    <!-- Icono representativo para adicionales y acompañamientos -->
+                    <div class="w-full h-full flex flex-col items-center justify-center text-[#FF2400] p-1 text-center select-none">
+                      {#if item.product?.slug?.includes('papa')}
+                        <Utensils class="w-7 h-7 sm:w-8 sm:h-8 stroke-[2.2]" />
+                        <span class="text-[9px] font-mono font-bold text-[#0C0C0E] mt-0.5 uppercase tracking-tighter">Papas</span>
+                      {:else if item.product?.slug?.includes('tocineta') || item.product?.slug?.includes('carne')}
+                        <Flame class="w-7 h-7 sm:w-8 sm:h-8 stroke-[2.2]" />
+                        <span class="text-[9px] font-mono font-bold text-[#0C0C0E] mt-0.5 uppercase tracking-tighter">Extra</span>
+                      {:else if item.product?.slug?.includes('queso')}
+                        <Sparkles class="w-7 h-7 sm:w-8 sm:h-8 stroke-[2.2]" />
+                        <span class="text-[9px] font-mono font-bold text-[#0C0C0E] mt-0.5 uppercase tracking-tighter">Queso</span>
+                      {:else if item.product?.slug?.includes('combo')}
+                        <ShoppingBag class="w-7 h-7 sm:w-8 sm:h-8 stroke-[2.2]" />
+                        <span class="text-[9px] font-mono font-bold text-[#0C0C0E] mt-0.5 uppercase tracking-tighter">Combo</span>
+                      {:else if item.product?.slug?.includes('salsa') || item.product?.slug?.includes('pepinillos')}
+                        <Utensils class="w-7 h-7 sm:w-8 sm:h-8 stroke-[2.2]" />
+                        <span class="text-[9px] font-mono font-bold text-[#0C0C0E] mt-0.5 uppercase tracking-tighter">Extra</span>
+                      {:else}
+                        <Plus class="w-7 h-7 sm:w-8 sm:h-8 stroke-[2.5]" />
+                        <span class="text-[9px] font-mono font-bold text-[#0C0C0E] mt-0.5 uppercase tracking-tighter">Adicional</span>
+                      {/if}
+                    </div>
+                  {/if}
+                </div>
 
-                  <!-- Detalles -->
-                  <div class="flex-1 min-w-0 flex flex-col justify-center">
-                    <span class="text-[10px] sm:text-xs font-mono font-bold text-ash uppercase tracking-wider">
-                      {item.product?.category_id === 1 ? 'HAMBURGUESA' : item.product?.category_id === 2 ? 'PERRO CALIENTE' : 'DE AUTOR'}
-                    </span>
-                    <h3 class="font-display font-extrabold text-base sm:text-lg text-[#0C0C0E] tracking-tight truncate mt-0.5">
-                      {item.product?.name || 'Producto'}
-                    </h3>
-                    {#if item.combo}
-                      <span class="text-[10px] sm:text-xs font-mono text-ash/80 mt-0.5">
-                        + Combo (Papas y Bebida)
+                <!-- Datos del Producto -->
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    {#if item.product?.bread_type}
+                      <span class="px-2 py-0.5 rounded-full bg-[#EDE8DC] text-[10px] font-mono font-bold uppercase text-[#0C0C0E]">
+                        {item.product.bread_type === 'pretzel' ? 'Pan Pretzel' : 'Pan Brioche'}
+                      </span>
+                    {:else}
+                      <span class="px-2 py-0.5 rounded-full bg-[#EDE8DC] text-[10px] font-mono font-bold uppercase text-[#8E8E93]">
+                        {item.product?.category_id === 5 ? 'Adicional' : item.product?.category_id === 4 ? 'Bebida' : 'Acompañamiento'}
                       </span>
                     {/if}
-                    <div class="font-display font-black text-base sm:text-lg text-[#FF2400] mt-1 tracking-tight">
-                      {formatCOP(item.totalPrice)}
-                    </div>
-                  </div>
-
-                  <!-- Controles -->
-                  <div class="flex items-center gap-2 sm:gap-2.5 shrink-0 ml-auto">
-                    <div class="flex items-center gap-1 sm:gap-1.5 bg-[#FAF6EE] p-1 sm:p-1.5 rounded-full border border-black/[0.08] shadow-2xs">
-                      <button
-                        type="button"
-                        onclick={() => store.updateQuantity(item.id, -1)}
-                        class="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white hover:bg-black/5 active:scale-90 border border-black/10 flex items-center justify-center text-[#0C0C0E] transition-all cursor-pointer shadow-2xs"
-                        aria-label="Disminuir cantidad"
-                      >
-                        <Minus class="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.5]" />
-                      </button>
-
-                      <span class="font-display font-extrabold text-sm sm:text-base text-[#0C0C0E] min-w-[20px] sm:min-w-[24px] text-center select-none px-1">
-                        {item.quantity}
+                    {#if item.combo}
+                      <span class="px-2 py-0.5 rounded-full bg-[#FF2400]/10 text-[10px] font-mono font-bold text-[#FF2400]">
+                        + Combo
                       </span>
+                    {/if}
+                  </div>
+                  <h3 class="font-display font-black text-lg sm:text-xl text-[#0C0C0E] truncate mt-1">
+                    {item.product?.name}
+                  </h3>
+                  {#if item.extras && item.extras.length > 0}
+                    <p class="text-[11px] font-mono text-[#8E8E93] truncate">
+                      + {item.extras.map(e => e.name).join(', ')}
+                    </p>
+                  {/if}
+                  <span class="font-display font-extrabold text-base sm:text-lg text-[#FF2400] block mt-0.5">
+                    {formatCOP(item.totalPrice)}
+                  </span>
+                </div>
 
-                      <button
-                        type="button"
-                        onclick={() => store.updateQuantity(item.id, 1)}
-                        class="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#FF2400] hover:bg-[#E02000] active:scale-90 text-white flex items-center justify-center transition-all cursor-pointer shadow-xs"
-                        aria-label="Aumentar cantidad"
-                      >
-                        <Plus class="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.5]" />
-                      </button>
-                    </div>
-
+                <!-- Controles Táctiles Gordos (Touch Targets >= 48px) -->
+                <div class="flex flex-col items-center gap-1.5 shrink-0">
+                  <div class="flex items-center gap-1 bg-[#EDE8DC] p-1 rounded-full border border-black/5">
                     <button
                       type="button"
-                      onclick={() => store.updateQuantity(item.id, -item.quantity)}
-                      class="w-10 sm:w-11 h-14 sm:h-16 rounded-[18px] sm:rounded-[22px] bg-[#FF2400]/10 hover:bg-[#FF2400]/20 active:scale-95 text-[#FF2400] flex items-center justify-center transition-all cursor-pointer shadow-2xs shrink-0 border border-[#FF2400]/15"
-                      aria-label="Eliminar producto"
-                      title="Eliminar producto"
+                      onclick={() => store.updateQuantity(item.id, item.quantity - 1)}
+                      class="w-10 h-10 rounded-full bg-white text-[#0C0C0E] flex items-center justify-center hover:bg-black/5 active:scale-90 transition-all cursor-pointer"
+                      aria-label="Disminuir cantidad"
                     >
-                      <Trash2 class="w-4 h-4 sm:w-5 sm:h-5 stroke-[2] text-[#FF2400]" />
+                      <Minus class="w-4 h-4 stroke-[2.5]" />
                     </button>
-                  </div>
-                </div>
-              {/each}
-
-              <!-- SECCIÓN "¿ALGO MÁS?" EN CUADRADOS REDONDEADOS Y NAVEGACIÓN DIRECTA -->
-              <div class="mt-4 pt-4 border-t border-black/[0.08] select-none">
-                <div class="flex items-center justify-between mb-2.5 px-0.5">
-                  <div>
-                    <h3 class="font-display font-black text-lg sm:text-xl text-[#0C0C0E] tracking-tight">
-                      ¿Algo más?
-                    </h3>
-                    <span class="text-[10px] sm:text-xs font-mono text-ash font-medium">
-                      Bebidas frías, adicionales y de la casa
+                    <span class="w-7 text-center font-mono font-black text-sm text-[#0C0C0E]">
+                      {item.quantity}
                     </span>
-                  </div>
-
-                  <!-- Enlaces directos a las vistas completas -->
-                  <div class="flex items-center gap-1 sm:gap-1.5">
                     <button
                       type="button"
-                      onclick={() => goToCategory('bebidas')}
-                      class="px-2.5 py-1 rounded-full bg-white border border-black/15 hover:border-[#FF2400] text-[10px] sm:text-[11px] font-mono font-bold text-[#3A3A3C] hover:text-[#FF2400] transition-all cursor-pointer shadow-2xs hover:shadow-xs active:scale-95"
-                      title="Ver toda la carta de Bebidas"
+                      onclick={() => store.updateQuantity(item.id, item.quantity + 1)}
+                      class="w-10 h-10 rounded-full bg-white text-[#0C0C0E] flex items-center justify-center hover:bg-black/5 active:scale-90 transition-all cursor-pointer"
+                      aria-label="Aumentar cantidad"
                     >
-                      Bebidas →
-                    </button>
-                    <button
-                      type="button"
-                      onclick={() => goToCategory('adicionales')}
-                      class="px-2.5 py-1 rounded-full bg-white border border-black/15 hover:border-[#FF2400] text-[10px] sm:text-[11px] font-mono font-bold text-[#3A3A3C] hover:text-[#FF2400] transition-all cursor-pointer shadow-2xs hover:shadow-xs active:scale-95"
-                      title="Ver toda la carta de Adicionales"
-                    >
-                      Adicionales →
-                    </button>
-                    <button
-                      type="button"
-                      onclick={() => goToCategory('de_la_casa')}
-                      class="hidden sm:inline-flex px-2.5 py-1 rounded-full bg-white border border-black/15 hover:border-[#FF2400] text-[10px] sm:text-[11px] font-mono font-bold text-[#3A3A3C] hover:text-[#FF2400] transition-all cursor-pointer shadow-2xs hover:shadow-xs active:scale-95"
-                      title="Ver toda la carta de De la Casa"
-                    >
-                      De la Casa →
+                      <Plus class="w-4 h-4 stroke-[2.5]" />
                     </button>
                   </div>
-                </div>
-
-                <!-- Fila de Cuadrados Redondeados Desplazable -->
-                <div 
-                  class="flex gap-2.5 sm:gap-3 overflow-x-auto py-1 px-0.5 -mx-0.5" 
-                  style="scrollbar-width: none; overscroll-behavior: contain;"
-                >
-                  {#each upsellItems as upsell (upsell.id)}
-                    {@const isJustAdded = recentlyAddedUpsellId === upsell.id}
-                    <div class="w-32 sm:w-36 shrink-0 bg-white rounded-[24px] sm:rounded-[28px] border border-black/[0.08] p-2.5 sm:p-3 flex flex-col justify-between shadow-2xs hover:shadow-xs transition-all select-none group">
-                      
-                      <div class="h-16 sm:h-20 w-full flex items-center justify-center overflow-hidden mb-1">
-                        {#if upsell.image_url}
-                          <img 
-                            src={upsell.image_url} 
-                            alt={upsell.name} 
-                            class="h-full w-auto max-w-full object-contain pointer-events-none drop-shadow-2xs group-hover:scale-105 transition-transform"
-                            loading="lazy"
-                          />
-                        {:else}
-                          <div class="w-11 h-11 rounded-full bg-[#FAF6EE] flex items-center justify-center text-[#FF2400] border border-black/[0.04]">
-                            <Sparkles class="w-5 h-5 stroke-[2]" />
-                          </div>
-                        {/if}
-                      </div>
-
-                      <div class="min-w-0">
-                        <span class="text-[9px] font-mono font-bold text-ash uppercase tracking-wider block truncate">
-                          {upsell.categoryLabel}
-                        </span>
-                        <h4 class="font-display font-extrabold text-xs sm:text-sm text-[#0C0C0E] tracking-tight truncate mt-0.5" title={upsell.name}>
-                          {upsell.name}
-                        </h4>
-                        <span class="font-display font-black text-xs sm:text-sm text-[#FF2400] tracking-tight block mt-0.5">
-                          {formatCOP(upsell.price)}
-                        </span>
-                      </div>
-
-                      <button
-                        type="button"
-                        onclick={() => handleAddUpsell(upsell)}
-                        class="mt-2.5 w-full py-1.5 sm:py-2 rounded-full {isJustAdded ? 'bg-emerald-600 text-white' : 'bg-[#FF2400] hover:bg-[#E02000] text-white'} active:scale-95 font-display font-extrabold text-[11px] sm:text-xs flex items-center justify-center gap-1 transition-all cursor-pointer shadow-2xs"
-                        aria-label="Añadir {upsell.name} a la orden"
-                      >
-                        {#if isJustAdded}
-                          <Check class="w-3 h-3 stroke-[3]" />
-                          <span>Añadido</span>
-                        {:else}
-                          <Plus class="w-3 h-3 stroke-[3]" />
-                          <span>Añadir</span>
-                        {/if}
-                      </button>
-                    </div>
-                  {/each}
+                  <button
+                    type="button"
+                    onclick={() => store.removeFromCart(item.id)}
+                    class="text-[11px] font-mono text-[#8E8E93] hover:text-[#FF2400] transition-colors py-0.5 cursor-pointer"
+                  >
+                    Eliminar
+                  </button>
                 </div>
               </div>
+            {/each}
+          </div>
+
+          <!-- Sección ¿Deseas acompañar tu hamburguesa? (Adicionales Rápidos) -->
+          <div class="bg-white border border-black/10 rounded-[36px] p-5 sm:p-6 space-y-3.5 shadow-none">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-mono font-bold uppercase tracking-wider text-[#8E8E93]">
+                ¿Deseas acompañar tu orden?
+              </span>
+              <span class="text-[11px] font-mono text-[#FF2400] font-bold">1 toque para añadir</span>
             </div>
 
-            <!-- Footer con Totales y Botón "ENVIAR Y PAGAR" -->
-            <footer class="pt-3 sm:pt-4 border-t border-black/[0.08] shrink-0">
-              <div class="flex items-center justify-between">
-                <span class="font-mono text-xs sm:text-sm font-bold tracking-widest text-ash uppercase">
-                  SUBTOTAL
-                </span>
-                <span class="font-display font-extrabold text-base sm:text-xl text-[#0C0C0E]">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              {#each upsellItems as item}
+                <button
+                  type="button"
+                  onclick={() => handleAddUpsell(item)}
+                  class="p-3.5 rounded-2xl bg-[#FAF6EE] border border-black/5 hover:border-[#FF2400]/40 flex items-center justify-between sm:flex-col sm:items-start text-left transition-all active:scale-[0.98] cursor-pointer"
+                >
+                  <div class="min-w-0 pr-2">
+                    <span class="font-display font-extrabold text-sm text-[#0C0C0E] block truncate">{item.name}</span>
+                    <span class="font-mono text-xs text-[#FF2400] font-bold block mt-0.5">+{formatCOP(item.price)}</span>
+                  </div>
+                  <div class="w-8 h-8 rounded-full bg-white border border-black/10 flex items-center justify-center text-[#0C0C0E] shrink-0 sm:mt-2 sm:self-end">
+                    {#if recentlyAddedUpsellId === item.id}
+                      <Check class="w-4 h-4 text-emerald-600 stroke-[3]" />
+                    {:else}
+                      <Plus class="w-4 h-4 stroke-[2.5]" />
+                    {/if}
+                  </div>
+                </button>
+              {/each}
+            </div>
+          </div>
+
+          <!-- Total de Comanda y Botón Fat-Finger CTA -->
+          <div class="bg-white border border-black/10 rounded-[36px] p-6 space-y-4 shadow-none">
+            <div class="flex items-center justify-between">
+              <div>
+                <span class="text-xs font-mono text-[#8E8E93] uppercase tracking-wider block">Subtotal de platos</span>
+                <span class="font-display font-extrabold text-2xl sm:text-3xl text-[#0C0C0E] leading-tight">
                   {formatCOP(store.cartSubtotal)}
                 </span>
               </div>
-
-              <div class="border-t border-black/[0.08] my-2.5 sm:my-3"></div>
-
-              <div class="flex items-center justify-between">
-                <span class="font-display font-extrabold text-2xl sm:text-3xl text-[#0C0C0E]">
-                  Total
-                </span>
-                <span class="font-display font-extrabold text-2xl sm:text-3xl text-[#FF2400]">
-                  {formatCOP(store.cartSubtotal)}
-                </span>
-              </div>
-
-              <button
-                type="button"
-                onclick={handleContinueToMode}
-                class="w-full mt-4 sm:mt-5 min-h-[76px] sm:min-h-[82px] md:min-h-[88px] rounded-full bg-[#FF2400] hover:bg-[#E02000] active:scale-[0.97] text-white font-display font-extrabold text-lg sm:text-xl md:text-2xl tracking-tight uppercase shadow-md hover:shadow-lg transition-all flex items-center justify-center cursor-pointer select-none px-6"
-              >
-                ENVIAR Y PAGAR
-              </button>
-            </footer>
-          {/if}
-
-        <!-- =======================================================
-             FASE 2: SELECCIÓN DE MODALIDAD DE CONSUMO (LIMPIEZA DE CONTENIDO EN LA MISMA CARD)
-             ======================================================= -->
-        {:else if cartStep === 'mode'}
-          <header class="select-none pl-12 pr-14 shrink-0 flex items-center justify-between pt-1">
-            <div>
-              <h2 class="font-display font-black text-2xl sm:text-3xl md:text-4xl tracking-tight text-[#0C0C0E] leading-none">
-                ¿Dónde disfrutas?
-              </h2>
-              <span class="text-[10px] sm:text-xs font-mono font-semibold uppercase tracking-widest text-ash mt-1 block">
-                Selecciona la modalidad de tu comanda
+              <span class="text-xs font-mono font-bold text-[#8E8E93] bg-[#EDE8DC] px-3 py-1.5 rounded-full">
+                {store.cartCount} {store.cartCount === 1 ? 'producto' : 'productos'}
               </span>
             </div>
-          </header>
 
-          <div 
-            class="flex-1 min-h-0 overflow-y-auto my-auto py-4 space-y-3.5 select-none"
-            style="scrollbar-width: none; overscroll-behavior: contain;"
-            onwheel={(e) => e.stopPropagation()}
-            ontouchmove={(e) => e.stopPropagation()}
-          >
-            <!-- Opción 1: Consumo en Salón / Mesa -->
             <button
               type="button"
-              onclick={() => handleSelectMode('in_store')}
-              class="w-full text-left bg-white rounded-[28px] sm:rounded-[34px] border border-black/[0.08] hover:border-[#FF2400]/40 p-5 sm:p-6 shadow-xs hover:shadow-md transition-all active:scale-[0.985] cursor-pointer flex items-start gap-4 group"
+              onclick={handleContinueToMode}
+              class="w-full min-h-[64px] rounded-full bg-[#FF2400] hover:bg-[#E02000] active:scale-[0.97] text-white font-display font-extrabold text-lg sm:text-xl tracking-tight transition-all flex items-center justify-center gap-2 cursor-pointer shadow-none"
             >
-              <div class="w-12 h-12 rounded-2xl bg-[#FF2400]/10 text-[#FF2400] flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
-                <UtensilsCrossed class="w-6 h-6 stroke-[2.2]" />
-              </div>
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center justify-between">
-                  <h3 class="font-display font-extrabold text-lg sm:text-xl text-[#0C0C0E] group-hover:text-[#FF2400] transition-colors">
-                    Consumo en el Punto / Salón
-                  </h3>
-                  <ArrowRight class="w-4 h-4 text-ash group-hover:text-[#FF2400] group-hover:translate-x-1 transition-all shrink-0" />
-                </div>
-                <p class="text-xs text-ash mt-1 leading-relaxed">
-                  Pagas en caja física, recibes tu identificador de madera y te llevamos los platos a la mesa.
-                </p>
-              </div>
-            </button>
-
-            <!-- Opción 2: Para Llevar -->
-            <button
-              type="button"
-              onclick={() => handleSelectMode('takeout')}
-              class="w-full text-left bg-white rounded-[28px] sm:rounded-[34px] border border-black/[0.08] hover:border-[#FF2400]/40 p-5 sm:p-6 shadow-xs hover:shadow-md transition-all active:scale-[0.985] cursor-pointer flex items-start gap-4 group"
-            >
-              <div class="w-12 h-12 rounded-2xl bg-[#0C0C0E]/5 text-[#0C0C0E] flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
-                <ShoppingBag class="w-6 h-6 stroke-[2.2]" />
-              </div>
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center justify-between">
-                  <h3 class="font-display font-extrabold text-lg sm:text-xl text-[#0C0C0E] group-hover:text-[#FF2400] transition-colors">
-                    Para Llevar (Take Away)
-                  </h3>
-                  <ArrowRight class="w-4 h-4 text-ash group-hover:text-[#FF2400] group-hover:translate-x-1 transition-all shrink-0" />
-                </div>
-                <p class="text-xs text-ash mt-1 leading-relaxed">
-                  Empacado térmico hermético con sello de seguridad. Recoges directo en la barra.
-                </p>
-              </div>
-            </button>
-
-            <!-- Opción 3: A Domicilio -->
-            <button
-              type="button"
-              onclick={() => handleSelectMode('delivery')}
-              class="w-full text-left bg-white rounded-[28px] sm:rounded-[34px] border border-black/[0.08] hover:border-[#FF2400]/40 p-5 sm:p-6 shadow-xs hover:shadow-md transition-all active:scale-[0.985] cursor-pointer flex items-start gap-4 group"
-            >
-              <div class="w-12 h-12 rounded-2xl bg-[#FF2400] text-white flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform shadow-xs">
-                <Bike class="w-6 h-6 stroke-[2.2]" />
-              </div>
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center gap-2">
-                    <h3 class="font-display font-extrabold text-lg sm:text-xl text-[#0C0C0E] group-hover:text-[#FF2400] transition-colors">
-                      A Domicilio
-                    </h3>
-                    <span class="text-[10px] font-mono font-bold text-[#FF2400] bg-[#FF2400]/10 px-2 py-0.5 rounded-full">
-                      +$6.000
-                    </span>
-                  </div>
-                  <ArrowRight class="w-4 h-4 text-ash group-hover:text-[#FF2400] group-hover:translate-x-1 transition-all shrink-0" />
-                </div>
-                <p class="text-xs text-ash mt-1 leading-relaxed">
-                  Coordinado directamente a tu puerta y despachado por WhatsApp oficial al restaurante.
-                </p>
-              </div>
+              <span>Continuar con el Pedido</span>
+              <ArrowRight class="w-5 h-5 stroke-[2.5]" />
             </button>
           </div>
+        {/if}
 
-          <footer class="pt-3 border-t border-black/[0.08] text-center text-xs font-mono text-ash shrink-0">
-            <span>Puedes volver a tu orden en cualquier momento tocando la flecha superior</span>
-          </footer>
-
-        <!-- =======================================================
-             FASE 2.5: EXPERIENCIA CONVERSACIONAL CON EL MESERO DE MÍAS
-             ======================================================= -->
-        {:else if cartStep === 'delivery_form'}
-          <header class="select-none pl-12 pr-12 shrink-0 flex items-center justify-between pt-1 border-b border-black/[0.06] pb-3">
-            <div class="flex items-center gap-3">
-              <!-- Avatar del Mesero con indicador online -->
-              <div class="relative shrink-0">
-                <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[#18181b] text-white flex items-center justify-center shadow-xs border-2 border-white">
-                  <UtensilsCrossed class="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.2] text-[#FAF6EE]" />
-                </div>
-                <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white ring-1 ring-emerald-400/50"></span>
-              </div>
-              <div class="min-w-0">
-                <h2 class="font-display font-black text-base sm:text-lg tracking-tight text-[#0C0C0E] leading-tight truncate">
-                  El Mesero de Mías
-                </h2>
-                <span class="text-[10px] sm:text-xs font-mono text-ash flex items-center gap-1.5 font-medium">
-                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                  Tomando tu orden a domicilio
+      <!-- ========================================================================= -->
+      <!-- FASE 2: SELECCIÓN DE MODALIDAD (TARJETAS GORDAS TÁCTILES)                  -->
+      <!-- ========================================================================= -->
+      {:else if cartStep === 'mode'}
+        <div class="space-y-4">
+          <!-- Opción 1: A Domicilio -->
+          <button
+            type="button"
+            onclick={() => handleSelectMode('delivery')}
+            class="w-full text-left bg-white rounded-[32px] border-2 p-5 sm:p-6 transition-all active:scale-[0.985] cursor-pointer flex items-center gap-4.5 {selectedMode === 'delivery' ? 'border-[#FF2400] bg-white' : 'border-black/10 hover:border-black/20'}"
+          >
+            <div class="w-14 h-14 rounded-2xl bg-[#FF2400] text-white flex items-center justify-center shrink-0">
+              <Bike class="w-7 h-7 stroke-[2.2]" />
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between">
+                <h2 class="font-display font-black text-xl text-[#0C0C0E]">A Domicilio</h2>
+                <span class="px-2.5 py-1 rounded-full bg-[#FF2400]/10 text-xs font-mono font-bold text-[#FF2400]">
+                  + $6.000
                 </span>
               </div>
+              <p class="text-xs text-[#8E8E93] mt-1 leading-relaxed">
+                Directo a tu puerta en Sogamoso, empacado hermético con sello de calor.
+              </p>
             </div>
-          </header>
+          </button>
 
-          <!-- CONTENEDOR CONVERSACIONAL CON AUTO-SCROLL Y AISLAMIENTO DE SCROLL -->
-          <div 
-            bind:this={chatScrollEl}
-            class="flex-1 min-h-0 overflow-y-auto my-2 py-3 space-y-3.5 pr-1 select-none text-left"
-            style="scrollbar-width: none; overscroll-behavior: contain; touch-action: pan-y;"
-            onwheel={(e) => e.stopPropagation()}
-            ontouchmove={(e) => e.stopPropagation()}
+          <!-- Opción 2: Para Llevar -->
+          <button
+            type="button"
+            onclick={() => handleSelectMode('takeout')}
+            class="w-full text-left bg-white rounded-[32px] border-2 p-5 sm:p-6 transition-all active:scale-[0.985] cursor-pointer flex items-center gap-4.5 {selectedMode === 'takeout' ? 'border-[#FF2400] bg-white' : 'border-black/10 hover:border-black/20'}"
           >
-            <!-- 1. Saludo Inicial del Mesero -->
-            <div class="flex items-start gap-2.5 max-w-[92%] sm:max-w-[85%]">
-              <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#18181b] text-white flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
-                <UtensilsCrossed class="w-3.5 h-3.5 text-[#FAF6EE]" />
+            <div class="w-14 h-14 rounded-2xl bg-[#0C0C0E] text-white flex items-center justify-center shrink-0">
+              <ShoppingBag class="w-7 h-7 stroke-[2.2]" />
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between">
+                <h2 class="font-display font-black text-xl text-[#0C0C0E]">Para Llevar (Take Away)</h2>
+                <span class="px-2.5 py-1 rounded-full bg-[#EDE8DC] text-xs font-mono font-bold text-[#0C0C0E]">
+                  Sin recargo
+                </span>
               </div>
-              <div class="bg-white rounded-[22px] rounded-tl-sm p-3.5 sm:p-4 border border-black/[0.08] shadow-2xs text-[#0C0C0E]">
-                <p class="text-xs sm:text-sm leading-relaxed">
-                  ¡Qué delicia de comanda has armado! Me encargo personalmente de tu despacho para que todo llegue perfecto y caliente.
-                </p>
-                <p class="text-xs sm:text-sm font-bold mt-1.5 text-[#0C0C0E]">
-                  ¿A nombre de quién tomamos el pedido hoy?
-                </p>
+              <p class="text-xs text-[#8E8E93] mt-1 leading-relaxed">
+                Empacado para retirar en barra sin hacer filas.
+              </p>
+            </div>
+          </button>
+
+          <!-- Opción 3: Consumo en Salón -->
+          <button
+            type="button"
+            onclick={() => handleSelectMode('in_store')}
+            class="w-full text-left bg-white rounded-[32px] border-2 p-5 sm:p-6 transition-all active:scale-[0.985] cursor-pointer flex items-center gap-4.5 {selectedMode === 'in_store' ? 'border-[#FF2400] bg-white' : 'border-black/10 hover:border-black/20'}"
+          >
+            <div class="w-14 h-14 rounded-2xl bg-[#EDE8DC] text-[#0C0C0E] flex items-center justify-center shrink-0">
+              <UtensilsCrossed class="w-7 h-7 stroke-[2.2]" />
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between">
+                <h2 class="font-display font-black text-xl text-[#0C0C0E]">Consumo en el Salón</h2>
+                <span class="px-2.5 py-1 rounded-full bg-[#EDE8DC] text-xs font-mono font-bold text-[#0C0C0E]">
+                  En mesa
+                </span>
               </div>
+              <p class="text-xs text-[#8E8E93] mt-1 leading-relaxed">
+                Disfruta la experiencia en nuestro punto físico, te lo llevamos a la mesa.
+              </p>
+            </div>
+          </button>
+        </div>
+
+      <!-- ========================================================================= -->
+      <!-- FASE 3: DATOS DE ENTREGA Y PAGO (FAT-FINGER DESIGN DE ALTA CONVERSIÓN)     -->
+      <!-- ========================================================================= -->
+      {:else if cartStep === 'delivery_form'}
+        <div class="space-y-4">
+          
+          <!-- SECCIÓN 1: ¿A QUIÉN ENTREGAMOS? -->
+          <div class="bg-white border border-black/10 rounded-[34px] p-5 sm:p-6 space-y-3.5 shadow-none">
+            <div class="flex items-center gap-2">
+              <User class="w-5 h-5 text-[#FF2400]" />
+              <h2 class="font-display font-extrabold text-lg text-[#0C0C0E]">
+                ¿A quién entregamos?
+              </h2>
             </div>
 
-            <!-- Respuesta 1 del Cliente (Nombre) -->
-            {#if customerName.trim() && waiterStep !== 'name'}
-              <div class="flex justify-end">
-                <button 
-                  type="button"
-                  onclick={() => { waiterStep = 'name'; scrollToBottom(); }}
-                  class="group max-w-[85%] bg-[#FF2400] text-white rounded-[22px] rounded-tr-sm px-4 py-2.5 shadow-2xs flex items-center gap-2.5 hover:bg-[#E02000] active:scale-98 transition-all cursor-pointer text-left"
-                  title="Tocar para editar nombre"
-                >
-                  <div class="min-w-0">
-                    <span class="text-[10px] font-mono text-white/70 block uppercase tracking-wider">Cliente</span>
-                    <span class="text-xs sm:text-sm font-bold truncate block">{customerName}</span>
-                  </div>
-                  <Pencil class="w-3.5 h-3.5 text-white/70 group-hover:text-white shrink-0 ml-1" />
-                </button>
+            <div class="space-y-2.5">
+              <div class="relative">
+                <input 
+                  type="text" 
+                  bind:value={customerName}
+                  placeholder="Nombre completo"
+                  class="w-full min-h-[58px] rounded-2xl px-5 bg-[#EDE8DC] border border-black/10 text-[#0C0C0E] placeholder:text-[#8E8E93] text-base font-sans focus:outline-none focus:border-black/30 transition-colors"
+                />
               </div>
-            {/if}
 
-            <!-- 2. Pregunta del Mesero: Teléfono WhatsApp -->
-            {#if (customerName.trim() && waiterStep !== 'name') || waiterStep === 'phone'}
-              <div class="flex items-start gap-2.5 max-w-[92%] sm:max-w-[85%]">
-                <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#18181b] text-white flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
-                  <UtensilsCrossed class="w-3.5 h-3.5 text-[#FAF6EE]" />
-                </div>
-                <div class="bg-white rounded-[22px] rounded-tl-sm p-3.5 sm:p-4 border border-black/[0.08] shadow-2xs text-[#0C0C0E]">
-                  <p class="text-xs sm:text-sm leading-relaxed">
-                    Mucho gusto, <strong class="text-[#FF2400] font-bold">{customerName}</strong>. 
-                    ¿A qué número de WhatsApp te notificamos cuando la carne esté al carbón y el repartidor vaya en camino?
-                  </p>
-                </div>
+              <div class="relative">
+                <input 
+                  type="tel" 
+                  bind:value={customerPhone}
+                  placeholder="Número de WhatsApp (ej. 321 252 0881)"
+                  class="w-full min-h-[58px] rounded-2xl px-5 bg-[#EDE8DC] border border-black/10 text-[#0C0C0E] placeholder:text-[#8E8E93] text-base font-sans focus:outline-none focus:border-black/30 transition-colors"
+                />
               </div>
-            {/if}
-
-            <!-- Respuesta 2 del Cliente (Teléfono) -->
-            {#if customerPhone.trim() && waiterStep !== 'name' && waiterStep !== 'phone'}
-              <div class="flex justify-end">
-                <button 
-                  type="button"
-                  onclick={() => { waiterStep = 'phone'; scrollToBottom(); }}
-                  class="group max-w-[85%] bg-[#FF2400] text-white rounded-[22px] rounded-tr-sm px-4 py-2.5 shadow-2xs flex items-center gap-2.5 hover:bg-[#E02000] active:scale-98 transition-all cursor-pointer text-left"
-                  title="Tocar para editar celular"
-                >
-                  <div class="min-w-0">
-                    <span class="text-[10px] font-mono text-white/70 block uppercase tracking-wider">WhatsApp</span>
-                    <span class="text-xs sm:text-sm font-mono font-bold truncate block">{customerPhone}</span>
-                  </div>
-                  <Pencil class="w-3.5 h-3.5 text-white/70 group-hover:text-white shrink-0 ml-1" />
-                </button>
-              </div>
-            {/if}
-
-            <!-- 3. Pregunta del Mesero: Dirección y Barrio -->
-            {#if (customerPhone.trim() && waiterStep !== 'name' && waiterStep !== 'phone') || waiterStep === 'address'}
-              <div class="flex items-start gap-2.5 max-w-[92%] sm:max-w-[85%]">
-                <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#18181b] text-white flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
-                  <UtensilsCrossed class="w-3.5 h-3.5 text-[#FAF6EE]" />
-                </div>
-                <div class="bg-white rounded-[22px] rounded-tl-sm p-3.5 sm:p-4 border border-black/[0.08] shadow-2xs text-[#0C0C0E]">
-                  <p class="text-xs sm:text-sm leading-relaxed">
-                    Excelente. Ahora cuéntame, ¿a qué dirección exacta y barrio te llevamos este banquete?
-                  </p>
-                </div>
-              </div>
-            {/if}
-
-            <!-- Respuesta 3 del Cliente (Dirección) -->
-            {#if deliveryAddress.trim() && deliveryNeighborhood.trim() && waiterStep !== 'name' && waiterStep !== 'phone' && waiterStep !== 'address'}
-              <div class="flex justify-end">
-                <button 
-                  type="button"
-                  onclick={() => { waiterStep = 'address'; scrollToBottom(); }}
-                  class="group max-w-[85%] bg-[#FF2400] text-white rounded-[22px] rounded-tr-sm px-4 py-2.5 shadow-2xs flex items-center gap-2.5 hover:bg-[#E02000] active:scale-98 transition-all cursor-pointer text-left"
-                  title="Tocar para editar dirección"
-                >
-                  <div class="min-w-0">
-                    <span class="text-[10px] font-mono text-white/70 block uppercase tracking-wider">Lugar de Entrega</span>
-                    <span class="text-xs sm:text-sm font-bold truncate block">{deliveryAddress}</span>
-                    <span class="text-[11px] text-white/80 block">Barrio {deliveryNeighborhood}</span>
-                  </div>
-                  <Pencil class="w-3.5 h-3.5 text-white/70 group-hover:text-white shrink-0 ml-1" />
-                </button>
-              </div>
-            {/if}
-
-            <!-- 4. Pregunta del Mesero: Instrucciones & Notas -->
-            {#if (deliveryAddress.trim() && deliveryNeighborhood.trim() && waiterStep !== 'name' && waiterStep !== 'phone' && waiterStep !== 'address') || waiterStep === 'notes'}
-              <div class="flex items-start gap-2.5 max-w-[92%] sm:max-w-[85%]">
-                <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#18181b] text-white flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
-                  <UtensilsCrossed class="w-3.5 h-3.5 text-[#FAF6EE]" />
-                </div>
-                <div class="bg-white rounded-[22px] rounded-tl-sm p-3.5 sm:p-4 border border-black/[0.08] shadow-2xs text-[#0C0C0E]">
-                  <p class="text-xs sm:text-sm leading-relaxed">
-                    Anotada la ruta. ¿Deseas dejarnos alguna indicación para la cocina o para cuando el repartidor llegue a tu puerta?
-                  </p>
-                </div>
-              </div>
-            {/if}
-
-            <!-- Respuesta 4 del Cliente (Notas) -->
-            {#if waiterStep === 'payment'}
-              <div class="flex justify-end">
-                <button 
-                  type="button"
-                  onclick={() => { waiterStep = 'notes'; scrollToBottom(); }}
-                  class="group max-w-[85%] bg-[#FF2400] text-white rounded-[22px] rounded-tr-sm px-4 py-2.5 shadow-2xs flex items-center gap-2.5 hover:bg-[#E02000] active:scale-98 transition-all cursor-pointer text-left"
-                  title="Tocar para editar notas"
-                >
-                  <div class="min-w-0">
-                    <span class="text-[10px] font-mono text-white/70 block uppercase tracking-wider">Indicaciones</span>
-                    <span class="text-xs sm:text-sm font-medium block">{deliveryNotes.trim() || 'Sin notas adicionales'}</span>
-                  </div>
-                  <Pencil class="w-3.5 h-3.5 text-white/70 group-hover:text-white shrink-0 ml-1" />
-                </button>
-              </div>
-            {/if}
-
-            <!-- 5. Mensaje del Mesero: Resumen y Pago -->
-            {#if waiterStep === 'payment'}
-              <div class="flex items-start gap-2.5 max-w-[92%] sm:max-w-[85%]">
-                <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#18181b] text-white flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
-                  <UtensilsCrossed class="w-3.5 h-3.5 text-[#FAF6EE]" />
-                </div>
-                <div class="bg-white rounded-[22px] rounded-tl-sm p-3.5 sm:p-4 border border-black/[0.08] shadow-2xs text-[#0C0C0E]">
-                  <p class="text-xs sm:text-sm leading-relaxed">
-                    ¡Casi listos para encender fogones! Tu subtotal es de <strong>{formatCOP(store.cartSubtotal)}</strong> + domicilio oficial <strong>{formatCOP(deliveryFee)}</strong> para un total de:
-                  </p>
-                  <p class="font-display font-black text-xl sm:text-2xl text-[#FF2400] mt-1">
-                    {formatCOP(deliveryTotal)}
-                  </p>
-                  <p class="text-xs sm:text-sm text-ash mt-1">
-                    ¿Cómo prefieres cancelar tu comanda?
-                  </p>
-                </div>
-              </div>
-            {/if}
+            </div>
           </div>
 
-          <!-- CONTROLES INTERACTIVOS SEGÚN EL PASO ACTUAL -->
-          <footer class="pt-2 border-t border-black/[0.08] shrink-0 select-none">
-            {#if waiterStep === 'name'}
-              <div class="bg-white rounded-[26px] p-3 sm:p-3.5 border border-black/[0.08] shadow-xs space-y-2">
-                {#if store.user?.full_name && !customerName}
-                  <div class="flex items-center gap-1.5 pb-1">
-                    <span class="text-[10px] font-mono text-ash">Sugerencia:</span>
-                    <button 
-                      type="button" 
-                      onclick={() => { customerName = store.user.full_name; submitName(); }}
-                      class="px-2.5 py-1 rounded-full bg-[#FAF6EE] border border-black/10 hover:border-[#FF2400] text-xs font-medium text-[#0C0C0E] transition-all cursor-pointer"
-                    >
-                      Soy {store.user.full_name}
-                    </button>
-                  </div>
-                {/if}
+          <!-- SECCIÓN 2: LUGAR DE ENTREGA O MESA -->
+          {#if selectedMode === 'delivery'}
+            <div class="bg-white border border-black/10 rounded-[34px] p-5 sm:p-6 space-y-3.5 shadow-none">
+              <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
-                  <div class="relative flex-1">
-                    <input 
-                      type="text" 
-                      bind:value={customerName}
-                      placeholder="Escribe tu nombre completo..."
-                      class="w-full bg-[#FAF6EE] border border-black/10 rounded-2xl px-4 py-3 text-xs sm:text-sm font-sans text-[#0C0C0E] placeholder:text-ash/70 focus:outline-none focus:border-[#FF2400] transition-colors"
-                      onkeydown={(e) => { if (e.key === 'Enter') submitName(); }}
-                    />
-                  </div>
-                  <button 
-                    type="button" 
-                    onclick={submitName}
-                    class="h-11 px-5 rounded-2xl bg-[#FF2400] hover:bg-[#E02000] active:scale-95 text-white font-display font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-2xs shrink-0"
-                  >
-                    <span>Continuar</span>
-                    <ArrowRight class="w-3.5 h-3.5" />
-                  </button>
+                  <MapPin class="w-5 h-5 text-[#FF2400]" />
+                  <h2 class="font-display font-extrabold text-lg text-[#0C0C0E]">
+                    Dirección en Sogamoso
+                  </h2>
                 </div>
-                {#if waiterFeedback}
-                  <span class="text-[11px] text-[#FF2400] font-medium block px-1">{waiterFeedback}</span>
-                {/if}
+                <span class="text-xs font-mono font-bold text-[#FF2400]">Domicilio Oficial</span>
               </div>
 
-            {:else if waiterStep === 'phone'}
-              <div class="bg-white rounded-[26px] p-3 sm:p-3.5 border border-black/[0.08] shadow-xs space-y-2">
-                {#if store.user?.phone && !customerPhone}
-                  <div class="flex items-center gap-1.5 pb-1">
-                    <span class="text-[10px] font-mono text-ash">Sugerencia:</span>
-                    <button 
-                      type="button" 
-                      onclick={() => { customerPhone = store.user.phone; submitPhone(); }}
-                      class="px-2.5 py-1 rounded-full bg-[#FAF6EE] border border-black/10 hover:border-[#FF2400] text-xs font-mono font-medium text-[#0C0C0E] transition-all cursor-pointer"
-                    >
-                      {store.user.phone}
-                    </button>
-                  </div>
-                {/if}
-                <div class="flex items-center gap-2">
-                  <div class="relative flex-1">
-                    <input 
-                      type="tel" 
-                      bind:value={customerPhone}
-                      placeholder="Ej: 300 123 4567"
-                      class="w-full bg-[#FAF6EE] border border-black/10 rounded-2xl px-4 py-3 text-xs sm:text-sm font-mono text-[#0C0C0E] placeholder:text-ash/70 focus:outline-none focus:border-[#FF2400] transition-colors"
-                      onkeydown={(e) => { if (e.key === 'Enter') submitPhone(); }}
-                    />
-                  </div>
-                  <button 
-                    type="button" 
-                    onclick={submitPhone}
-                    class="h-11 px-5 rounded-2xl bg-[#FF2400] hover:bg-[#E02000] active:scale-95 text-white font-display font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-2xs shrink-0"
-                  >
-                    <span>Listo</span>
-                    <ArrowRight class="w-3.5 h-3.5" />
-                  </button>
-                </div>
-                {#if waiterFeedback}
-                  <span class="text-[11px] text-[#FF2400] font-medium block px-1">{waiterFeedback}</span>
-                {/if}
-              </div>
+              <div class="space-y-2.5">
+                <input 
+                  type="text" 
+                  bind:value={deliveryAddress}
+                  placeholder="Dirección exacta (ej. Carrera 11 # 15-40)"
+                  class="w-full min-h-[58px] rounded-2xl px-5 bg-[#EDE8DC] border border-black/10 text-[#0C0C0E] placeholder:text-[#8E8E93] text-base font-sans focus:outline-none focus:border-black/30 transition-colors"
+                />
 
-            {:else if waiterStep === 'address'}
-              <div class="bg-white rounded-[26px] p-3 sm:p-3.5 border border-black/[0.08] shadow-xs space-y-2">
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <input 
-                    type="text" 
-                    bind:value={deliveryAddress}
-                    placeholder="Dirección exacta (Calle, Cra, Apto)..."
-                    class="w-full bg-[#FAF6EE] border border-black/10 rounded-2xl px-4 py-2.5 text-xs sm:text-sm font-sans text-[#0C0C0E] placeholder:text-ash/70 focus:outline-none focus:border-[#FF2400] transition-colors"
-                    onkeydown={(e) => { if (e.key === 'Enter') submitAddress(); }}
-                  />
-                  <input 
-                    type="text" 
-                    bind:value={deliveryNeighborhood}
-                    placeholder="Barrio o sector..."
-                    class="w-full bg-[#FAF6EE] border border-black/10 rounded-2xl px-4 py-2.5 text-xs sm:text-sm font-sans text-[#0C0C0E] placeholder:text-ash/70 focus:outline-none focus:border-[#FF2400] transition-colors"
-                    onkeydown={(e) => { if (e.key === 'Enter') submitAddress(); }}
-                  />
-                </div>
-                <button 
-                  type="button" 
-                  onclick={submitAddress}
-                  class="w-full h-11 rounded-2xl bg-[#FF2400] hover:bg-[#E02000] active:scale-95 text-white font-display font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-2xs"
-                >
-                  <span>Confirmar Dirección</span>
-                  <ArrowRight class="w-3.5 h-3.5" />
-                </button>
-                {#if waiterFeedback}
-                  <span class="text-[11px] text-[#FF2400] font-medium block px-1">{waiterFeedback}</span>
-                {/if}
-              </div>
+                <input 
+                  type="text" 
+                  bind:value={deliveryNeighborhood}
+                  placeholder="Barrio o sector (ej. Centro, El Recreo, Sugamuxi)"
+                  class="w-full min-h-[58px] rounded-2xl px-5 bg-[#EDE8DC] border border-black/10 text-[#0C0C0E] placeholder:text-[#8E8E93] text-base font-sans focus:outline-none focus:border-black/30 transition-colors"
+                />
 
-            {:else if waiterStep === 'notes'}
-              <div class="bg-white rounded-[26px] p-3 sm:p-3.5 border border-black/[0.08] shadow-xs space-y-2.5">
-                <span class="text-[10px] font-mono font-bold uppercase text-ash block">Opciones rápidas con un toque:</span>
-                <div class="flex flex-wrap gap-1.5">
-                  {#each [
-                    '🔔 Tocar el timbre',
-                    '🏢 Dejar en portería',
-                    '🛵 Llamar al llegar',
-                    '🧅 Sin cebolla',
-                    '🥫 Salsas adicionales',
-                    '✨ Sin notas adicionales'
-                  ] as chip}
-                    {@const isSelected = deliveryNotes.includes(chip.replace(/^[^\s]+\s/, '')) || (chip.includes('Sin notas') && deliveryNotes === 'Sin notas adicionales')}
-                    <button 
+                <input 
+                  type="text" 
+                  bind:value={deliveryNotes}
+                  placeholder="Indicaciones para el repartidor (ej. Casa blanca, timbre 201)"
+                  class="w-full min-h-[54px] rounded-2xl px-5 bg-[#EDE8DC] border border-black/10 text-[#0C0C0E] placeholder:text-[#8E8E93] text-sm font-sans focus:outline-none focus:border-black/30 transition-colors"
+                />
+
+                <!-- Chips Rápidos para Notas de Entrega -->
+                <div class="flex flex-wrap gap-1.5 pt-1">
+                  {#each ['🔔 Tocar timbre', '🏢 Dejar en portería', '🛵 Llamar al llegar'] as chip}
+                    <button
                       type="button"
-                      onclick={() => toggleQuickNote(chip.replace(/^[^\s]+\s/, ''))}
-                      class="px-2.5 py-1 rounded-full text-xs font-medium border transition-all cursor-pointer active:scale-95 {isSelected ? 'bg-[#FF2400] text-white border-[#FF2400]' : 'bg-[#FAF6EE] text-[#3A3A3C] border-black/10 hover:border-black/30'}"
+                      onclick={() => toggleQuickNote(chip)}
+                      class="px-3 py-1.5 rounded-full text-xs font-medium border transition-all cursor-pointer {deliveryNotes.includes(chip) ? 'bg-[#FF2400] text-white border-[#FF2400]' : 'bg-[#EDE8DC] text-[#0C0C0E] border-black/10'}"
                     >
                       {chip}
                     </button>
                   {/each}
                 </div>
-                <div class="flex items-center gap-2 pt-1">
-                  <input 
-                    type="text" 
-                    bind:value={deliveryNotes}
-                    placeholder="O escribe alguna otra indicación..."
-                    class="flex-1 bg-[#FAF6EE] border border-black/10 rounded-2xl px-4 py-2.5 text-xs sm:text-sm font-sans text-[#0C0C0E] placeholder:text-ash/70 focus:outline-none focus:border-[#FF2400] transition-colors"
-                    onkeydown={(e) => { if (e.key === 'Enter') submitNotes(); }}
-                  />
-                  <button 
-                    type="button" 
-                    onclick={submitNotes}
-                    class="h-10 px-4 rounded-2xl bg-[#FF2400] hover:bg-[#E02000] active:scale-95 text-white font-display font-bold text-xs sm:text-sm flex items-center justify-center gap-1 transition-all cursor-pointer shadow-2xs shrink-0"
-                  >
-                    <span>Continuar</span>
-                    <ArrowRight class="w-3 h-3" />
-                  </button>
-                </div>
               </div>
-
-            {:else if waiterStep === 'payment'}
-              <div class="space-y-2.5 pt-1">
-                <!-- Métodos de pago táctiles -->
-                <div class="grid grid-cols-3 gap-2">
-                  {#each [
-                    { id: 'Nequi / Bre-B', label: 'Nequi / Bancolombia', sub: 'Transferencia' },
-                    { id: 'Efectivo', label: 'Efectivo', sub: 'Contra entrega' },
-                    { id: 'Datáfono', label: 'Datáfono', sub: 'Tarjeta' }
-                  ] as m}
-                    <button
-                      type="button"
-                      onclick={() => { paymentMethod = m.id; }}
-                      class="p-2.5 rounded-2xl border transition-all text-center flex flex-col items-center justify-center cursor-pointer active:scale-95 {paymentMethod === m.id ? 'bg-[#FF2400] text-white border-[#FF2400] shadow-xs' : 'bg-white text-[#0C0C0E] border-black/10 hover:border-black/25'}"
-                    >
-                      <span class="text-xs sm:text-sm font-display font-extrabold leading-tight block">{m.label}</span>
-                      <span class="text-[10px] font-mono {paymentMethod === m.id ? 'text-white/80' : 'text-ash'} block mt-0.5">{m.sub}</span>
-                    </button>
-                  {/each}
-                </div>
-
-                <!-- Detalle si es Efectivo -->
-                {#if paymentMethod === 'Efectivo'}
-                  <div class="bg-white rounded-2xl p-3 border border-black/10 space-y-2">
-                    <span class="text-xs font-mono font-bold text-[#0C0C0E] block">
-                      ¿Con cuánto vas a pagar? (Llevamos tu cambio exacto):
-                    </span>
-                    <div class="flex flex-wrap gap-1.5">
-                      <button
-                        type="button"
-                        onclick={() => setCashPreset(deliveryTotal)}
-                        class="px-2.5 py-1 rounded-full text-xs font-mono font-bold border cursor-pointer {parseInt(cashAmount, 10) === deliveryTotal ? 'bg-[#FF2400] text-white border-[#FF2400]' : 'bg-[#FAF6EE] text-[#0C0C0E] border-black/10'}"
-                      >
-                        Exacto ({formatCOP(deliveryTotal)})
-                      </button>
-                      {#if deliveryTotal < 50000}
-                        <button
-                          type="button"
-                          onclick={() => setCashPreset(50000)}
-                          class="px-2.5 py-1 rounded-full text-xs font-mono font-bold border cursor-pointer {parseInt(cashAmount, 10) === 50000 ? 'bg-[#FF2400] text-white border-[#FF2400]' : 'bg-[#FAF6EE] text-[#0C0C0E] border-black/10'}"
-                        >
-                          $50.000
-                        </button>
-                      {/if}
-                      {#if deliveryTotal < 100000}
-                        <button
-                          type="button"
-                          onclick={() => setCashPreset(100000)}
-                          class="px-2.5 py-1 rounded-full text-xs font-mono font-bold border cursor-pointer {parseInt(cashAmount, 10) === 100000 ? 'bg-[#FF2400] text-white border-[#FF2400]' : 'bg-[#FAF6EE] text-[#0C0C0E] border-black/10'}"
-                        >
-                          $100.000
-                        </button>
-                      {/if}
-                    </div>
-                    <input 
-                      type="number" 
-                      bind:value={cashAmount}
-                      placeholder="O escribe el valor del billete..."
-                      class="w-full bg-[#FAF6EE] border border-black/10 rounded-xl px-3 py-2 text-xs sm:text-sm font-mono text-[#0C0C0E] focus:outline-none focus:border-[#FF2400]"
-                    />
-                    {#if cashChange > 0}
-                      <span class="text-xs font-mono text-emerald-700 font-bold block">
-                        ✓ El repartidor te llevará {formatCOP(cashChange)} de cambio.
-                      </span>
-                    {/if}
-                  </div>
-                {/if}
-
-                <!-- Botón gigante de confirmación de comanda -->
-                <button
-                  type="button"
-                  onclick={handleConfirmDelivery}
-                  class="w-full min-h-[60px] sm:min-h-[68px] rounded-full bg-[#FF2400] hover:bg-[#E02000] active:scale-[0.97] text-white font-display font-extrabold text-base sm:text-lg tracking-tight uppercase shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer select-none"
-                >
-                  <Sparkles class="w-5 h-5 stroke-[2.2]" />
-                  <span>CONFIRMAR Y GENERAR TICKET</span>
-                </button>
+            </div>
+          {:else if selectedMode === 'in_store'}
+            <div class="bg-white border border-black/10 rounded-[34px] p-5 sm:p-6 space-y-3 shadow-none">
+              <div class="flex items-center gap-2">
+                <UtensilsCrossed class="w-5 h-5 text-[#FF2400]" />
+                <h2 class="font-display font-extrabold text-lg text-[#0C0C0E]">Número de Mesa</h2>
               </div>
-            {/if}
-          </footer>
+              <input 
+                type="text" 
+                bind:value={tableNumber}
+                placeholder="Número de mesa (ej. 4)"
+                class="w-full min-h-[58px] rounded-2xl px-5 bg-[#EDE8DC] border border-black/10 text-[#0C0C0E] text-base font-sans focus:outline-none focus:border-black/30 transition-colors"
+              />
+            </div>
+          {/if}
 
-        <!-- =======================================================
-             FASE 3: EL TICKET DE COMANDA PERFORADO (DISEÑO INSPIRADO EN LA CAPTURA)
-             ======================================================= -->
-        {:else if cartStep === 'ticket' && createdOrder}
-          <div 
-            class="flex-1 min-h-0 overflow-y-auto py-2 pr-0.5 flex flex-col justify-between select-none"
-            style="scrollbar-width: none; overscroll-behavior: contain;"
-            onwheel={(e) => e.stopPropagation()}
-            ontouchmove={(e) => e.stopPropagation()}
-          >
-            <!-- TARJETA DEL TICKET PERFORADO -->
-            <div class="ticket-card w-full max-w-sm mx-auto bg-[#FFFDF5] border border-black/15 shadow-xl relative overflow-hidden rounded-[26px] sm:rounded-[30px] my-auto">
-              
-              <!-- Dientes Perforados Superiores (Scalloped Teeth) -->
-              <div class="flex justify-between items-center -mt-2 px-1 overflow-hidden pointer-events-none" aria-hidden="true">
-                {#each Array(15) as _}
-                  <div class="w-3.5 h-3.5 rounded-full bg-[#FAF6EE] shrink-0 border-b border-black/10"></div>
-                {/each}
-              </div>
-
-              <!-- Cabecera del Ticket -->
-              <div class="pt-5 pb-3 px-6 text-center">
-                <div class="flex items-center justify-center gap-2 mb-2">
-                  <img src="/imagenes/marca/isotipo.webp" alt="Mías" class="w-7 h-7 object-contain" />
-                  <span class="font-display font-black text-sm uppercase tracking-wider text-[#0C0C0E]">
-                    Mías Hamburguesas
-                  </span>
-                </div>
-
-                <h3 class="font-display font-black text-2xl sm:text-3xl text-[#0C0C0E] tracking-tight leading-none mt-1.5">
-                  ¡Comanda Lista!
-                </h3>
-                <p class="font-sans text-xs text-ash mt-1 font-medium">
-                  Lo íntimo hecho para compartir.
-                </p>
-              </div>
-
-              <!-- Líneas Guía de Puntos (Igual a la referencia del usuario) -->
-              <div class="px-6 py-2.5 space-y-2 font-mono text-xs text-[#3A3A3C]">
-                <div class="flex items-baseline justify-between">
-                  <span class="text-ash shrink-0">Modalidad</span>
-                  <span class="flex-1 mx-2 border-b border-dotted border-black/30 relative -top-1"></span>
-                  <span class="font-bold text-[#0C0C0E] shrink-0">{createdOrder.modeLabel}</span>
-                </div>
-
-                {#if createdOrder.table_number}
-                  <div class="flex items-baseline justify-between">
-                    <span class="text-ash shrink-0">Mesa</span>
-                    <span class="flex-1 mx-2 border-b border-dotted border-black/30 relative -top-1"></span>
-                    <span class="font-bold text-[#FF2400] shrink-0">Mesa {createdOrder.table_number}</span>
-                  </div>
-                {/if}
-
-                <div class="flex items-baseline justify-between">
-                  <span class="text-ash shrink-0">Cliente</span>
-                  <span class="flex-1 mx-2 border-b border-dotted border-black/30 relative -top-1"></span>
-                  <span class="font-bold text-[#0C0C0E] shrink-0 truncate max-w-[130px]">{createdOrder.customer_name}</span>
-                </div>
-
-                <div class="flex items-baseline justify-between">
-                  <span class="text-ash shrink-0">Productos</span>
-                  <span class="flex-1 mx-2 border-b border-dotted border-black/30 relative -top-1"></span>
-                  <span class="font-bold text-[#0C0C0E] shrink-0">{createdOrder.items.reduce((s, i) => s + i.quantity, 0)} ítems</span>
-                </div>
-
-                <div class="flex items-baseline justify-between">
-                  <span class="text-ash shrink-0">Subtotal</span>
-                  <span class="flex-1 mx-2 border-b border-dotted border-black/30 relative -top-1"></span>
-                  <span class="font-bold text-[#0C0C0E] shrink-0">{formatCOP(createdOrder.subtotal)}</span>
-                </div>
-
-                {#if createdOrder.delivery_fee > 0}
-                  <div class="flex items-baseline justify-between">
-                    <span class="text-ash shrink-0">Domicilio</span>
-                    <span class="flex-1 mx-2 border-b border-dotted border-black/30 relative -top-1"></span>
-                    <span class="font-bold text-[#0C0C0E] shrink-0">{formatCOP(createdOrder.delivery_fee)}</span>
-                  </div>
-                {/if}
-
-                <div class="flex items-baseline justify-between pt-1 text-sm font-bold">
-                  <span class="text-[#0C0C0E] shrink-0">Total comanda</span>
-                  <span class="flex-1 mx-2 border-b border-dotted border-black/40 relative -top-1"></span>
-                  <span class="font-display font-black text-base text-[#FF2400] shrink-0">{formatCOP(createdOrder.total)}</span>
-                </div>
-              </div>
-
-              <!-- Muescas de Rasgado Lateral y Línea Troquelada Central -->
-              <div class="relative my-3 py-1 flex items-center justify-center pointer-events-none" aria-hidden="true">
-                <div class="absolute -left-3.5 w-7 h-7 rounded-full bg-[#FAF6EE] border-r border-black/15 shadow-inner"></div>
-                <div class="w-full border-t-2 border-dashed border-black/25 mx-4"></div>
-                <div class="absolute -right-3.5 w-7 h-7 rounded-full bg-[#FAF6EE] border-l border-black/15 shadow-inner"></div>
-              </div>
-
-              <!-- Sección Inferior con Gran Identificador Numérico (Idéntico a la referencia) -->
-              <div class="pt-2 pb-6 px-6 text-center">
-                <span class="text-[10px] font-mono uppercase tracking-widest text-ash block mb-1">
-                  Número de Identificación
-                </span>
-                <button
-                  type="button"
-                  onclick={copyOrderCode}
-                  class="group inline-flex items-center justify-center gap-2 cursor-pointer active:scale-95 transition-transform"
-                  title="Toca para copiar código"
-                >
-                  <span class="font-display font-black text-4xl sm:text-5xl tracking-tight text-[#FF2400] drop-shadow-2xs">
-                    #{createdOrder.code}
-                  </span>
-                  <Copy class="w-4 h-4 text-ash group-hover:text-[#FF2400] transition-colors" />
-                </button>
-                {#if isCopied}
-                  <span class="text-[10px] font-mono text-emerald-600 font-bold block mt-1 animate-in fade-in">
-                    ✓ Código copiado al portapapeles
-                  </span>
-                {/if}
-              </div>
-
-              <!-- Dientes Perforados Inferiores (Scalloped Teeth) -->
-              <div class="flex justify-between items-center -mb-2 px-1 overflow-hidden pointer-events-none" aria-hidden="true">
-                {#each Array(15) as _}
-                  <div class="w-3.5 h-3.5 rounded-full bg-[#FAF6EE] shrink-0 border-t border-black/10"></div>
-                {/each}
-              </div>
-
+          <!-- SECCIÓN 3: MÉTODO DE PAGO (TARJETAS GORDAS) -->
+          <div class="bg-white border border-black/10 rounded-[34px] p-5 sm:p-6 space-y-3.5 shadow-none">
+            <div class="flex items-center justify-between">
+              <h2 class="font-display font-extrabold text-lg text-[#0C0C0E]">Método de Pago</h2>
+              <span class="text-xs font-mono font-bold text-[#8E8E93]">{paymentMethod}</span>
             </div>
 
-            <!-- Acciones Posteriores al Ticket -->
-            <div class="w-full max-w-sm mx-auto mt-4 space-y-2.5 shrink-0">
-              {#if createdOrder.type === 'delivery'}
-                <button
-                  type="button"
-                  onclick={dispatchWhatsApp}
-                  class="w-full min-h-[64px] rounded-full bg-emerald-600 hover:bg-emerald-500 active:scale-[0.97] text-white font-display font-extrabold text-base tracking-tight shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <Send class="w-5 h-5 stroke-[2.2]" />
-                  <span>Enviar a WhatsApp (321 252 0881)</span>
-                </button>
-              {/if}
-
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              <!-- Efectivo -->
               <button
                 type="button"
-                onclick={resetAndClose}
-                class="w-full py-3.5 rounded-full bg-white border border-black/15 hover:bg-black/5 active:scale-95 text-[#0C0C0E] font-display font-extrabold text-sm tracking-tight transition-all cursor-pointer shadow-xs"
+                onclick={() => paymentMethod = 'Efectivo'}
+                class="p-4 rounded-2xl border-2 text-left transition-all cursor-pointer flex flex-col justify-between min-h-[84px] {paymentMethod === 'Efectivo' ? 'border-[#FF2400] bg-[#FAF6EE]' : 'border-black/10 bg-white'}"
               >
-                Finalizar y Volver a la Carta
+                <DollarSign class="w-5 h-5 text-[#FF2400]" />
+                <div>
+                  <span class="font-display font-extrabold text-sm text-[#0C0C0E] block">Efectivo</span>
+                  <span class="text-[11px] text-[#8E8E93]">Contraentrega</span>
+                </div>
+              </button>
+
+              <!-- Nequi / Daviplata -->
+              <button
+                type="button"
+                onclick={() => paymentMethod = 'Nequi / Daviplata'}
+                class="p-4 rounded-2xl border-2 text-left transition-all cursor-pointer flex flex-col justify-between min-h-[84px] {paymentMethod === 'Nequi / Daviplata' ? 'border-[#FF2400] bg-[#FAF6EE]' : 'border-black/10 bg-white'}"
+              >
+                <Phone class="w-5 h-5 text-[#FF2400]" />
+                <div>
+                  <span class="font-display font-extrabold text-sm text-[#0C0C0E] block">Nequi / Davi</span>
+                  <span class="text-[11px] text-[#8E8E93]">Transferencia</span>
+                </div>
+              </button>
+
+              <!-- Datáfono -->
+              <button
+                type="button"
+                onclick={() => paymentMethod = 'Datáfono contraentrega'}
+                class="p-4 rounded-2xl border-2 text-left transition-all cursor-pointer flex flex-col justify-between min-h-[84px] {paymentMethod === 'Datáfono contraentrega' ? 'border-[#FF2400] bg-[#FAF6EE]' : 'border-black/10 bg-white'}"
+              >
+                <CreditCard class="w-5 h-5 text-[#FF2400]" />
+                <div>
+                  <span class="font-display font-extrabold text-sm text-[#0C0C0E] block">Datáfono</span>
+                  <span class="text-[11px] text-[#8E8E93]">Tarjeta física</span>
+                </div>
               </button>
             </div>
 
-          </div>
-        {/if}
+            <!-- Detalles según método de pago seleccionado -->
+            {#if paymentMethod === 'Efectivo'}
+              <div class="p-4 rounded-2xl bg-[#EDE8DC] space-y-2.5">
+                <span class="text-xs font-mono font-bold text-[#0C0C0E] block">
+                  ¿Con cuánto cancelas? (Para llevar tu cambio exacto)
+                </span>
+                <div class="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onclick={() => selectQuickCash(50000)}
+                    class="py-2.5 rounded-xl bg-white border border-black/10 text-xs font-bold font-mono text-[#0C0C0E] hover:border-[#FF2400] cursor-pointer"
+                  >
+                    $50.000
+                  </button>
+                  <button
+                    type="button"
+                    onclick={() => selectQuickCash(100000)}
+                    class="py-2.5 rounded-xl bg-white border border-black/10 text-xs font-bold font-mono text-[#0C0C0E] hover:border-[#FF2400] cursor-pointer"
+                  >
+                    $100.000
+                  </button>
+                  <button
+                    type="button"
+                    onclick={() => selectQuickCash('exact')}
+                    class="py-2.5 rounded-xl bg-white border border-black/10 text-xs font-bold font-mono text-[#0C0C0E] hover:border-[#FF2400] cursor-pointer"
+                  >
+                    Exacto
+                  </button>
+                </div>
 
-      </div>
+                <div class="flex items-center gap-2 pt-1">
+                  <input 
+                    type="number"
+                    bind:value={cashAmount}
+                    placeholder="Otro valor en efectivo..."
+                    class="flex-1 min-h-[48px] rounded-xl px-4 bg-white border border-black/10 text-xs sm:text-sm font-mono text-[#0C0C0E] focus:outline-none focus:border-[#FF2400]"
+                  />
+                  {#if cashChange > 0}
+                    <span class="text-xs font-mono font-bold text-emerald-700 bg-white px-3 py-3 rounded-xl border border-black/10 shrink-0">
+                      Vueltas: {formatCOP(cashChange)}
+                    </span>
+                  {/if}
+                </div>
+              </div>
+            {:else if paymentMethod === 'Nequi / Daviplata'}
+              <div class="p-4 rounded-2xl bg-[#EDE8DC] flex items-center justify-between">
+                <div>
+                  <span class="text-[11px] font-mono uppercase text-[#8E8E93] block">Cuenta Nequi & Daviplata Mías</span>
+                  <span class="font-display font-black text-lg text-[#0C0C0E]">321 252 0881</span>
+                </div>
+                <button
+                  type="button"
+                  onclick={copyNequi}
+                  class="min-h-[42px] px-4 rounded-xl bg-white border border-black/10 text-xs font-mono font-bold text-[#0C0C0E] hover:border-[#FF2400] transition-colors cursor-pointer flex items-center gap-1.5"
+                >
+                  <Copy class="w-3.5 h-3.5" />
+                  <span>{isCopied ? '¡Copiado!' : 'Copiar'}</span>
+                </button>
+              </div>
+            {/if}
+          </div>
+
+          <!-- SECCIÓN 4: RESUMEN Y BOTÓN FAT-FINGER FINALIZAR -->
+          <div class="bg-white border border-black/10 rounded-[34px] p-6 space-y-4 shadow-none">
+            <div class="space-y-2 text-sm">
+              <div class="flex justify-between text-[#8E8E93]">
+                <span>Subtotal de platos:</span>
+                <span class="font-mono font-medium text-[#0C0C0E]">{formatCOP(store.cartSubtotal)}</span>
+              </div>
+              <div class="flex justify-between text-[#8E8E93]">
+                <span>Costo de domicilio:</span>
+                <span class="font-mono font-medium text-[#0C0C0E]">
+                  {currentDeliveryFee > 0 ? formatCOP(currentDeliveryFee) : 'Gratis'}
+                </span>
+              </div>
+              <div class="border-t border-black/10 pt-2 flex items-center justify-between">
+                <span class="font-display font-black text-xl text-[#0C0C0E]">Total a Pagar</span>
+                <span class="font-display font-black text-2xl sm:text-3xl text-[#FF2400]">
+                  {formatCOP(currentTotal)}
+                </span>
+              </div>
+            </div>
+
+            {#if formError}
+              <div class="p-3.5 rounded-2xl bg-red-50 border border-red-200 text-xs font-bold text-[#FF2400] text-center">
+                {formError}
+              </div>
+            {/if}
+
+            <button
+              type="button"
+              onclick={handleFinalizeOrder}
+              class="w-full min-h-[64px] rounded-full bg-[#FF2400] hover:bg-[#E02000] active:scale-[0.97] text-white font-display font-extrabold text-lg sm:text-xl tracking-tight transition-all flex items-center justify-center gap-2 cursor-pointer shadow-none"
+            >
+              <span>Confirmar y Finalizar Pedido</span>
+              <Check class="w-5 h-5 stroke-[2.5]" />
+            </button>
+          </div>
+        </div>
+
+      <!-- ========================================================================= -->
+      <!-- FASE 4: COMANDA CONFIRMADA (TICKET Y ACCIONES INMEDIATAS)                  -->
+      <!-- ========================================================================= -->
+      {:else if cartStep === 'ticket' && (liveTicketOrder || createdOrder)}
+        {@const ord = liveTicketOrder || createdOrder}
+        <div class="bg-white border border-black/10 rounded-[38px] p-6 sm:p-8 space-y-6 shadow-none text-center">
+          
+          <!-- Encabezado de Éxito con Estado en Vivo -->
+          <div class="space-y-2">
+            <div class="w-16 h-16 rounded-full {ord.status === 'PAID' ? 'bg-emerald-600' : 'bg-[#FF2400]'} text-white mx-auto flex items-center justify-center shadow-xs transition-colors duration-500">
+              <Check class="w-8 h-8 stroke-[3]" />
+            </div>
+            <span class="font-mono text-xs uppercase font-bold tracking-widest text-[#FF2400] block">
+              Comanda #{ord.code}
+            </span>
+            <h2 class="font-display font-black text-2xl sm:text-3xl text-[#0C0C0E]">
+              {#if ord.status === 'PAID'}
+                ¡Comanda Cobrada y Aprobada!
+              {:else if ord.status === 'IN_PREPARATION'}
+                ¡Tu comanda está al fuego!
+              {:else if ord.status === 'ON_THE_WAY'}
+                ¡Tu comanda va en camino!
+              {:else if ord.status === 'DELIVERED'}
+                ¡Pedido Entregado!
+              {:else}
+                ¡Tu comanda está registrada!
+              {/if}
+            </h2>
+            <p class="text-xs sm:text-sm text-[#8E8E93] max-w-sm mx-auto">
+              {#if ord.status === 'PAID'}
+                La caja ha confirmado tu pago satisfactoriamente. Tu orden se está procesando.
+              {:else}
+                Para despachar de inmediato al fuego y coordinar la entrega, envía tu comanda por WhatsApp oficial.
+              {/if}
+            </p>
+          </div>
+
+          <!-- Resumen del Ticket Térmico con Estado en Vivo -->
+          <div class="p-5 rounded-3xl bg-[#EDE8DC] text-left space-y-3 font-mono text-xs">
+            <div class="flex justify-between items-center border-b border-black/10 pb-2">
+              <span class="text-[#8E8E93]">Estado en Vivo:</span>
+              <span class="font-mono font-bold text-[11px] uppercase px-2.5 py-1 rounded-full {
+                ord.status === 'PAID' ? 'bg-emerald-200 text-emerald-900 border border-emerald-300' :
+                ord.status === 'IN_PREPARATION' ? 'bg-amber-200 text-amber-900 border border-amber-300' :
+                ord.status === 'ON_THE_WAY' ? 'bg-blue-200 text-blue-900 border border-blue-300' :
+                ord.status === 'DELIVERED' ? 'bg-purple-200 text-purple-900 border border-purple-300' :
+                'bg-orange-100 text-[#FF2400] border border-[#FF2400]/30 animate-pulse'
+              }">
+                {#if ord.status === 'PAID'}
+                  ✓ Pago Aprobado en Caja
+                {:else if ord.status === 'IN_PREPARATION'}
+                  🔥 En Preparación al Fuego
+                {:else if ord.status === 'ON_THE_WAY'}
+                  🛵 En Camino al Domicilio
+                {:else if ord.status === 'DELIVERED'}
+                  ✨ Pedido Entregado
+                {:else}
+                  ⏳ Pendiente de Cobro en Caja
+                {/if}
+              </span>
+            </div>
+            <div class="flex justify-between border-b border-black/10 pb-2">
+              <span class="text-[#8E8E93]">Modalidad:</span>
+              <span class="font-bold text-[#0C0C0E]">{ord.modeLabel || ord.type}</span>
+            </div>
+            <div class="flex justify-between border-b border-black/10 pb-2">
+              <span class="text-[#8E8E93]">Cliente:</span>
+              <span class="font-bold text-[#0C0C0E]">{ord.customer_name || ord.deliveryName}</span>
+            </div>
+            {#if ord.delivery_address || ord.deliveryAddress}
+              <div class="flex justify-between border-b border-black/10 pb-2">
+                <span class="text-[#8E8E93]">Dirección:</span>
+                <span class="font-bold text-[#0C0C0E] text-right">{ord.delivery_address || ord.deliveryAddress}</span>
+              </div>
+            {/if}
+            {#if ord.table_number || ord.tableNumber}
+              <div class="flex justify-between border-b border-black/10 pb-2">
+                <span class="text-[#8E8E93]">Mesa:</span>
+                <span class="font-bold text-[#0C0C0E]">#{ord.table_number || ord.tableNumber}</span>
+              </div>
+            {/if}
+            <div class="flex justify-between pt-1">
+              <span class="font-display font-extrabold text-sm text-[#0C0C0E]">Total Comanda:</span>
+              <span class="font-display font-black text-base text-[#FF2400]">{formatCOP(ord.total)}</span>
+            </div>
+          </div>
+
+          <!-- Botones Fat-Finger de Alta Conversión -->
+          <div class="space-y-3 pt-2">
+            <!-- Botón 1: Enviar por WhatsApp -->
+            <button
+              type="button"
+              onclick={dispatchWhatsApp}
+              class="w-full min-h-[64px] rounded-full bg-[#FF2400] hover:bg-[#E02000] active:scale-[0.97] text-white font-display font-extrabold text-base sm:text-lg tracking-tight transition-all flex items-center justify-center gap-2.5 cursor-pointer shadow-none"
+            >
+              <Send class="w-5 h-5" />
+              <span>Enviar Pedido por WhatsApp</span>
+            </button>
+
+            <!-- Botón 2: Solicitar Sellos para la Cartilla -->
+            <button
+              type="button"
+              onclick={goToStampsFromTicket}
+              class="w-full min-h-[58px] rounded-full bg-white hover:bg-[#FAF6EE] text-[#0C0C0E] border border-black/15 font-display font-extrabold text-sm sm:text-base tracking-tight transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <Award class="w-5 h-5 text-[#FF2400]" />
+              <span>Solicitar Sellos en mi Cartilla</span>
+            </button>
+
+            <!-- Botón 3: Volver a la Carta -->
+            <button
+              type="button"
+              onclick={() => { closeOrderModal(); store.currentView = 'menu'; }}
+              class="w-full py-2.5 text-xs font-mono text-[#8E8E93] hover:text-[#0C0C0E] transition-colors cursor-pointer"
+            >
+              Volver a la carta principal
+            </button>
+          </div>
+        </div>
+      {/if}
 
     </div>
   </div>
 {/if}
-
-<style>
-  .welcome-modal-backdrop {
-    padding-left: 12px;
-    padding-right: 12px;
-    padding-bottom: 12px;
-    padding-top: max(14px, calc(env(safe-area-inset-top, 0px) + 6px));
-  }
-
-  @media (min-width: 640px) {
-    .welcome-modal-backdrop {
-      padding: 1.25rem;
-    }
-  }
-
-  @media (min-width: 768px) {
-    .welcome-modal-backdrop {
-      padding: 1.5rem;
-    }
-  }
-
-  @media (min-width: 1024px) {
-    .welcome-modal-backdrop {
-      padding: 1.75rem;
-    }
-  }
-
-  @media (min-width: 1280px) {
-    .welcome-modal-backdrop {
-      padding: 2.25rem;
-    }
-  }
-
-  .welcome-card-modal {
-    border: 1px solid rgba(0, 0, 0, 0.30);
-    border-radius: 38px;
-    -webkit-border-radius: 38px;
-    overflow: hidden;
-    isolation: isolate;
-    will-change: transform, opacity;
-    transform: translateZ(0);
-    -webkit-backface-visibility: hidden;
-    backface-visibility: hidden;
-    contain: layout paint;
-  }
-
-  @media (min-width: 640px) {
-    .welcome-card-modal {
-      border-radius: 48px;
-      -webkit-border-radius: 48px;
-    }
-  }
-
-  @media (orientation: portrait) {
-    .pill-action-btn {
-      min-height: 76px !important;
-      font-size: 1.22rem !important;
-    }
-  }
-
-  @media (orientation: landscape) and (max-height: 720px) {
-    .pill-action-btn {
-      min-height: 66px !important;
-      font-size: 1.15rem !important;
-    }
-  }
-</style>
