@@ -179,7 +179,7 @@
 
     if (selectedMode === 'delivery') {
       if (!deliveryAddress.trim() || !deliveryNeighborhood.trim()) {
-        formError = 'Por favor completa la dirección y el barrio de entrega en Sogamoso.';
+        formError = 'Por favor completa la dirección y el barrio de entrega en Duitama.';
         return;
       }
     } else if (selectedMode === 'in_store') {
@@ -598,7 +598,7 @@
                 </span>
               </div>
               <p class="text-xs text-[#8E8E93] mt-1 leading-relaxed">
-                Directo a tu puerta en Sogamoso, empacado hermético con sello de calor.
+                Directo a tu puerta en Duitama, empacado hermético con sello de calor.
               </p>
             </div>
           </button>
@@ -691,7 +691,7 @@
                 <div class="flex items-center gap-2">
                   <MapPin class="w-5 h-5 text-[#FF2400]" />
                   <h2 class="font-display font-extrabold text-lg text-[#0C0C0E]">
-                    Dirección en Sogamoso
+                    Dirección en Duitama
                   </h2>
                 </div>
                 <span class="text-xs font-mono font-bold text-[#FF2400]">Domicilio Oficial</span>
@@ -701,7 +701,7 @@
                 <input 
                   type="text" 
                   bind:value={deliveryAddress}
-                  placeholder="Dirección exacta (ej. Carrera 11 # 15-40)"
+                  placeholder="Dirección exacta (ej. Carrera 16 # 14-32)"
                   class="w-full min-h-[58px] rounded-2xl px-5 bg-[#EDE8DC] border border-black/10 text-[#0C0C0E] placeholder:text-[#8E8E93] text-base font-sans focus:outline-none focus:border-black/30 transition-colors"
                 />
 

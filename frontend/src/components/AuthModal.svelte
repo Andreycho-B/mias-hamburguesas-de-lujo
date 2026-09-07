@@ -47,7 +47,7 @@
   $effect(() => {
     if (store.user) {
       profilePhone = store.user.phone || '';
-      profileAddress = store.user.address || 'Carrera 11 # 15-40, Sogamoso';
+      profileAddress = store.user.address || 'Carrera 16 # 14-32, Duitama';
       if (typeof window !== 'undefined') {
         const savedBread = localStorage.getItem('mias_pref_bread');
         if (savedBread) favoriteBread = savedBread;
@@ -495,7 +495,7 @@
               </a>
               <span class="flex items-center justify-center gap-1.5 text-xs font-mono text-[#8E8E93] py-1">
                 <MapPin class="w-3.5 h-3.5 text-[#FF2400] shrink-0" />
-                <span>Sogamoso</span>
+                <span>Duitama</span>
               </span>
             </div>
           </div>
@@ -637,7 +637,7 @@
             </h2>
           </div>
           <p class="text-xs text-[#8E8E93] leading-relaxed">
-            Recibe avisos de estado por WhatsApp y registra tu dirección habitual para entregas a domicilio en Sogamoso.
+            Recibe avisos de estado por WhatsApp y registra tu dirección habitual para entregas a domicilio en Duitama.
           </p>
 
           <div class="space-y-3 pt-1">
