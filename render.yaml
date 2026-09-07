@@ -27,7 +27,6 @@ services:
     name: mias-frontend
     runtime: static
     plan: free
-    region: oregon
     rootDir: frontend
     buildCommand: npm install && npm run build
     staticPublishPath: dist
@@ -50,4 +49,4 @@ databases:
     plan: free
     region: oregon
     databaseName: mias_db
-    user: postgres
+    user: mias_user
