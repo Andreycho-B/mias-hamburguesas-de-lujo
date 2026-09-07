@@ -8,9 +8,16 @@
     <meta name="theme-color" content="#050507" />
     <meta name="description" content="Mías Hamburguesas de Lujo. Lo Íntimo Hecho para Compartir. Hamburguesas artesanales al carbón y programa de fidelización." />
     
+    <!-- iOS Safari PWA Standalone Configuration -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Mías" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+
     <title>Mías Hamburguesas de Lujo | Lo Íntimo Hecho para Compartir</title>
 
-    <!-- Prevención inmediata de parpadeo blanco (FOUC): aplica fondo negro obsidiana antes de cualquier recurso -->
+    <!-- Prevención inmediata de parpadeo blanco (FOUC): fondo negro obsidiana instantáneo -->
     <style>
       html, body {
         background-color: #050507 !important;
@@ -28,13 +35,26 @@
     <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.webmanifest" />
 
-    <!-- Typography: Fontshare (Satoshi, Cabinet Grotesk) & Google Fonts (Playfair Display, Cormorant Garamond, Italianno, JetBrains Mono) -->
+    <!-- Tipografía Asíncrona (Non-blocking): Fontshare & Google Fonts sin demoras de renderizado -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=Italiana&family=JetBrains+Mono:wght@400;500;600&family=Playfair+Display:ital,wght@1,500;1,600;1,700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Italianno&display=swap" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Pinyon+Script&display=swap" rel="stylesheet" />
-    <link href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700,900&f[]=cabinet-grotesk@400,500,700,800&display=swap" rel="stylesheet" />
+    <link rel="preconnect" href="https://api.fontshare.com" crossorigin />
+
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=Italiana&family=Italianno&family=JetBrains+Mono:wght@400;500;600&family=Pinyon+Script&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=Italiana&family=Italianno&family=JetBrains+Mono:wght@400;500;600&family=Pinyon+Script&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" media="print" onload="this.media='all'" />
+    <noscript>
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=Italiana&family=Italianno&family=JetBrains+Mono:wght@400;500;600&family=Pinyon+Script&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" />
+    </noscript>
+
+    <link rel="preload" as="style" href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700,900&f[]=cabinet-grotesk@400,500,700,800&display=swap" />
+    <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700,900&f[]=cabinet-grotesk@400,500,700,800&display=swap" media="print" onload="this.media='all'" />
+    <noscript>
+      <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700,900&f[]=cabinet-grotesk@400,500,700,800&display=swap" />
+    </noscript>
+    <!-- Precarga de Alta Prioridad de Imágenes del Modal y Marca -->
+    <link rel="preload" as="image" href="/imagenes/local/restaurante_mias_desde_dentro.webp" type="image/webp" fetchpriority="high" />
+    <link rel="preload" as="image" href="/imagenes/local/restaurante_mias_desde_fuera.webp" type="image/webp" fetchpriority="high" />
+    <link rel="preload" as="image" href="/imagenes/marca/isotipo.webp" type="image/webp" fetchpriority="high" />
   </head>
   <body class="bg-char text-bone font-sans antialiased selection:bg-ember selection:text-white min-h-screen" style="background-color: #050507; color-scheme: dark; touch-action: pan-y; overscroll-behavior-y: none;">
     <div id="app"></div>
