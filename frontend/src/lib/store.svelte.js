@@ -418,6 +418,11 @@ class AppStore {
     this.saveCart();
   }
 
+  removeFromCart(itemId) {
+    this.cart = this.cart.filter((i) => i.id !== itemId);
+    this.saveCart();
+  }
+
   clearCart() {
     this.cart = [];
     this.saveCart();

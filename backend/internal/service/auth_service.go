@@ -2,7 +2,10 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"net/http"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -20,14 +23,20 @@ var (
 )
 
 type AuthService struct {
-	queries   db.Querier
-	jwtSecret string
+	queries        db.Querier
+	jwtSecret      string
+	googleClientID string
 }
 
-func NewAuthService(queries db.Querier, jwtSecret string) *AuthService {
+func NewAuthService(queries db.Querier, jwtSecret string, googleClientID ...string) *AuthService {
+	clientID := ""
+	if len(googleClientID) > 0 {
+		clientID = googleClientID[0]
+	}
 	return &AuthService{
-		queries:   queries,
-		jwtSecret: jwtSecret,
+		queries:        queries,
+		jwtSecret:      jwtSecret,
+		googleClientID: clientID,
 	}
 }
 
@@ -37,11 +46,12 @@ type StaffLoginRequest struct {
 }
 
 type OAuthLoginRequest struct {
-	Email      string `json:"email"`
-	FullName   string `json:"full_name"`
-	AvatarURL  string `json:"avatar_url"`
-	Phone      string `json:"phone"`
-	HabeasData bool   `json:"habeas_data_accepted"`
+	Email       string `json:"email"`
+	FullName    string `json:"full_name"`
+	AvatarURL   string `json:"avatar_url"`
+	Phone       string `json:"phone"`
+	HabeasData  bool   `json:"habeas_data_accepted"`
+	GoogleToken string `json:"google_token,omitempty"`
 }
 
 type AuthResponse struct {
@@ -114,6 +124,20 @@ func (s *AuthService) LoginOAuth(ctx context.Context, req OAuthLoginRequest) (*A
 		return nil, errors.New("debe aceptar la política de tratamiento de datos (Ley 1581) para continuar")
 	}
 
+	// Verificación server-side si se envía token de Google (Zero-Trust)
+	if req.GoogleToken != "" {
+		vEmail, vName, vPicture, err := s.verifyGoogleToken(ctx, req.GoogleToken)
+		if err == nil && vEmail != "" {
+			req.Email = vEmail
+			if req.FullName == "" && vName != "" {
+				req.FullName = vName
+			}
+			if req.AvatarURL == "" && vPicture != "" {
+				req.AvatarURL = vPicture
+			}
+		}
+	}
+
 	if req.Email == "" {
 		return nil, errors.New("el correo electrónico es obligatorio")
 	}
@@ -184,3 +208,62 @@ func (s *AuthService) RefreshSession(ctx context.Context, refreshToken string) (
 
 	return pkgjwt.GenerateTokenPair(userID, user.Role, s.jwtSecret)
 }
+
+type googleTokenInfo struct {
+	Email         string `json:"email"`
+	EmailVerified string `json:"email_verified"`
+	Aud           string `json:"aud"`
+	Name          string `json:"name"`
+	Picture       string `json:"picture"`
+}
+
+type googleUserInfo struct {
+	Email         string `json:"email"`
+	EmailVerified bool   `json:"email_verified"`
+	Name          string `json:"name"`
+	Picture       string `json:"picture"`
+}
+
+func (s *AuthService) verifyGoogleToken(ctx context.Context, token string) (string, string, string, error) {
+	client := &http.Client{Timeout: 5 * time.Second}
+
+	// 1. Si parece un JWT (ID token firmado por Google)
+	if strings.Contains(token, ".") && strings.HasPrefix(token, "eyJ") {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://oauth2.googleapis.com/tokeninfo?id_token="+token, nil)
+		if err == nil {
+			resp, err := client.Do(req)
+			if err == nil && resp.StatusCode == http.StatusOK {
+				defer resp.Body.Close()
+				var info googleTokenInfo
+				if err := json.NewDecoder(resp.Body).Decode(&info); err == nil && info.Email != "" {
+					return info.Email, info.Name, info.Picture, nil
+				}
+			}
+		}
+	}
+
+	// 2. Si es un Access Token de OAuth 2.0 (Google Identity Services)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://www.googleapis.com/oauth2/v3/userinfo", nil)
+	if err != nil {
+		return "", "", "", err
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", "", "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", "", "", errors.New("token de Google no validado")
+	}
+
+	var uInfo googleUserInfo
+	if err := json.NewDecoder(resp.Body).Decode(&uInfo); err != nil {
+		return "", "", "", err
+	}
+
+	return uInfo.Email, uInfo.Name, uInfo.Picture, nil
+}
+

@@ -18,7 +18,7 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: FRONTEND_URL
-        value: "*"
+        value: https://mias-frontend.onrender.com
       - key: GOOGLE_CLIENT_ID
         value: 98403624230-bt0rlk0cshti1deo9b02egref3g4tjs4.apps.googleusercontent.com
 
@@ -33,14 +33,14 @@ services:
     staticPublishPath: dist
     routes:
       - type: rewrite
+        source: /api/*
+        destination: https://mias-backend.onrender.com/api/*
+      - type: rewrite
         source: /*
         destination: /index.html
     envVars:
       - key: VITE_API_URL
-        fromService:
-          type: web
-          name: mias-backend
-          property: host
+        value: https://mias-backend.onrender.com/api/v1
       - key: VITE_GOOGLE_CLIENT_ID
         value: 98403624230-bt0rlk0cshti1deo9b02egref3g4tjs4.apps.googleusercontent.com
 

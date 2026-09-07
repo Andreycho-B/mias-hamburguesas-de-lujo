@@ -127,7 +127,8 @@
               full_name: googleProfile.name || googleProfile.email.split('@')[0],
               avatar_url: googleProfile.picture || '',
               phone: '',
-              habeas_data_accepted: true
+              habeas_data_accepted: true,
+              google_token: tokenResponse.access_token || ''
             };
 
             let backendData = null;
@@ -150,6 +151,7 @@
                 role: 'customer'
               });
             }
+            store.isAuthModalOpen = false;
           } catch (err) {
             errorMessage = err.message || 'Error al procesar login de Google';
           } finally {
@@ -212,6 +214,7 @@
             role: 'customer'
           });
         }
+        store.isAuthModalOpen = false;
       } catch (err) {
         errorMessage = err.message || 'Error al crear la cuenta';
       } finally {
@@ -280,6 +283,7 @@
           role: 'customer'
         });
       }
+      store.isAuthModalOpen = false;
     } catch (err) {
       errorMessage = 'Credenciales no válidas';
     } finally {

@@ -129,4 +129,60 @@ func TestOrderService_CreateOrder(t *testing.T) {
 			t.Fatalf("total inesperado en domicilio: %d", resp.Order.TotalAmount)
 		}
 	})
+
+	t.Run("Calcula correctamente comanda con combo y extras", func(t *testing.T) {
+		mock := &BaseMockQuerier{
+			GetProductByIDFunc: func(ctx context.Context, id int32) (db.Product, error) {
+				return db.Product{ID: 1, Name: "Original", Price: 17000}, nil
+			},
+			CreateOrderFunc: func(ctx context.Context, arg db.CreateOrderParams) (db.Order, error) {
+				// Base 17000 + Combo 11000 + Tocineta 5000 = 33000
+				if arg.Subtotal != 33000 {
+					t.Fatalf("se esperaba subtotal 33000, obtenido %d", arg.Subtotal)
+				}
+				if arg.TotalAmount != 33000 {
+					t.Fatalf("se esperaba total 33000, obtenido %d", arg.TotalAmount)
+				}
+				return db.Order{
+					ID:          pgtype.UUID{Valid: true},
+					Code:        arg.Code,
+					OrderType:   arg.OrderType,
+					TotalAmount: arg.TotalAmount,
+				}, nil
+			},
+			CreateOrderItemFunc: func(ctx context.Context, arg db.CreateOrderItemParams) (db.OrderItem, error) {
+				if arg.UnitPrice != 33000 {
+					t.Fatalf("se esperaba unit_price 33000 en item, obtenido %d", arg.UnitPrice)
+				}
+				return db.OrderItem{}, nil
+			},
+			GetOrderItemsFunc: func(ctx context.Context, orderID pgtype.UUID) ([]db.GetOrderItemsRow, error) {
+				return []db.GetOrderItemsRow{}, nil
+			},
+		}
+
+		svc := NewOrderService(nil, mock, nil)
+
+		resp, err := svc.CreateOrder(context.Background(), nil, CreateOrderRequest{
+			OrderType: "in_store",
+			Items: []OrderItemRequest{
+				{
+					ProductID: 1,
+					Quantity:  1,
+					Customizations: map[string]interface{}{
+						"combo": true,
+						"extras": []interface{}{
+							map[string]interface{}{"id": "tocineta", "name": "Tocineta", "price": float64(5000)},
+						},
+					},
+				},
+			},
+		})
+		if err != nil {
+			t.Fatalf("error inesperado creando orden con combo y extras: %v", err)
+		}
+		if resp.Order.TotalAmount != 33000 {
+			t.Fatalf("total inesperado: %d", resp.Order.TotalAmount)
+		}
+	})
 }

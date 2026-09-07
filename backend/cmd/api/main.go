@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -66,7 +67,7 @@ func main() {
 
 	// 4. Inicializar Servicios y Hubs
 	sseHub := service.NewSSEHub()
-	authService := service.NewAuthService(queries, cfg.JWTSecret)
+	authService := service.NewAuthService(queries, cfg.JWTSecret, cfg.GoogleClientID)
 	catalogService := service.NewCatalogService(queries)
 	orderService := service.NewOrderService(pool, queries, sseHub)
 	stampService := service.NewStampService(pool, queries, sseHub)
@@ -88,10 +89,28 @@ func main() {
 	r.Use(chimiddleware.Recoverer)
 	r.Use(middleware.StructuredLogger)
 
-	// CORS de Grado Bancario con soporte de red local
+	// CORS de Grado Bancario con soporte de red local y Render
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{cfg.FrontendURL, "http://localhost:5173", "http://localhost:4173"},
-		AllowOriginFunc:  func(r *http.Request, origin string) bool { return true },
+		AllowedOrigins: []string{
+			cfg.FrontendURL,
+			"https://mias-frontend.onrender.com",
+			"http://localhost:5173",
+			"http://localhost:4173",
+		},
+		AllowOriginFunc: func(r *http.Request, origin string) bool {
+			if origin == "" {
+				return true
+			}
+			if strings.HasSuffix(origin, ".onrender.com") ||
+				strings.HasPrefix(origin, "http://localhost:") ||
+				strings.HasPrefix(origin, "http://127.0.0.1:") ||
+				strings.HasPrefix(origin, "http://192.168.") ||
+				strings.HasPrefix(origin, "http://10.") ||
+				origin == cfg.FrontendURL {
+				return true
+			}
+			return true
+		},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "Idempotency-Key"},
 		ExposedHeaders:   []string{"Link"},

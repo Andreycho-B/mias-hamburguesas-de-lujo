@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	ErrOrderNotEligible    = errors.New("la orden debe estar en estado ORDEN PAGA para solicitar sellos")
+	ErrOrderNotEligible    = errors.New("la orden debe estar en estado ORDEN PAGA o ENTREGADA para solicitar sellos")
 	ErrOrderExpired        = errors.New("el plazo de 24 horas para registrar la factura ha expirado")
 	ErrNoBurgersInOrder    = errors.New("la orden no contiene hamburguesas calificadas para sellos")
 	ErrInsufficientStamps  = errors.New("se requieren 10 sellos activos para redimir una hamburguesa gratis")
@@ -75,8 +75,13 @@ func (s *StampService) RequestStamp(ctx context.Context, userID, orderID uuid.UU
 		return nil, ErrOrderNotFound
 	}
 
-	if order.Status != "PAID" {
+	if order.Status != "PAID" && order.Status != "DELIVERED" {
 		return nil, ErrOrderNotEligible
+	}
+
+	// Blindaje: Si la orden fue creada por un usuario específico, solo él puede solicitar los sellos
+	if order.UserID.Valid && uuidutil.FromPG(order.UserID) != userID {
+		return nil, errors.New("la orden no pertenece a la cuenta de usuario autenticada")
 	}
 
 	// Comprobar ventana de 24 horas

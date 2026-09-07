@@ -30,14 +30,20 @@ func (h *AuthHandler) StaffLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Establecer cookie HttpOnly con el Refresh Token
+	isTLS := r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https"
+	sameSite := http.SameSiteLaxMode
+	if isTLS {
+		sameSite = http.SameSiteNoneMode
+	}
+
 	http.SetCookie(w, &http.Cookie{
 		Name:     "mias_refresh_token",
 		Value:    resp.Tokens.RefreshToken,
 		Path:     "/api/v1/auth/refresh",
 		MaxAge:   7 * 24 * 3600,
 		HttpOnly: true,
-		Secure:   false, // Cambiar a true en producción HTTPS
-		SameSite: http.SameSiteStrictMode,
+		Secure:   isTLS,
+		SameSite: sameSite,
 	})
 
 	w.Header().Set("Content-Type", "application/json")
@@ -57,14 +63,20 @@ func (h *AuthHandler) OAuthLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	isTLS := r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https"
+	sameSite := http.SameSiteLaxMode
+	if isTLS {
+		sameSite = http.SameSiteNoneMode
+	}
+
 	http.SetCookie(w, &http.Cookie{
 		Name:     "mias_refresh_token",
 		Value:    resp.Tokens.RefreshToken,
 		Path:     "/api/v1/auth/refresh",
 		MaxAge:   7 * 24 * 3600,
 		HttpOnly: true,
-		Secure:   false,
-		SameSite: http.SameSiteStrictMode,
+		Secure:   isTLS,
+		SameSite: sameSite,
 	})
 
 	w.Header().Set("Content-Type", "application/json")
@@ -72,16 +84,33 @@ func (h *AuthHandler) OAuthLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AuthHandler) RefreshSession(w http.ResponseWriter, r *http.Request) {
-	cookie, err := r.Cookie("mias_refresh_token")
-	if err != nil {
+	tokenVal := ""
+	if cookie, err := r.Cookie("mias_refresh_token"); err == nil && cookie.Value != "" {
+		tokenVal = cookie.Value
+	}
+	if tokenVal == "" {
+		var bodyReq struct {
+			RefreshToken string `json:"refresh_token"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&bodyReq)
+		tokenVal = bodyReq.RefreshToken
+	}
+
+	if tokenVal == "" {
 		http.Error(w, `{"error":"Refresh token no encontrado"}`, http.StatusUnauthorized)
 		return
 	}
 
-	tokens, err := h.authService.RefreshSession(r.Context(), cookie.Value)
+	tokens, err := h.authService.RefreshSession(r.Context(), tokenVal)
 	if err != nil {
 		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusUnauthorized)
 		return
+	}
+
+	isTLS := r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https"
+	sameSite := http.SameSiteLaxMode
+	if isTLS {
+		sameSite = http.SameSiteNoneMode
 	}
 
 	http.SetCookie(w, &http.Cookie{
@@ -90,8 +119,8 @@ func (h *AuthHandler) RefreshSession(w http.ResponseWriter, r *http.Request) {
 		Path:     "/api/v1/auth/refresh",
 		MaxAge:   7 * 24 * 3600,
 		HttpOnly: true,
-		Secure:   false,
-		SameSite: http.SameSiteStrictMode,
+		Secure:   isTLS,
+		SameSite: sameSite,
 	})
 
 	w.Header().Set("Content-Type", "application/json")
@@ -99,14 +128,20 @@ func (h *AuthHandler) RefreshSession(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	isTLS := r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https"
+	sameSite := http.SameSiteLaxMode
+	if isTLS {
+		sameSite = http.SameSiteNoneMode
+	}
+
 	http.SetCookie(w, &http.Cookie{
 		Name:     "mias_refresh_token",
 		Value:    "",
 		Path:     "/api/v1/auth/refresh",
 		MaxAge:   -1,
 		HttpOnly: true,
-		Secure:   false,
-		SameSite: http.SameSiteStrictMode,
+		Secure:   isTLS,
+		SameSite: sameSite,
 	})
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(`{"message":"Sesión cerrada correctamente"}`))

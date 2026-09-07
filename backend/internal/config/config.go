@@ -10,8 +10,9 @@ type Config struct {
 	DatabaseURL  string
 	JWTSecret    string
 	FrontendURL  string
-	VAPIDPublic  string
-	VAPIDPrivate string
+	GoogleClientID string
+	VAPIDPublic    string
+	VAPIDPrivate   string
 }
 
 func Load() *Config {
@@ -19,16 +20,18 @@ func Load() *Config {
 	dbURL := getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/mias_db?sslmode=disable")
 	jwtSecret := getEnv("JWT_SECRET", "mias-super-secret-key-2026-banking-grade-zero-trust")
 	frontendURL := getEnv("FRONTEND_URL", "http://localhost:5173")
+	googleClientID := getEnv("GOOGLE_CLIENT_ID", "98403624230-bt0rlk0cshti1deo9b02egref3g4tjs4.apps.googleusercontent.com")
 	vapidPub := getEnv("VAPID_PUBLIC_KEY", "")
 	vapidPriv := getEnv("VAPID_PRIVATE_KEY", "")
 
 	return &Config{
-		Port:         port,
-		DatabaseURL:  dbURL,
-		JWTSecret:    jwtSecret,
-		FrontendURL:  frontendURL,
-		VAPIDPublic:  vapidPub,
-		VAPIDPrivate: vapidPriv,
+		Port:           port,
+		DatabaseURL:    dbURL,
+		JWTSecret:      jwtSecret,
+		FrontendURL:    frontendURL,
+		GoogleClientID: googleClientID,
+		VAPIDPublic:    vapidPub,
+		VAPIDPrivate:   vapidPriv,
 	}
 }
 

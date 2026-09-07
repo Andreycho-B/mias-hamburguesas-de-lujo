@@ -19,8 +19,25 @@
   let selectedCategory = $state('hamburguesas');
   let introCompleted = $state(false);
 
+  // Comprobar persistencia de intro (TRD §5): Si se visualizó hace menos de 1 hora o es personal staff, omitir
+  if (typeof window !== 'undefined') {
+    try {
+      const seenAt = localStorage.getItem('mias_intro_seen_at');
+      const savedUser = localStorage.getItem('mias_user');
+      const isStaffUser = savedUser && ['waiter', 'cashier', 'admin'].includes(JSON.parse(savedUser)?.role);
+      if (isStaffUser || (seenAt && (Date.now() - parseInt(seenAt, 10)) < 3600 * 1000)) {
+        introCompleted = true;
+      }
+    } catch {}
+  }
+
   function handleIntroComplete() {
     introCompleted = true;
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('mias_intro_seen_at', Date.now().toString());
+      } catch {}
+    }
   }
 
   // Inicializar Lenis Smooth Scroll y bloquear zoom/pellizco permitiendo solo deslizamiento vertical

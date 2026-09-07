@@ -27,9 +27,13 @@
     const receiptNum = receiptNumberInput.trim();
     const burgersCount = selectedOrderForStamp?.items?.filter(it => it.product?.bread_type === 'pretzel')?.reduce((s, it) => s + it.quantity, 0) || 1;
 
+    const isOnlineOrder = selectedOrderForStamp?.id && !selectedOrderForStamp.id.startsWith('ord-');
+    let apiSuccess = false;
+
     try {
-      if (selectedOrderForStamp?.id && !selectedOrderForStamp.id.startsWith('ord-')) {
+      if (isOnlineOrder) {
         await requestStampAPI(selectedOrderForStamp.id, receiptNum);
+        apiSuccess = true;
       }
     } catch (err) {
       console.warn('[Stamps] Error conectando con API, registrando en Anillo 0', err);
@@ -47,20 +51,22 @@
     pendingStampRequests = [newReq, ...pendingStampRequests];
     receiptModalOpen = false;
 
-    // Simulación de aprobación de sello en 3 segundos si opera en modo local
-    setTimeout(() => {
-      newReq.status = 'APPROVED';
-      const newTotal = Math.min(10, store.stampBalance + newReq.burgersCount);
-      store.setStampBalance(newTotal);
+    // Solo si opera 100% offline o en modo demo local sin backend, simular tras 5s
+    if (!apiSuccess && !isOnlineOrder) {
+      setTimeout(() => {
+        newReq.status = 'APPROVED';
+        const newTotal = Math.min(10, store.stampBalance + newReq.burgersCount);
+        store.setStampBalance(newTotal);
 
-      if (newTotal === 10) {
-        confetti({
-          particleCount: 120,
-          spread: 70,
-          origin: { y: 0.6 }
-        });
-      }
-    }, 3500);
+        if (newTotal === 10) {
+          confetti({
+            particleCount: 120,
+            spread: 70,
+            origin: { y: 0.6 }
+          });
+        }
+      }, 5000);
+    }
   }
 
   async function handleRedeem() {
@@ -70,20 +76,8 @@
     try {
       await requestRedemptionAPI();
     } catch (err) {
-      console.warn('[Redemption] Operando en Anillo 0', err);
+      console.warn('[Redemption] Error registrando redención en API', err);
     }
-
-    // Aprobación presencial
-    setTimeout(() => {
-      isAwaitingRedemptionApproval = false;
-      store.setStampBalance(0); // Reiniciar cartilla
-      confetti({
-        particleCount: 200,
-        spread: 100,
-        origin: { y: 0.5 }
-      });
-      alert('¡FELICIDADES! Tu Hamburguesa Original ha sido aprobada y entregada por caja.');
-    }, 4500);
   }
 </script>
 

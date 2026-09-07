@@ -1,13 +1,27 @@
 function resolveApiBase() {
   let url = import.meta.env.VITE_API_URL;
   if (!url) {
+    if (typeof window !== 'undefined' && window.location.hostname && window.location.hostname.endsWith('.onrender.com')) {
+      return 'https://mias-backend.onrender.com/api/v1';
+    }
     return typeof window !== 'undefined' && window.location.hostname
       ? `http://${window.location.hostname}:8080/api/v1`
       : 'http://localhost:8080/api/v1';
   }
-  if (!url.startsWith('http://') && !url.startsWith('https://')) {
-    url = `https://${url}`;
+
+  // Si Render inyectó el hostname interno sin dominio (e.g. "mias-backend" o "http://mias-backend")
+  if (url === 'mias-backend' || url === 'http://mias-backend' || url === 'https://mias-backend') {
+    return 'https://mias-backend.onrender.com/api/v1';
   }
+
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    if (!url.includes('.') && !url.includes('localhost')) {
+      url = `https://${url}.onrender.com`;
+    } else {
+      url = `https://${url}`;
+    }
+  }
+
   if (!url.endsWith('/api/v1')) {
     url = url.replace(/\/+$/, '') + '/api/v1';
   }
@@ -26,6 +40,61 @@ function getAuthHeaders() {
     headers['Authorization'] = `Bearer ${token}`;
   }
   return headers;
+}
+
+/**
+ * Renueva la sesión usando el refresh token almacenado
+ */
+export async function refreshSessionAPI() {
+  const refreshToken = typeof window !== 'undefined' ? localStorage.getItem('mias_refresh_token') : null;
+  const res = await fetch(`${API_BASE}/auth/refresh`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refresh_token: refreshToken || '' })
+  });
+  if (!res.ok) throw new Error('Error renovando sesión');
+  const data = await res.json();
+  if (data?.access_token) {
+    localStorage.setItem('mias_access_token', data.access_token);
+    if (data.refresh_token) {
+      localStorage.setItem('mias_refresh_token', data.refresh_token);
+    }
+  }
+  return data;
+}
+
+/**
+ * Wrapper de fetch autenticado con reintento automático tras renovar token si responde 401
+ */
+export async function fetchWithAuth(url, options = {}) {
+  const headers = options.headers ? { ...options.headers } : {};
+  const token = typeof window !== 'undefined' ? localStorage.getItem('mias_access_token') : null;
+  if (token && !headers['Authorization']) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  if (!headers['Content-Type'] && !(options.body instanceof FormData)) {
+    headers['Content-Type'] = 'application/json';
+  }
+  if (!headers['Accept']) {
+    headers['Accept'] = 'application/json';
+  }
+
+  let res = await fetch(url, { ...options, headers });
+
+  // Si el access token expiró (401), intentar renovación automática una vez
+  if (res.status === 401 && typeof window !== 'undefined' && localStorage.getItem('mias_refresh_token')) {
+    try {
+      const refreshed = await refreshSessionAPI();
+      if (refreshed?.access_token) {
+        headers['Authorization'] = `Bearer ${refreshed.access_token}`;
+        res = await fetch(url, { ...options, headers });
+      }
+    } catch {
+      // Sesión expirada definitivamente
+    }
+  }
+
+  return res;
 }
 
 /**
@@ -64,7 +133,7 @@ export async function staffLoginAPI(email, password) {
 /**
  * Autentica o registra cliente mediante OAuth / Google
  */
-export async function oauthLoginAPI({ email, full_name, avatar_url, phone = '', habeas_data_accepted = true }) {
+export async function oauthLoginAPI({ email, full_name, avatar_url, phone = '', habeas_data_accepted = true, google_token = '' }) {
   const res = await fetch(`${API_BASE}/auth/oauth`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -73,7 +142,8 @@ export async function oauthLoginAPI({ email, full_name, avatar_url, phone = '', 
       full_name: full_name || email.split('@')[0],
       avatar_url: avatar_url || '',
       phone: phone || '',
-      habeas_data_accepted: !!habeas_data_accepted
+      habeas_data_accepted: !!habeas_data_accepted,
+      google_token: google_token || ''
     })
   });
   const data = await res.json();
@@ -88,9 +158,8 @@ export async function oauthLoginAPI({ email, full_name, avatar_url, phone = '', 
  */
 export async function createOrderAPI(orderPayload) {
   try {
-    const res = await fetch(`${API_BASE}/orders/`, {
+    const res = await fetchWithAuth(`${API_BASE}/orders/`, {
       method: 'POST',
-      headers: getAuthHeaders(),
       body: JSON.stringify(orderPayload)
     });
     const data = await res.json();
@@ -109,9 +178,7 @@ export async function createOrderAPI(orderPayload) {
  */
 export async function getOrderByCodeAPI(code) {
   try {
-    const res = await fetch(`${API_BASE}/orders/${code}`, {
-      headers: getAuthHeaders()
-    });
+    const res = await fetchWithAuth(`${API_BASE}/orders/${code}`);
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
     return await res.json();
   } catch (err) {
@@ -123,9 +190,8 @@ export async function getOrderByCodeAPI(code) {
  * Solicita registro de sello con número de orden y factura física
  */
 export async function requestStampAPI(orderID, receiptNumber) {
-  const res = await fetch(`${API_BASE}/stamps/request`, {
+  const res = await fetchWithAuth(`${API_BASE}/stamps/request`, {
     method: 'POST',
-    headers: getAuthHeaders(),
     body: JSON.stringify({
       order_id: orderID,
       receipt_number: receiptNumber
@@ -143,9 +209,7 @@ export async function requestStampAPI(orderID, receiptNumber) {
  */
 export async function getStampBalanceAPI() {
   try {
-    const res = await fetch(`${API_BASE}/stamps/balance`, {
-      headers: getAuthHeaders()
-    });
+    const res = await fetchWithAuth(`${API_BASE}/stamps/balance`);
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
     return await res.json();
   } catch (err) {
@@ -157,9 +221,8 @@ export async function getStampBalanceAPI() {
  * Solicita la redención presencial de la hamburguesa gratis al alcanzar 10 sellos
  */
 export async function requestRedemptionAPI() {
-  const res = await fetch(`${API_BASE}/stamps/redeem`, {
-    method: 'POST',
-    headers: getAuthHeaders()
+  const res = await fetchWithAuth(`${API_BASE}/stamps/redeem`, {
+    method: 'POST'
   });
   const data = await res.json();
   if (!res.ok) {
@@ -173,9 +236,7 @@ export async function requestRedemptionAPI() {
  */
 export async function getStaffPendingInStoreOrdersAPI() {
   try {
-    const res = await fetch(`${API_BASE}/orders/staff/pending-in-store`, {
-      headers: getAuthHeaders()
-    });
+    const res = await fetchWithAuth(`${API_BASE}/orders/staff/pending-in-store`);
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
     return await res.json();
   } catch (err) {
@@ -188,9 +249,7 @@ export async function getStaffPendingInStoreOrdersAPI() {
  */
 export async function getStaffActiveDeliveryOrdersAPI() {
   try {
-    const res = await fetch(`${API_BASE}/orders/staff/active-delivery`, {
-      headers: getAuthHeaders()
-    });
+    const res = await fetchWithAuth(`${API_BASE}/orders/staff/active-delivery`);
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
     return await res.json();
   } catch (err) {
@@ -202,9 +261,8 @@ export async function getStaffActiveDeliveryOrdersAPI() {
  * Endpoints Staff: Marcar orden como paga en caja
  */
 export async function markOrderAsPaidAPI(orderID) {
-  const res = await fetch(`${API_BASE}/orders/${orderID}/pay`, {
-    method: 'PATCH',
-    headers: getAuthHeaders()
+  const res = await fetchWithAuth(`${API_BASE}/orders/${orderID}/pay`, {
+    method: 'PATCH'
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Error al marcar orden como paga');
@@ -215,9 +273,8 @@ export async function markOrderAsPaidAPI(orderID) {
  * Endpoints Staff: Actualizar estado de despacho de domicilio
  */
 export async function updateDeliveryStatusAPI(orderID, status) {
-  const res = await fetch(`${API_BASE}/orders/${orderID}/delivery-status`, {
+  const res = await fetchWithAuth(`${API_BASE}/orders/${orderID}/delivery-status`, {
     method: 'PATCH',
-    headers: getAuthHeaders(),
     body: JSON.stringify({ status })
   });
   const data = await res.json();
@@ -230,9 +287,7 @@ export async function updateDeliveryStatusAPI(orderID, status) {
  */
 export async function getStaffPendingStampsAPI() {
   try {
-    const res = await fetch(`${API_BASE}/stamps/staff/pending`, {
-      headers: getAuthHeaders()
-    });
+    const res = await fetchWithAuth(`${API_BASE}/stamps/staff/pending`);
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
     return await res.json();
   } catch (err) {
@@ -244,9 +299,8 @@ export async function getStaffPendingStampsAPI() {
  * Endpoints Staff: Aprobar o rechazar solicitud de sellos
  */
 export async function reviewStaffStampAPI(requestID, approve) {
-  const res = await fetch(`${API_BASE}/stamps/staff/${requestID}/review`, {
+  const res = await fetchWithAuth(`${API_BASE}/stamps/staff/${requestID}/review`, {
     method: 'PATCH',
-    headers: getAuthHeaders(),
     body: JSON.stringify({ approve })
   });
   const data = await res.json();
@@ -259,9 +313,7 @@ export async function reviewStaffStampAPI(requestID, approve) {
  */
 export async function getStaffPendingRedemptionsAPI() {
   try {
-    const res = await fetch(`${API_BASE}/stamps/staff/pending-redemptions`, {
-      headers: getAuthHeaders()
-    });
+    const res = await fetchWithAuth(`${API_BASE}/stamps/staff/pending-redemptions`);
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
     return await res.json();
   } catch (err) {
@@ -273,9 +325,8 @@ export async function getStaffPendingRedemptionsAPI() {
  * Endpoints Staff: Aprobar redención presencial en caja
  */
 export async function approveRedemptionAPI(redemptionID) {
-  const res = await fetch(`${API_BASE}/stamps/staff/redemptions/${redemptionID}/approve`, {
-    method: 'PATCH',
-    headers: getAuthHeaders()
+  const res = await fetchWithAuth(`${API_BASE}/stamps/staff/redemptions/${redemptionID}/approve`, {
+    method: 'PATCH'
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Error al aprobar redención');
@@ -287,9 +338,7 @@ export async function approveRedemptionAPI(redemptionID) {
  */
 export async function getAdminMetricsAPI() {
   try {
-    const res = await fetch(`${API_BASE}/admin/metrics`, {
-      headers: getAuthHeaders()
-    });
+    const res = await fetchWithAuth(`${API_BASE}/admin/metrics`);
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
     return await res.json();
   } catch (err) {
@@ -303,9 +352,8 @@ export async function getAdminMetricsAPI() {
  */
 export async function toggleProductStockAPI(productId, inStock) {
   try {
-    const res = await fetch(`${API_BASE}/admin/catalog/products/${productId}/stock`, {
+    const res = await fetchWithAuth(`${API_BASE}/admin/catalog/products/${productId}/stock`, {
       method: 'PATCH',
-      headers: getAuthHeaders(),
       body: JSON.stringify({ is_in_stock: inStock })
     });
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
@@ -315,4 +363,3 @@ export async function toggleProductStockAPI(productId, inStock) {
     return null;
   }
 }
-

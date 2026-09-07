@@ -3,6 +3,7 @@
   import { store } from '../lib/store.svelte.js';
   import { playChime } from '../lib/audio.js';
   import { 
+    API_BASE,
     getStaffPendingInStoreOrdersAPI, 
     getStaffActiveDeliveryOrdersAPI,
     markOrderAsPaidAPI,
@@ -250,9 +251,8 @@
     // Conexión Server-Sent Events (SSE) nativa
     let es = null;
     try {
-      const apiBase = import.meta.env.VITE_API_URL || (window.location.hostname ? `http://${window.location.hostname}:8080/api/v1` : 'http://localhost:8080/api/v1');
       const token = localStorage.getItem('mias_access_token') || '';
-      es = new EventSource(`${apiBase}/events/staff?token=${token}`);
+      es = new EventSource(`${API_BASE}/events/staff?token=${token}`);
 
       es.addEventListener('new_order', () => {
         playChime();

@@ -111,11 +111,12 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID *uuid.UUID, req C
 			if err != nil {
 				return nil, fmt.Errorf("producto %d no encontrado", item.ProductID)
 			}
-			itemTotal := product.Price * item.Quantity
+			unitPrice := calculateItemUnitPrice(product.Price, item.Customizations)
+			itemTotal := unitPrice * item.Quantity
 			subtotal += itemTotal
 			calculatedItems = append(calculatedItems, CalculatedItem{
 				Req:       item,
-				UnitPrice: product.Price,
+				UnitPrice: unitPrice,
 				Name:      product.Name,
 			})
 		}
@@ -197,11 +198,12 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID *uuid.UUID, req C
 		if err != nil {
 			return nil, fmt.Errorf("producto %d no encontrado", item.ProductID)
 		}
-		itemTotal := product.Price * item.Quantity
+		unitPrice := calculateItemUnitPrice(product.Price, item.Customizations)
+		itemTotal := unitPrice * item.Quantity
 		subtotal += itemTotal
 		calculatedItems = append(calculatedItems, CalculatedItem{
 			Req:       item,
-			UnitPrice: product.Price,
+			UnitPrice: unitPrice,
 			Name:      product.Name,
 		})
 	}
@@ -347,3 +349,28 @@ func (s *OrderService) formatWhatsAppMessage(order db.Order, items []CalculatedI
 
 	return msg
 }
+
+func calculateItemUnitPrice(basePrice int32, customizations map[string]interface{}) int32 {
+	unitPrice := basePrice
+	if customizations == nil {
+		return unitPrice
+	}
+	// Combo papa + gaseosa (+$11.000)
+	if combo, ok := customizations["combo"].(bool); ok && combo {
+		unitPrice += 11000
+	}
+	// Adiciones extra (tocineta, queso, etc.)
+	if extras, ok := customizations["extras"].([]interface{}); ok {
+		for _, ex := range extras {
+			if exMap, ok := ex.(map[string]interface{}); ok {
+				if priceFloat, ok := exMap["price"].(float64); ok {
+					unitPrice += int32(priceFloat)
+				} else if priceInt, ok := exMap["price"].(int); ok {
+					unitPrice += int32(priceInt)
+				}
+			}
+		}
+	}
+	return unitPrice
+}
+

@@ -203,12 +203,14 @@
 
     try {
       const apiRes = await createOrderAPI({
-        order_type: selectedMode,
+        order_type: selectedMode === 'delivery' ? 'delivery' : 'in_store',
         items: apiItems,
         delivery_name: customerName.trim(),
         delivery_phone: customerPhone.trim(),
         delivery_address: selectedMode === 'delivery' ? `${deliveryAddress.trim()}, Barrio ${deliveryNeighborhood.trim()}` : '',
-        delivery_notes: deliveryNotes.trim(),
+        delivery_notes: selectedMode === 'takeout'
+          ? (`[PARA LLEVAR] ${deliveryNotes.trim()}`).trim()
+          : deliveryNotes.trim(),
         payment_method: paymentMethod,
         cash_change_amount: parseInt(cashAmount, 10) || 0
       });
@@ -467,7 +469,7 @@
                   <div class="flex items-center gap-1 bg-[#EDE8DC] p-1 rounded-full border border-black/5">
                     <button
                       type="button"
-                      onclick={() => store.updateQuantity(item.id, item.quantity - 1)}
+                      onclick={() => store.updateQuantity(item.id, -1)}
                       class="w-10 h-10 rounded-full bg-white text-[#0C0C0E] flex items-center justify-center hover:bg-black/5 active:scale-90 transition-all cursor-pointer"
                       aria-label="Disminuir cantidad"
                     >
@@ -478,7 +480,7 @@
                     </span>
                     <button
                       type="button"
-                      onclick={() => store.updateQuantity(item.id, item.quantity + 1)}
+                      onclick={() => store.updateQuantity(item.id, 1)}
                       class="w-10 h-10 rounded-full bg-white text-[#0C0C0E] flex items-center justify-center hover:bg-black/5 active:scale-90 transition-all cursor-pointer"
                       aria-label="Aumentar cantidad"
                     >

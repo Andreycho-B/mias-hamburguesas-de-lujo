@@ -78,6 +78,37 @@ func TestStampService_RequestStamp_Rules(t *testing.T) {
 		}
 	})
 
+	t.Run("Permite solicitud si la orden está en estado DELIVERED (Domicilio entregado)", func(t *testing.T) {
+		mock := &BaseMockQuerier{
+			GetOrderByIDFunc: func(ctx context.Context, id pgtype.UUID) (db.Order, error) {
+				return db.Order{
+					Status:    "DELIVERED",
+					CreatedAt: pgtype.Timestamptz{Time: time.Now(), Valid: true},
+				}, nil
+			},
+			CountBurgersInOrderFunc: func(ctx context.Context, orderID pgtype.UUID) (int32, error) {
+				return 2, nil
+			},
+			CreateStampRequestFunc: func(ctx context.Context, arg db.CreateStampRequestParams) (db.StampRequest, error) {
+				return db.StampRequest{
+					ID:            pgtype.UUID{Valid: true},
+					ReceiptNumber: arg.ReceiptNumber,
+					BurgersCount:  arg.BurgersCount,
+					Status:        "PENDING",
+				}, nil
+			},
+		}
+
+		svc := NewStampService(nil, mock, nil)
+		resp, err := svc.RequestStamp(context.Background(), testUserID, testOrderID, "00125")
+		if err != nil {
+			t.Fatalf("error inesperado en orden DELIVERED: %v", err)
+		}
+		if resp.BurgersCount != 2 {
+			t.Fatalf("se esperaban 2 hamburguesas, obtenido %d", resp.BurgersCount)
+		}
+	})
+
 	t.Run("Rechaza solicitud si transcurrieron más de 24 horas desde la compra", func(t *testing.T) {
 		mock := &BaseMockQuerier{
 			GetOrderByIDFunc: func(ctx context.Context, id pgtype.UUID) (db.Order, error) {
