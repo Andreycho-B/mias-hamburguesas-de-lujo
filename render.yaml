@@ -19,6 +19,8 @@ services:
         generateValue: true
       - key: FRONTEND_URL
         value: "*"
+      - key: GOOGLE_CLIENT_ID
+        value: 98403624230-bt0rlk0cshti1deo9b02egref3g4tjs4.apps.googleusercontent.com
 
   # ==========================================
   # Frontend Svelte 5 / Vite (Sitio Estático)
@@ -39,6 +41,8 @@ services:
           type: web
           name: mias-backend
           property: host
+      - key: VITE_GOOGLE_CLIENT_ID
+        value: 98403624230-bt0rlk0cshti1deo9b02egref3g4tjs4.apps.googleusercontent.com
 
 databases:
   # ==========================================

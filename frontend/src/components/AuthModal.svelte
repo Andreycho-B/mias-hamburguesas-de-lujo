@@ -110,7 +110,7 @@
         callback: async (tokenResponse) => {
           if (tokenResponse.error) {
             isLoading = false;
-            errorMessage = 'Error en autenticación de Google';
+            errorMessage = 'Error en autenticación de Google: ' + tokenResponse.error;
             return;
           }
 
@@ -144,7 +144,7 @@
             } else {
               store.setUser({
                 id: 'usr-g-' + Math.random().toString(36).substring(2, 9),
-                full_name: googleProfile.name,
+                full_name: googleProfile.name || googleProfile.email.split('@')[0],
                 email: googleProfile.email,
                 avatar_url: googleProfile.picture,
                 role: 'customer'
@@ -155,6 +155,13 @@
           } finally {
             isLoading = false;
           }
+        },
+        error_callback: (err) => {
+          isLoading = false;
+          if (err && err.type === 'popup_closed') {
+            return;
+          }
+          errorMessage = 'No se pudo conectar con Google. Verifica que el dominio esté autorizado en Google Cloud Console.';
         }
       });
 
