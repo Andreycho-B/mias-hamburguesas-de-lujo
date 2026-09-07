@@ -6,16 +6,15 @@
     X, 
     ArrowRight, 
     Award, 
-    BookOpen, 
-    User, 
-    Utensils, 
     Shield, 
-    Bike, 
     Clock, 
     Sparkles,
     ChevronRight,
     LogOut,
-    Phone
+    Phone,
+    ShoppingBag,
+    MapPin,
+    User
   } from 'lucide-svelte';
 
   // Validar horario en tiempo real: Sábado a Jueves de 3:00 PM a 9:30 PM (Viernes cerrado)
@@ -68,9 +67,18 @@
     }
   ];
 
+  let isStaffUser = $derived(Boolean(store.user && ['waiter', 'cashier', 'admin'].includes(store.user.role)));
+  let cartItemsCount = $derived(store.cart?.reduce((acc, i) => acc + (i.quantity || 1), 0) || 0);
+  let activeOrdersCount = $derived(store.activeOrders?.filter(o => o.status !== 'DELIVERED' && o.status !== 'CANCELLED').length || 0);
+
   function navigateTo(viewSlug) {
     store.closeSidebar();
     store.currentView = viewSlug;
+  }
+
+  function openCart() {
+    store.closeSidebar();
+    store.isCartOpen = true;
   }
 
   function openAuth() {
@@ -98,107 +106,126 @@
   <div 
     transition:fade={{ duration: 220 }}
     onclick={() => store.closeSidebar()}
-    class="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs select-none"
+    class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs select-none"
   >
-    <!-- CAJÓN LATERAL (DRAWER) CON CURVATURA APPLE EN EL BORDE DERECHO -->
+    <!-- CAJÓN LATERAL (DRAWER) CON CURVATURA APPLE EN EL BORDE DERECHO (42px / 48px) -->
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <aside
       transition:fly={{ x: -380, duration: 320, easing: cubicOut }}
       onclick={(e) => e.stopPropagation()}
-      class="w-[86vw] max-w-[360px] sm:max-w-[400px] h-[100dvh] bg-[#FAF6EE] rounded-r-[38px] sm:rounded-r-[44px] border-r border-black/[0.08] shadow-[0_0_60px_rgba(0,0,0,0.35)] flex flex-col justify-between overflow-hidden relative"
+      class="w-[88vw] max-w-[370px] sm:max-w-[410px] h-[100dvh] bg-[#FAF6EE] rounded-r-[42px] sm:rounded-r-[48px] border-r border-black/[0.08] shadow-[0_0_60px_rgba(0,0,0,0.35)] flex flex-col justify-between overflow-hidden relative"
       style="overscroll-behavior: contain;"
       onwheel={(e) => e.stopPropagation()}
       ontouchmove={(e) => e.stopPropagation()}
     >
       
-      <!-- CONTENIDO DESPLAZABLE -->
+      <!-- CONTENIDO DESPLAZABLE FINGER-FRIENDLY -->
       <div 
         class="flex-1 overflow-y-auto px-5 sm:px-6 pt-5 pb-6 space-y-6"
         style="scrollbar-width: none; overscroll-behavior: contain; touch-action: pan-y;"
       >
-        <!-- CABECERA: LOGO + BOTÓN CERRAR -->
-        <div class="flex items-center justify-between pb-2 border-b border-black/[0.06]">
+        <!-- CABECERA: LOGO DE MARCA + CIUDAD + BOTÓN CERRAR (44x44px TÁCTIL) -->
+        <div class="flex items-center justify-between pb-3 border-b border-black/[0.07]">
           <button 
             type="button"
             onclick={() => navigateTo('menu')}
-            class="flex items-center gap-2.5 text-left cursor-pointer active:scale-95 transition-transform"
+            class="flex items-center gap-3 text-left cursor-pointer active:scale-95 transition-transform min-h-[44px]"
           >
             <img 
               src="/imagenes/marca/logo_en_negro.webp" 
               alt="Mías Hamburguesas de Lujo" 
-              class="h-8 sm:h-9 w-auto object-contain"
+              class="h-9 sm:h-10 w-auto object-contain"
             />
+            <div class="border-l border-black/10 pl-2.5">
+              <span class="text-[9px] font-mono font-bold tracking-widest text-ash uppercase block">
+                Sede Duitama
+              </span>
+              <span class="text-[11px] font-serif font-bold text-char italic">
+                Boyacá
+              </span>
+            </div>
           </button>
 
           <button
             type="button"
             onclick={() => store.closeSidebar()}
-            class="w-10 h-10 rounded-full bg-white border border-black/10 hover:border-black/20 text-[#0C0C0E] flex items-center justify-center transition-all active:scale-95 shadow-2xs cursor-pointer"
+            class="w-11 h-11 min-w-[44px] min-h-[44px] rounded-full bg-white border border-black/10 hover:border-black/20 text-char flex items-center justify-center transition-all active:scale-90 shadow-2xs cursor-pointer"
             aria-label="Cerrar menú lateral"
           >
-            <X class="w-5 h-5 stroke-[2]" />
+            <X class="w-5 h-5 stroke-[2.2]" />
           </button>
         </div>
 
-        <!-- TARJETA DE PERFIL / FIDELIZACIÓN -->
-        <div class="bg-white rounded-[26px] p-4 border border-black/[0.06] shadow-2xs">
+        <!-- TARJETA DE PERFIL / FIDELIZACIÓN (FINGER-FRIENDLY) -->
+        <div class="bg-white rounded-[28px] p-4.5 border border-black/[0.08] shadow-2xs">
           {#if store.user}
             <div class="flex items-center justify-between gap-3">
               <button 
                 type="button"
-                onclick={() => { store.closeSidebar(); store.isAuthModalOpen = true; }}
-                class="flex items-center gap-3 min-w-0 text-left cursor-pointer group flex-1"
+                onclick={openAuth}
+                class="flex items-center gap-3 min-w-0 text-left cursor-pointer group flex-1 min-h-[48px]"
               >
                 {#if store.user.avatar_url}
-                  <img src={store.user.avatar_url} alt={store.user.full_name} class="w-11 h-11 rounded-full object-cover border border-black/10 shrink-0" />
+                  <img src={store.user.avatar_url} alt={store.user.full_name} class="w-12 h-12 rounded-full object-cover border border-black/10 shrink-0" />
                 {:else}
-                  <div class="w-11 h-11 rounded-full bg-[#18181b] text-white flex items-center justify-center font-display font-black text-sm shrink-0 border border-black/10">
+                  <div class="w-12 h-12 rounded-full bg-char text-white flex items-center justify-center font-display font-black text-base shrink-0 border border-black/10">
                     {store.user.full_name?.charAt(0).toUpperCase() || 'M'}
                   </div>
                 {/if}
                 <div class="min-w-0">
-                  <span class="text-[10px] font-mono uppercase text-ash tracking-wider block">Mi Perfil</span>
-                  <h3 class="font-display font-extrabold text-sm sm:text-base text-[#0C0C0E] truncate group-hover:text-[#FF2400] transition-colors">
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-[9px] font-mono uppercase text-ash tracking-wider font-bold block">Mi Perfil</span>
+                    {#if store.user.role && store.user.role !== 'customer'}
+                      <span class="px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-800 text-[9px] font-mono font-bold uppercase">
+                        {store.user.role}
+                      </span>
+                    {/if}
+                  </div>
+                  <h3 class="font-display font-black text-sm sm:text-base text-char truncate group-hover:text-ember transition-colors">
                     {store.user.full_name}
                   </h3>
+                  <span class="text-[11px] font-mono text-ash flex items-center gap-1">
+                    <MapPin class="w-3 h-3 text-ember shrink-0" /> Duitama
+                  </span>
                 </div>
               </button>
 
-              <!-- Sellos y Desconexión -->
+              <!-- Sellos y Salir -->
               <div class="flex items-center gap-2 shrink-0">
                 <button
                   type="button"
                   onclick={() => navigateTo('stamps')}
-                  class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-[#0C0C0E] hover:border-amber-500/40 transition-all cursor-pointer"
+                  class="min-h-[44px] flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/25 text-char hover:border-amber-500/50 active:scale-95 transition-all cursor-pointer shadow-2xs"
                   title="Ver pasaporte de sellos"
                 >
-                  <Award class="w-3.5 h-3.5 text-amber-600" />
+                  <Award class="w-4 h-4 text-amber-600 shrink-0" />
                   <span class="font-mono text-xs font-bold text-amber-700">{store.stampBalance}</span>
                 </button>
 
                 <button
                   type="button"
                   onclick={handleLogout}
-                  class="w-8 h-8 rounded-full hover:bg-black/5 text-ash hover:text-[#FF2400] flex items-center justify-center transition-colors cursor-pointer"
+                  class="w-11 h-11 min-w-[44px] min-h-[44px] rounded-full hover:bg-black/5 active:scale-95 text-ash hover:text-ember flex items-center justify-center transition-colors cursor-pointer"
                   title="Cerrar sesión"
+                  aria-label="Cerrar sesión"
                 >
-                  <LogOut class="w-4 h-4 stroke-[1.8]" />
+                  <LogOut class="w-4 h-4 stroke-[2]" />
                 </button>
               </div>
             </div>
           {:else}
-            <!-- Invitación a registrarse para fidelización -->
-            <div class="space-y-3 text-left">
+            <!-- Invitación a Registrarse en el Pasaporte de Sellos -->
+            <div class="space-y-3.5 text-left">
               <div class="flex items-start gap-3">
-                <div class="w-10 h-10 rounded-full bg-[#FAF6EE] text-[#FF2400] flex items-center justify-center shrink-0 mt-0.5 border border-black/[0.04]">
+                <div class="w-11 h-11 min-w-[44px] min-h-[44px] rounded-full bg-cream text-ember flex items-center justify-center shrink-0 mt-0.5 border border-black/[0.06] shadow-2xs">
                   <Sparkles class="w-5 h-5 stroke-[2]" />
                 </div>
                 <div>
-                  <h3 class="font-display font-extrabold text-sm text-[#0C0C0E] leading-snug">
+                  <h3 class="font-serif font-bold text-base text-char leading-tight">
                     Pasaporte de Fidelización
                   </h3>
                   <p class="text-xs text-ash mt-0.5 leading-relaxed">
-                    Acumula sellos en cada visita o domicilio y redime hamburguesas gratis.
+                    Acumula 10 sellos en Duitama y redime tu hamburguesa de autor favorita gratis.
                   </p>
                 </div>
               </div>
@@ -206,16 +233,16 @@
               <button
                 type="button"
                 onclick={openAuth}
-                class="w-full py-2.5 rounded-full bg-[#FF2400] hover:bg-[#E02000] active:scale-95 text-white font-display font-extrabold text-xs sm:text-sm tracking-tight flex items-center justify-center gap-1.5 transition-all shadow-2xs cursor-pointer"
+                class="w-full min-h-[48px] py-3 rounded-full bg-ember hover:bg-ember-light active:scale-[0.98] text-white font-display font-extrabold text-xs sm:text-sm tracking-tight flex items-center justify-center gap-2 transition-all shadow-sm cursor-pointer"
               >
-                <span>Iniciar Sesión / Registro</span>
-                <ArrowRight class="w-3.5 h-3.5" />
+                <span>Iniciar Sesión / Pasaporte</span>
+                <ArrowRight class="w-4 h-4" />
               </button>
             </div>
           {/if}
         </div>
 
-        <!-- SECCIÓN 1: CARTA GASTRONÓMICA -->
+        <!-- SECCIÓN 1: CARTA GASTRONÓMICA COMPLETA -->
         <div class="space-y-2.5 text-left">
           <div class="flex items-center justify-between px-1">
             <span class="text-[10px] font-mono font-bold tracking-widest text-ash uppercase">
@@ -224,158 +251,177 @@
             <button
               type="button"
               onclick={() => navigateTo('menu')}
-              class="text-[11px] font-mono font-bold text-[#FF2400] hover:underline cursor-pointer"
+              class="min-h-[36px] flex items-center text-xs font-mono font-bold text-ember hover:underline cursor-pointer active:scale-95"
             >
-              Ver Carta →
+              Ver Carta Completa →
             </button>
           </div>
 
-          <div class="space-y-1.5">
+          <div class="space-y-2">
             {#each menuCategories as cat}
               <button
                 type="button"
                 onclick={() => navigateTo(cat.slug)}
-                class="w-full bg-white hover:bg-[#FFFDF5] border border-black/[0.06] hover:border-[#FF2400]/40 rounded-[20px] p-3 text-left transition-all active:scale-[0.985] cursor-pointer flex items-center justify-between group shadow-2xs"
+                class="w-full min-h-[58px] bg-white hover:bg-[#FFFDF5] border rounded-[24px] p-3.5 text-left transition-all active:scale-[0.985] cursor-pointer flex items-center justify-between group shadow-2xs {store.currentView === cat.slug ? 'border-ember bg-ember/5 text-ember shadow-xs' : 'border-black/[0.06] hover:border-ember/40'}"
               >
-                <div class="flex items-center gap-3 min-w-0">
-                  <span class="text-xl sm:text-2xl shrink-0 group-hover:scale-110 transition-transform">
+                <div class="flex items-center gap-3.5 min-w-0">
+                  <span class="text-2xl shrink-0 group-hover:scale-110 transition-transform">
                     {cat.icon}
                   </span>
                   <div class="min-w-0">
-                    <div class="flex items-center gap-1.5">
-                      <h4 class="font-display font-bold text-xs sm:text-sm text-[#0C0C0E] group-hover:text-[#FF2400] transition-colors truncate">
+                    <div class="flex items-center gap-2">
+                      <h4 class="font-display font-bold text-sm text-char group-hover:text-ember transition-colors truncate">
                         {cat.title}
                       </h4>
                       {#if cat.badge}
-                        <span class="text-[9px] font-mono font-bold uppercase text-[#FF2400] bg-[#FF2400]/10 px-1.5 py-0.2 rounded-full shrink-0">
+                        <span class="text-[9px] font-mono font-bold uppercase text-ember bg-ember/10 px-2 py-0.5 rounded-full shrink-0">
                           {cat.badge}
                         </span>
                       {/if}
                     </div>
-                    <p class="text-[11px] text-ash truncate mt-0.5">
+                    <p class="text-xs text-ash truncate mt-0.5">
                       {cat.desc}
                     </p>
                   </div>
                 </div>
 
-                <ChevronRight class="w-4 h-4 text-ash/70 group-hover:text-[#FF2400] group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
+                <ChevronRight class="w-5 h-5 text-ash/60 group-hover:text-ember group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
               </button>
             {/each}
           </div>
         </div>
 
-        <!-- SECCIÓN 2: EXPERIENCIAS & HISTORIA -->
-        <div class="space-y-2 text-left pt-1">
+        <!-- SECCIÓN 2: EXPERIENCIAS & ACCIONES ÚTILES DEL CLIENTE -->
+        <div class="space-y-2.5 text-left pt-1">
           <span class="text-[10px] font-mono font-bold tracking-widest text-ash uppercase px-1 block">
-            Experiencias & Tradición
+            Acciones & Fidelización
           </span>
 
-          <div class="grid grid-cols-1 gap-1.5">
-            <!-- Sellos -->
+          <div class="grid grid-cols-1 gap-2">
+            <!-- 1. Pasaporte de Sellos -->
             <button
               type="button"
               onclick={() => navigateTo('stamps')}
-              class="w-full bg-white hover:bg-[#FFFDF5] border border-black/[0.06] rounded-[20px] p-3 text-left transition-all active:scale-[0.985] cursor-pointer flex items-center justify-between group shadow-2xs"
+              class="w-full min-h-[56px] bg-white hover:bg-[#FFFDF5] border border-black/[0.06] hover:border-amber-500/40 rounded-[24px] p-3.5 text-left transition-all active:scale-[0.985] cursor-pointer flex items-center justify-between group shadow-2xs {store.currentView === 'stamps' ? 'border-amber-500 bg-amber-500/5' : ''}"
             >
-              <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-700 flex items-center justify-center shrink-0">
-                  <Award class="w-4 h-4 stroke-[2.2]" />
+              <div class="flex items-center gap-3 min-w-0">
+                <div class="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-700 flex items-center justify-center shrink-0">
+                  <Award class="w-5 h-5 stroke-[2.2]" />
                 </div>
-                <div>
-                  <h4 class="font-display font-bold text-xs sm:text-sm text-[#0C0C0E] group-hover:text-amber-700 transition-colors">
+                <div class="min-w-0">
+                  <h4 class="font-display font-bold text-sm text-char group-hover:text-amber-700 transition-colors">
                     Pasaporte de Sellos
                   </h4>
-                  <p class="text-[11px] text-ash">
-                    10 sellos = 1 hamburguesa de autor gratis
+                  <p class="text-xs text-ash truncate">
+                    10 sellos = 1 hamburguesa gratis
                   </p>
                 </div>
               </div>
-              <ChevronRight class="w-4 h-4 text-ash/70 group-hover:text-[#0C0C0E] transition-colors" />
+              <div class="flex items-center gap-1.5 shrink-0">
+                <span class="text-xs font-mono font-bold text-amber-700 bg-amber-500/10 px-2 py-0.5 rounded-full">
+                  {store.stampBalance}
+                </span>
+                <ChevronRight class="w-4 h-4 text-ash/70 group-hover:text-char transition-colors" />
+              </div>
             </button>
 
-            <!-- Historia -->
+            <!-- 2. Mis Pedidos & Carrito Activo -->
             <button
               type="button"
-              onclick={() => navigateTo('history')}
-              class="w-full bg-white hover:bg-[#FFFDF5] border border-black/[0.06] rounded-[20px] p-3 text-left transition-all active:scale-[0.985] cursor-pointer flex items-center justify-between group shadow-2xs"
+              onclick={openCart}
+              class="w-full min-h-[56px] bg-white hover:bg-[#FFFDF5] border border-black/[0.06] hover:border-ember/40 rounded-[24px] p-3.5 text-left transition-all active:scale-[0.985] cursor-pointer flex items-center justify-between group shadow-2xs"
             >
-              <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-xl bg-[#0C0C0E]/5 text-[#0C0C0E] flex items-center justify-center shrink-0">
-                  <BookOpen class="w-4 h-4 stroke-[2]" />
+              <div class="flex items-center gap-3 min-w-0">
+                <div class="w-10 h-10 rounded-2xl bg-ember/10 text-ember flex items-center justify-center shrink-0">
+                  <ShoppingBag class="w-5 h-5 stroke-[2]" />
                 </div>
-                <div>
-                  <h4 class="font-display font-bold text-xs sm:text-sm text-[#0C0C0E] group-hover:text-[#FF2400] transition-colors">
-                    Historia & Horno Rayo
+                <div class="min-w-0">
+                  <h4 class="font-display font-bold text-sm text-char group-hover:text-ember transition-colors">
+                    Mi Pedido & Domicilio
                   </h4>
-                  <p class="text-[11px] text-ash">
-                    El secreto de nuestra brasa a carbón
+                  <p class="text-xs text-ash truncate">
+                    {cartItemsCount > 0 ? `${cartItemsCount} productos en tu bolsa` : 'Revisa tus órdenes y comanda activa'}
                   </p>
                 </div>
               </div>
-              <ChevronRight class="w-4 h-4 text-ash/70 group-hover:text-[#0C0C0E] transition-colors" />
+              <div class="flex items-center gap-1.5 shrink-0">
+                {#if cartItemsCount > 0 || activeOrdersCount > 0}
+                  <span class="text-xs font-mono font-bold text-white bg-ember px-2.5 py-0.5 rounded-full shadow-2xs">
+                    {activeOrdersCount > 0 ? `${activeOrdersCount} en curso` : `${cartItemsCount}`}
+                  </span>
+                {/if}
+                <ChevronRight class="w-4 h-4 text-ash/70 group-hover:text-char transition-colors" />
+              </div>
             </button>
 
-            <!-- Terminal de Personal (Solo si tiene rol o acceso) -->
-            <button
-              type="button"
-              onclick={() => navigateTo('staff')}
-              class="w-full bg-white hover:bg-[#FFFDF5] border border-black/[0.06] rounded-[20px] p-3 text-left transition-all active:scale-[0.985] cursor-pointer flex items-center justify-between group shadow-2xs"
-            >
-              <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-700 flex items-center justify-center shrink-0">
-                  <Shield class="w-4 h-4 stroke-[2]" />
+            <!-- 3. Terminal de Personal (SOLO SI ES STAFF) -->
+            {#if isStaffUser}
+              <button
+                type="button"
+                onclick={() => navigateTo('staff')}
+                class="w-full min-h-[56px] bg-white hover:bg-[#FFFDF5] border border-black/[0.06] hover:border-purple-500/40 rounded-[24px] p-3.5 text-left transition-all active:scale-[0.985] cursor-pointer flex items-center justify-between group shadow-2xs"
+              >
+                <div class="flex items-center gap-3 min-w-0">
+                  <div class="w-10 h-10 rounded-2xl bg-purple-500/10 text-purple-700 flex items-center justify-center shrink-0">
+                    <Shield class="w-5 h-5 stroke-[2]" />
+                  </div>
+                  <div class="min-w-0">
+                    <h4 class="font-display font-bold text-sm text-char group-hover:text-purple-700 transition-colors">
+                      Terminal Operativa
+                    </h4>
+                    <p class="text-xs text-ash truncate">
+                      Comandas y caja para personal
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h4 class="font-display font-bold text-xs sm:text-sm text-[#0C0C0E] group-hover:text-purple-700 transition-colors">
-                    Terminal de Personal
-                  </h4>
-                  <p class="text-[11px] text-ash">
-                    Comandas y caja para meseros y cajeros
-                  </p>
+                <div class="flex items-center gap-1.5 shrink-0">
+                  <span class="text-[10px] font-mono font-bold uppercase text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full">
+                    {store.user.role}
+                  </span>
+                  <ChevronRight class="w-4 h-4 text-ash/70 group-hover:text-char transition-colors" />
                 </div>
-              </div>
-              <ChevronRight class="w-4 h-4 text-ash/70 group-hover:text-[#0C0C0E] transition-colors" />
-            </button>
+              </button>
+            {/if}
           </div>
         </div>
 
-        <!-- SECCIÓN 3: ATENCIÓN & HORARIO -->
-        <div class="bg-white rounded-[24px] p-3.5 border border-black/[0.06] space-y-2.5 text-left shadow-2xs">
+        <!-- SECCIÓN 3: ATENCIÓN & HORARIO DUITAMA -->
+        <div class="bg-white rounded-[28px] p-4.5 border border-black/[0.08] space-y-3 text-left shadow-2xs">
           <div class="flex items-center justify-between">
             <span class="text-[10px] font-mono font-bold tracking-wider text-ash uppercase flex items-center gap-1.5">
-              <Clock class="w-3.5 h-3.5" />
-              Horario de Atención
+              <Clock class="w-4 h-4 text-char" />
+              Horario Duitama
             </span>
-            <span class="flex items-center gap-1 text-[10px] font-mono font-bold {isOpenNow ? 'text-emerald-600' : 'text-[#FF2400]'}">
-              <span class="w-1.5 h-1.5 rounded-full {isOpenNow ? 'bg-emerald-500 animate-pulse' : 'bg-[#FF2400]'}"></span>
+            <span class="flex items-center gap-1.5 text-xs font-mono font-bold {isOpenNow ? 'text-emerald-600' : 'text-ember'}">
+              <span class="w-2 h-2 rounded-full {isOpenNow ? 'bg-emerald-500 animate-pulse' : 'bg-ember'}"></span>
               {isOpenNow ? 'Abierto Ahora' : 'Cerrado Ahora'}
             </span>
           </div>
-          <p class="text-xs font-mono text-[#0C0C0E]">
+          <p class="text-xs font-mono text-char">
             Sáb a Jue: <strong>3:00 PM – 9:30 PM</strong> (Vie. cerrado)
           </p>
 
-          <!-- WhatsApp de Atención -->
+          <!-- WhatsApp de Atención Oficial Duitama (Finger-Friendly min-h-[48px]) -->
           <a
-            href="https://api.whatsapp.com/send?phone=573212520881&text=Hola%20M%C3%ADas%2C%20quisiera%20hacer%20un%20pedido%20o%20consultar%20la%20carta."
+            href="https://api.whatsapp.com/send?phone=573212520881&text=Hola%20M%C3%ADas%20Duitama%2C%20quisiera%20hacer%20un%20pedido%20o%20consultar%20la%20carta."
             target="_blank"
             rel="noopener noreferrer"
-            class="w-full py-2 px-3 rounded-xl bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-800 font-mono text-xs font-bold flex items-center justify-between transition-colors mt-1"
+            class="w-full min-h-[48px] py-2.5 px-4 rounded-2xl bg-emerald-600/10 hover:bg-emerald-600/20 active:scale-[0.98] text-emerald-800 font-mono text-xs font-bold flex items-center justify-between transition-colors cursor-pointer"
           >
-            <div class="flex items-center gap-2">
-              <Phone class="w-3.5 h-3.5 text-emerald-700" />
+            <div class="flex items-center gap-2.5">
+              <Phone class="w-4 h-4 text-emerald-700 shrink-0" />
               <span>WhatsApp: 321 252 0881</span>
             </div>
-            <ArrowRight class="w-3.5 h-3.5 text-emerald-700" />
+            <ArrowRight class="w-4 h-4 text-emerald-700 shrink-0" />
           </a>
         </div>
       </div>
 
       <!-- FOOTER DEL MENÚ LATERAL -->
-      <footer class="p-4 sm:p-5 bg-white border-t border-black/[0.06] shrink-0 text-center select-none">
+      <footer class="p-4 sm:p-5 bg-white border-t border-black/[0.08] shrink-0 text-center select-none">
         <div class="flex items-center justify-center gap-2 mb-1">
           <img src="/imagenes/marca/isotipo.webp" alt="Mías" class="w-5 h-5 object-contain" />
-          <span class="font-display font-bold text-xs text-[#0C0C0E]">Mías Hamburguesas de Lujo</span>
+          <span class="font-serif font-bold text-sm text-char">Mías Hamburguesas de Lujo</span>
         </div>
         <p class="text-[10px] font-mono text-ash">
           Duitama, Boyacá • Lo Íntimo Hecho para Compartir
