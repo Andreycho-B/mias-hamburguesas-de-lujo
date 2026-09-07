@@ -19,19 +19,23 @@ const (
 func AuthMiddleware(secret string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			tokenStr := ""
 			authHeader := r.Header.Get("Authorization")
-			if authHeader == "" {
+			if authHeader != "" {
+				parts := strings.SplitN(authHeader, " ", 2)
+				if len(parts) == 2 && strings.ToLower(parts[0]) == "bearer" {
+					tokenStr = parts[1]
+				}
+			}
+			if tokenStr == "" {
+				tokenStr = r.URL.Query().Get("token")
+			}
+			if tokenStr == "" {
 				next.ServeHTTP(w, r)
 				return
 			}
 
-			parts := strings.SplitN(authHeader, " ", 2)
-			if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
-				next.ServeHTTP(w, r)
-				return
-			}
-
-			claims, err := pkgjwt.ValidateToken(parts[1], secret, "access")
+			claims, err := pkgjwt.ValidateToken(tokenStr, secret, "access")
 			if err != nil {
 				next.ServeHTTP(w, r)
 				return
