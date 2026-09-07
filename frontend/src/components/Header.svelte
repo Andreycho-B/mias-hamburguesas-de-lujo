@@ -2,12 +2,9 @@
   import { store } from '../lib/store.svelte.js';
   import { User, Award, BookOpen, Utensils, Shield } from 'lucide-svelte';
 
-  // Validar horario en tiempo real: Sábado a Jueves de 3:00 PM a 9:30 PM
+  // Validar horario en tiempo real: Todos los días de 3:00 PM a 9:30 PM
   let isOpen = $derived(() => {
     const now = new Date();
-    const day = now.getDay(); // 0 = Domingo, 5 = Viernes, 6 = Sábado
-    if (day === 5) return false; // Viernes cerrado
-
     const hour = now.getHours();
     const minute = now.getMinutes();
     const totalMinutes = hour * 60 + minute;
@@ -33,13 +30,13 @@
       />
     </button>
 
-    <!-- Indicador de Horario en Vivo (Sáb a Jue 3:00 PM - 9:30 PM) -->
+    <!-- Indicador de Horario en Vivo (Todos los días 3:00 PM - 9:30 PM) -->
     <div class="hidden md:flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border hairline-dark text-xs font-mono">
       <span class="w-2 h-2 rounded-full {isOpen() ? 'bg-emerald-500 animate-pulse' : 'bg-ember'}"></span>
       {#if isOpen()}
         <span class="text-bone/80">Abierto hoy hasta 9:30 PM</span>
       {:else}
-        <span class="text-ash">Abrimos a las 3:00 PM (Sáb a Jue)</span>
+        <span class="text-ash">Abrimos a las 3:00 PM (Todos los días)</span>
       {/if}
     </div>
 
