@@ -27,7 +27,7 @@ services:
     name: mias-frontend
     runtime: static
     rootDir: frontend
-    buildCommand: npm install && npm run build
+    buildCommand: pnpm run build
     staticPublishPath: dist
     routes:
       - type: rewrite
