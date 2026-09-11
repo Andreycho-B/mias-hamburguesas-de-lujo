@@ -110,7 +110,8 @@
         callback: async (tokenResponse) => {
           if (tokenResponse.error) {
             isLoading = false;
-            errorMessage = 'Error en autenticación de Google: ' + tokenResponse.error;
+            console.error('[Google OAuth] Error de autenticación:', tokenResponse.error);
+            errorMessage = 'No fue posible autenticar con Google. Por favor intenta de nuevo o ingresa con tu correo.';
             return;
           }
 
@@ -153,7 +154,8 @@
             }
             store.isAuthModalOpen = false;
           } catch (err) {
-            errorMessage = err.message || 'Error al procesar login de Google';
+            console.error('[Google OAuth] Error procesando perfil:', err);
+            errorMessage = 'No fue posible iniciar sesión con Google. Por favor intenta nuevamente o ingresa con tu correo.';
           } finally {
             isLoading = false;
           }
@@ -163,14 +165,16 @@
           if (err && err.type === 'popup_closed') {
             return;
           }
-          errorMessage = 'No se pudo conectar con Google. Verifica que el dominio esté autorizado en Google Cloud Console.';
+          console.error('[Google OAuth] Error de origen/conexión:', err, '(Verifica que el dominio esté autorizado en Google Cloud Console)');
+          errorMessage = 'No fue posible conectar con Google en este momento. Por favor intenta nuevamente o inicia sesión con tu correo.';
         }
       });
 
       client.requestAccessToken();
     } catch (err) {
       isLoading = false;
-      errorMessage = 'Error iniciando conexión con Google';
+      console.error('[Google OAuth] Error iniciando conexión:', err);
+      errorMessage = 'No fue posible conectar con Google en este momento. Por favor intenta con tu correo.';
     }
   }
 
@@ -216,7 +220,8 @@
         }
         store.isAuthModalOpen = false;
       } catch (err) {
-        errorMessage = err.message || 'Error al crear la cuenta';
+        console.error('[Auth] Error al registrar cuenta:', err);
+        errorMessage = 'No fue posible crear la cuenta en este momento. Por favor verifica tus datos e intenta de nuevo.';
       } finally {
         isLoading = false;
       }
