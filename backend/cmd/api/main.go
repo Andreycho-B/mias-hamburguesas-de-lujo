@@ -89,11 +89,10 @@ func main() {
 	r.Use(chimiddleware.Recoverer)
 	r.Use(middleware.StructuredLogger)
 
-	// CORS de Grado Bancario con soporte de red local y Render
+	// CORS de Grado Bancario con soporte de red local, Cloudflare Pages y dominio configurado
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins: []string{
 			cfg.FrontendURL,
-			"https://mias-frontend.onrender.com",
 			"http://localhost:5173",
 			"http://localhost:4173",
 		},
@@ -101,7 +100,7 @@ func main() {
 			if origin == "" {
 				return true
 			}
-			if strings.HasSuffix(origin, ".onrender.com") ||
+			if strings.HasSuffix(origin, ".pages.dev") ||
 				strings.HasPrefix(origin, "http://localhost:") ||
 				strings.HasPrefix(origin, "http://127.0.0.1:") ||
 				strings.HasPrefix(origin, "http://192.168.") ||
