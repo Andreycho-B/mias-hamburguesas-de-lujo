@@ -1,25 +1,17 @@
 function resolveApiBase() {
   let url = import.meta.env.VITE_API_URL;
   if (!url) {
-    if (typeof window !== 'undefined' && window.location.hostname && window.location.hostname.endsWith('.onrender.com')) {
-      return 'https://mias-backend.onrender.com/api/v1';
+    if (typeof window !== 'undefined' && window.location.hostname) {
+      if (window.location.hostname.endsWith('.pages.dev')) {
+        return '/api/v1';
+      }
+      return `http://${window.location.hostname}:8080/api/v1`;
     }
-    return typeof window !== 'undefined' && window.location.hostname
-      ? `http://${window.location.hostname}:8080/api/v1`
-      : 'http://localhost:8080/api/v1';
+    return 'http://localhost:8080/api/v1';
   }
 
-  // Si Render inyectó el hostname interno sin dominio (e.g. "mias-backend" o "http://mias-backend")
-  if (url === 'mias-backend' || url === 'http://mias-backend' || url === 'https://mias-backend') {
-    return 'https://mias-backend.onrender.com/api/v1';
-  }
-
-  if (!url.startsWith('http://') && !url.startsWith('https://')) {
-    if (!url.includes('.') && !url.includes('localhost')) {
-      url = `https://${url}.onrender.com`;
-    } else {
-      url = `https://${url}`;
-    }
+  if (!url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('/')) {
+    url = `https://${url}`;
   }
 
   if (!url.endsWith('/api/v1')) {
