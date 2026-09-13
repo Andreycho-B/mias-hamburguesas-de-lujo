@@ -312,7 +312,7 @@
     data-lenis-prevent
     onwheel={(e) => e.stopPropagation()}
     ontouchmove={(e) => e.stopPropagation()}
-    class="fixed inset-0 z-50 w-full h-full min-h-[100dvh] bg-[#FAF6EE] text-[#0C0C0E] overflow-y-auto overscroll-contain"
+    class="fixed inset-0 z-50 w-full h-full min-h-[100dvh] bg-char text-bone overflow-y-auto overscroll-contain"
     style="touch-action: pan-y; -webkit-overflow-scrolling: touch; padding-top: max(1rem, env(safe-area-inset-top, 0px)); padding-bottom: max(5rem, calc(env(safe-area-inset-bottom, 0px) + 3rem)); padding-left: max(1rem, env(safe-area-inset-left, 0px)); padding-right: max(1rem, env(safe-area-inset-right, 0px));"
   >
     <div data-lenis-prevent class="w-full max-w-lg mx-auto py-2 sm:py-4 flex flex-col space-y-6">
@@ -323,7 +323,7 @@
           <button 
             type="button"
             onclick={handleBackStep}
-            class="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white border border-black/5 flex items-center justify-center text-[#3A3A3C] hover:bg-black/5 active:scale-90 transition-all cursor-pointer group shrink-0"
+            class="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-char-card border border-white/10 flex items-center justify-center text-bone hover:bg-char-card-hover active:scale-90 transition-all cursor-pointer group shrink-0"
             aria-label="Volver al paso anterior"
           >
             <ChevronLeft class="w-6 h-6 sm:w-7 sm:h-7 stroke-[2.2] -translate-x-0.5 group-hover:-translate-x-1 transition-transform" />
@@ -350,7 +350,7 @@
               Orden Procesada
             {/if}
           </span>
-          <h1 class="font-display font-black text-xl sm:text-2xl text-[#0C0C0E] tracking-tight leading-tight">
+          <h1 class="font-display font-black text-xl sm:text-2xl text-bone tracking-tight leading-tight">
             {#if cartStep === 'cart'}
               Tu Comanda
             {:else if cartStep === 'mode'}
@@ -366,7 +366,7 @@
         <button 
           type="button"
           onclick={closeOrderModal}
-          class="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white border border-black/5 flex items-center justify-center text-[#3A3A3C] hover:text-[#FF2400] active:scale-90 transition-all cursor-pointer shrink-0"
+          class="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-char-card border border-white/10 flex items-center justify-center text-bone hover:text-[#FF2400] active:scale-90 transition-all cursor-pointer shrink-0"
           aria-label="Cerrar comanda"
         >
           <X class="w-6 h-6 stroke-[2.2]" />
@@ -378,12 +378,12 @@
       <!-- ========================================================================= -->
       {#if cartStep === 'cart'}
         {#if store.cart.length === 0}
-          <div class="bg-white border border-black/10 rounded-[36px] p-8 text-center space-y-4 my-auto shadow-none">
-            <div class="w-20 h-20 rounded-full bg-[#EDE8DC] mx-auto flex items-center justify-center text-[#8E8E93]">
+          <div class="bg-char-card border border-white/10 rounded-[36px] p-8 text-center space-y-4 my-auto shadow-none">
+            <div class="w-20 h-20 rounded-full bg-char mx-auto flex items-center justify-center text-ash border border-white/10">
               <ShoppingBag class="w-8 h-8 stroke-[1.8]" />
             </div>
-            <h2 class="font-display font-extrabold text-2xl text-[#0C0C0E]">Tu comanda está vacía</h2>
-            <p class="text-xs sm:text-sm text-[#8E8E93] max-w-xs mx-auto">
+            <h2 class="font-display font-extrabold text-2xl text-bone">Tu comanda está vacía</h2>
+            <p class="text-xs sm:text-sm text-ash max-w-xs mx-auto">
               Explora nuestra carta gastronómica y añade tus hamburguesas favoritas al carbón.
             </p>
             <button
@@ -398,9 +398,9 @@
           <!-- Lista de Tarjetas Gordas de Productos -->
           <div class="space-y-3.5">
             {#each store.cart as item (item.id)}
-              <div class="bg-white border border-black/10 rounded-[32px] p-4 sm:p-5 flex items-center gap-3.5 sm:gap-4 shadow-none">
+              <div class="bg-char-card border border-white/10 rounded-[32px] p-4 sm:p-5 flex items-center gap-3.5 sm:gap-4 shadow-none">
                 <!-- Imagen o Icono del Producto -->
-                <div class="w-20 h-20 sm:w-22 sm:h-22 rounded-2xl bg-[#EDE8DC] flex items-center justify-center shrink-0 overflow-hidden border border-black/5">
+                <div class="w-20 h-20 sm:w-22 sm:h-22 rounded-2xl bg-char flex items-center justify-center shrink-0 overflow-hidden border border-white/10">
                   {#if item.product?.image_url}
                     <img 
                       src={item.product.image_url} 
@@ -412,22 +412,22 @@
                     <div class="w-full h-full flex flex-col items-center justify-center text-[#FF2400] p-1 text-center select-none">
                       {#if item.product?.slug?.includes('papa')}
                         <Utensils class="w-7 h-7 sm:w-8 sm:h-8 stroke-[2.2]" />
-                        <span class="text-[9px] font-mono font-bold text-[#0C0C0E] mt-0.5 uppercase tracking-tighter">Papas</span>
+                        <span class="text-[9px] font-mono font-bold text-bone mt-0.5 uppercase tracking-tighter">Papas</span>
                       {:else if item.product?.slug?.includes('tocineta') || item.product?.slug?.includes('carne')}
                         <Flame class="w-7 h-7 sm:w-8 sm:h-8 stroke-[2.2]" />
-                        <span class="text-[9px] font-mono font-bold text-[#0C0C0E] mt-0.5 uppercase tracking-tighter">Extra</span>
+                        <span class="text-[9px] font-mono font-bold text-bone mt-0.5 uppercase tracking-tighter">Extra</span>
                       {:else if item.product?.slug?.includes('queso')}
                         <Sparkles class="w-7 h-7 sm:w-8 sm:h-8 stroke-[2.2]" />
-                        <span class="text-[9px] font-mono font-bold text-[#0C0C0E] mt-0.5 uppercase tracking-tighter">Queso</span>
+                        <span class="text-[9px] font-mono font-bold text-bone mt-0.5 uppercase tracking-tighter">Queso</span>
                       {:else if item.product?.slug?.includes('combo')}
                         <ShoppingBag class="w-7 h-7 sm:w-8 sm:h-8 stroke-[2.2]" />
-                        <span class="text-[9px] font-mono font-bold text-[#0C0C0E] mt-0.5 uppercase tracking-tighter">Combo</span>
+                        <span class="text-[9px] font-mono font-bold text-bone mt-0.5 uppercase tracking-tighter">Combo</span>
                       {:else if item.product?.slug?.includes('salsa') || item.product?.slug?.includes('pepinillos')}
                         <Utensils class="w-7 h-7 sm:w-8 sm:h-8 stroke-[2.2]" />
-                        <span class="text-[9px] font-mono font-bold text-[#0C0C0E] mt-0.5 uppercase tracking-tighter">Extra</span>
+                        <span class="text-[9px] font-mono font-bold text-bone mt-0.5 uppercase tracking-tighter">Extra</span>
                       {:else}
                         <Plus class="w-7 h-7 sm:w-8 sm:h-8 stroke-[2.5]" />
-                        <span class="text-[9px] font-mono font-bold text-[#0C0C0E] mt-0.5 uppercase tracking-tighter">Adicional</span>
+                        <span class="text-[9px] font-mono font-bold text-bone mt-0.5 uppercase tracking-tighter">Adicional</span>
                       {/if}
                     </div>
                   {/if}
@@ -437,25 +437,25 @@
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center gap-2 flex-wrap">
                     {#if item.product?.bread_type}
-                      <span class="px-2 py-0.5 rounded-full bg-[#EDE8DC] text-[10px] font-mono font-bold uppercase text-[#0C0C0E]">
+                      <span class="px-2 py-0.5 rounded-full bg-char border border-white/10 text-[10px] font-mono font-bold uppercase text-bone">
                         {item.product.bread_type === 'pretzel' ? 'Pan Pretzel' : 'Pan Brioche'}
                       </span>
                     {:else}
-                      <span class="px-2 py-0.5 rounded-full bg-[#EDE8DC] text-[10px] font-mono font-bold uppercase text-[#8E8E93]">
+                      <span class="px-2 py-0.5 rounded-full bg-char border border-white/10 text-[10px] font-mono font-bold uppercase text-ash">
                         {item.product?.category_id === 5 ? 'Adicional' : item.product?.category_id === 4 ? 'Bebida' : 'Acompañamiento'}
                       </span>
                     {/if}
                     {#if item.combo}
-                      <span class="px-2 py-0.5 rounded-full bg-[#FF2400]/10 text-[10px] font-mono font-bold text-[#FF2400]">
+                      <span class="px-2 py-0.5 rounded-full bg-[#FF2400]/20 text-[10px] font-mono font-bold text-[#FF2400]">
                         + Combo
                       </span>
                     {/if}
                   </div>
-                  <h3 class="font-display font-black text-lg sm:text-xl text-[#0C0C0E] truncate mt-1">
+                  <h3 class="font-display font-black text-lg sm:text-xl text-bone truncate mt-1">
                     {item.product?.name}
                   </h3>
                   {#if item.extras && item.extras.length > 0}
-                    <p class="text-[11px] font-mono text-[#8E8E93] truncate">
+                    <p class="text-[11px] font-mono text-ash truncate">
                       + {item.extras.map(e => e.name).join(', ')}
                     </p>
                   {/if}
@@ -466,22 +466,22 @@
 
                 <!-- Controles Táctiles Gordos (Touch Targets >= 48px) -->
                 <div class="flex flex-col items-center gap-1.5 shrink-0">
-                  <div class="flex items-center gap-1 bg-[#EDE8DC] p-1 rounded-full border border-black/5">
+                  <div class="flex items-center gap-1 bg-char p-1 rounded-full border border-white/10">
                     <button
                       type="button"
                       onclick={() => store.updateQuantity(item.id, -1)}
-                      class="w-10 h-10 rounded-full bg-white text-[#0C0C0E] flex items-center justify-center hover:bg-black/5 active:scale-90 transition-all cursor-pointer"
+                      class="w-10 h-10 rounded-full bg-char-card text-bone flex items-center justify-center hover:bg-char-card-hover active:scale-90 transition-all cursor-pointer"
                       aria-label="Disminuir cantidad"
                     >
                       <Minus class="w-4 h-4 stroke-[2.5]" />
                     </button>
-                    <span class="w-7 text-center font-mono font-black text-sm text-[#0C0C0E]">
+                    <span class="w-7 text-center font-mono font-black text-sm text-bone">
                       {item.quantity}
                     </span>
                     <button
                       type="button"
                       onclick={() => store.updateQuantity(item.id, 1)}
-                      class="w-10 h-10 rounded-full bg-white text-[#0C0C0E] flex items-center justify-center hover:bg-black/5 active:scale-90 transition-all cursor-pointer"
+                      class="w-10 h-10 rounded-full bg-char-card text-bone flex items-center justify-center hover:bg-char-card-hover active:scale-90 transition-all cursor-pointer"
                       aria-label="Aumentar cantidad"
                     >
                       <Plus class="w-4 h-4 stroke-[2.5]" />
@@ -490,7 +490,7 @@
                   <button
                     type="button"
                     onclick={() => store.removeFromCart(item.id)}
-                    class="text-[11px] font-mono text-[#8E8E93] hover:text-[#FF2400] transition-colors py-0.5 cursor-pointer"
+                    class="text-[11px] font-mono text-ash hover:text-[#FF2400] transition-colors py-0.5 cursor-pointer"
                   >
                     Eliminar
                   </button>
@@ -500,9 +500,9 @@
           </div>
 
           <!-- Sección ¿Deseas acompañar tu hamburguesa? (Adicionales Rápidos) -->
-          <div class="bg-white border border-black/10 rounded-[36px] p-5 sm:p-6 space-y-3.5 shadow-none">
+          <div class="bg-char-card border border-white/10 rounded-[36px] p-5 sm:p-6 space-y-3.5 shadow-none">
             <div class="flex items-center justify-between">
-              <span class="text-xs font-mono font-bold uppercase tracking-wider text-[#8E8E93]">
+              <span class="text-xs font-mono font-bold uppercase tracking-wider text-ash">
                 ¿Deseas acompañar tu orden?
               </span>
               <span class="text-[11px] font-mono text-[#FF2400] font-bold">1 toque para añadir</span>
@@ -513,15 +513,15 @@
                 <button
                   type="button"
                   onclick={() => handleAddUpsell(item)}
-                  class="p-3.5 rounded-2xl bg-[#FAF6EE] border border-black/5 hover:border-[#FF2400]/40 flex items-center justify-between sm:flex-col sm:items-start text-left transition-all active:scale-[0.98] cursor-pointer"
+                  class="p-3.5 rounded-2xl bg-char border border-white/10 hover:border-[#FF2400]/40 flex items-center justify-between sm:flex-col sm:items-start text-left transition-all active:scale-[0.98] cursor-pointer"
                 >
                   <div class="min-w-0 pr-2">
-                    <span class="font-display font-extrabold text-sm text-[#0C0C0E] block truncate">{item.name}</span>
+                    <span class="font-display font-extrabold text-sm text-bone block truncate">{item.name}</span>
                     <span class="font-mono text-xs text-[#FF2400] font-bold block mt-0.5">+{formatCOP(item.price)}</span>
                   </div>
-                  <div class="w-8 h-8 rounded-full bg-white border border-black/10 flex items-center justify-center text-[#0C0C0E] shrink-0 sm:mt-2 sm:self-end">
+                  <div class="w-8 h-8 rounded-full bg-char-card border border-white/10 flex items-center justify-center text-bone shrink-0 sm:mt-2 sm:self-end">
                     {#if recentlyAddedUpsellId === item.id}
-                      <Check class="w-4 h-4 text-emerald-600 stroke-[3]" />
+                      <Check class="w-4 h-4 text-emerald-500 stroke-[3]" />
                     {:else}
                       <Plus class="w-4 h-4 stroke-[2.5]" />
                     {/if}
@@ -532,11 +532,11 @@
           </div>
 
           <!-- Total de Comanda y Botón Fat-Finger CTA -->
-          <div class="bg-white border border-black/10 rounded-[36px] p-6 space-y-4 shadow-none">
+          <div class="bg-char-card border border-white/10 rounded-[36px] p-6 space-y-4 shadow-none">
             <div class="flex items-center justify-between">
               <div>
-                <span class="text-xs font-mono text-[#8E8E93] uppercase tracking-wider block">Subtotal de platos</span>
-                <span class="font-display font-extrabold text-2xl sm:text-3xl text-[#0C0C0E] leading-tight">
+                <span class="text-xs font-mono text-ash uppercase tracking-wider block">Subtotal de platos</span>
+                <span class="font-display font-extrabold text-2xl sm:text-3xl text-bone leading-tight">
                   {formatCOP(store.cartSubtotal)}
                 </span>
               </div>
@@ -565,19 +565,19 @@
           <button
             type="button"
             onclick={() => handleSelectMode('delivery')}
-            class="w-full text-left bg-white rounded-[32px] border-2 p-5 sm:p-6 transition-all active:scale-[0.985] cursor-pointer flex items-center gap-4.5 {selectedMode === 'delivery' ? 'border-[#FF2400] bg-white' : 'border-black/10 hover:border-black/20'}"
+            class="w-full text-left rounded-[32px] border-2 p-5 sm:p-6 transition-all active:scale-[0.985] cursor-pointer flex items-center gap-4.5 {selectedMode === 'delivery' ? 'border-[#FF2400] bg-char' : 'border-white/10 hover:border-white/20 bg-char-card'}"
           >
             <div class="w-14 h-14 rounded-2xl bg-[#FF2400] text-white flex items-center justify-center shrink-0">
               <Bike class="w-7 h-7 stroke-[2.2]" />
             </div>
             <div class="flex-1 min-w-0">
               <div class="flex items-center justify-between">
-                <h2 class="font-display font-black text-xl text-[#0C0C0E]">A Domicilio</h2>
-                <span class="px-2.5 py-1 rounded-full bg-[#FF2400]/10 text-xs font-mono font-bold text-[#FF2400]">
+                <h2 class="font-display font-black text-xl text-bone">A Domicilio</h2>
+                <span class="px-2.5 py-1 rounded-full bg-[#FF2400]/10 border border-[#FF2400]/20 text-xs font-mono font-bold text-[#FF2400]">
                   + $6.000
                 </span>
               </div>
-              <p class="text-xs text-[#8E8E93] mt-1 leading-relaxed">
+              <p class="text-xs text-ash mt-1 leading-relaxed">
                 Directo a tu puerta en Duitama, empacado hermético con sello de calor.
               </p>
             </div>
@@ -587,19 +587,19 @@
           <button
             type="button"
             onclick={() => handleSelectMode('takeout')}
-            class="w-full text-left bg-white rounded-[32px] border-2 p-5 sm:p-6 transition-all active:scale-[0.985] cursor-pointer flex items-center gap-4.5 {selectedMode === 'takeout' ? 'border-[#FF2400] bg-white' : 'border-black/10 hover:border-black/20'}"
+            class="w-full text-left rounded-[32px] border-2 p-5 sm:p-6 transition-all active:scale-[0.985] cursor-pointer flex items-center gap-4.5 {selectedMode === 'takeout' ? 'border-[#FF2400] bg-char' : 'border-white/10 hover:border-white/20 bg-char-card'}"
           >
-            <div class="w-14 h-14 rounded-2xl bg-[#0C0C0E] text-white flex items-center justify-center shrink-0">
+            <div class="w-14 h-14 rounded-2xl bg-char-card border border-white/10 text-white flex items-center justify-center shrink-0">
               <ShoppingBag class="w-7 h-7 stroke-[2.2]" />
             </div>
             <div class="flex-1 min-w-0">
               <div class="flex items-center justify-between">
-                <h2 class="font-display font-black text-xl text-[#0C0C0E]">Para Llevar (Take Away)</h2>
-                <span class="px-2.5 py-1 rounded-full bg-[#EDE8DC] text-xs font-mono font-bold text-[#0C0C0E]">
+                <h2 class="font-display font-black text-xl text-bone">Para Llevar (Take Away)</h2>
+                <span class="px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-mono font-bold text-ash">
                   Sin recargo
                 </span>
               </div>
-              <p class="text-xs text-[#8E8E93] mt-1 leading-relaxed">
+              <p class="text-xs text-ash mt-1 leading-relaxed">
                 Empacado para retirar en barra sin hacer filas.
               </p>
             </div>
@@ -609,19 +609,19 @@
           <button
             type="button"
             onclick={() => handleSelectMode('in_store')}
-            class="w-full text-left bg-white rounded-[32px] border-2 p-5 sm:p-6 transition-all active:scale-[0.985] cursor-pointer flex items-center gap-4.5 {selectedMode === 'in_store' ? 'border-[#FF2400] bg-white' : 'border-black/10 hover:border-black/20'}"
+            class="w-full text-left rounded-[32px] border-2 p-5 sm:p-6 transition-all active:scale-[0.985] cursor-pointer flex items-center gap-4.5 {selectedMode === 'in_store' ? 'border-[#FF2400] bg-char' : 'border-white/10 hover:border-white/20 bg-char-card'}"
           >
-            <div class="w-14 h-14 rounded-2xl bg-[#EDE8DC] text-[#0C0C0E] flex items-center justify-center shrink-0">
+            <div class="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 text-bone flex items-center justify-center shrink-0">
               <UtensilsCrossed class="w-7 h-7 stroke-[2.2]" />
             </div>
             <div class="flex-1 min-w-0">
               <div class="flex items-center justify-between">
-                <h2 class="font-display font-black text-xl text-[#0C0C0E]">Consumo en el Salón</h2>
-                <span class="px-2.5 py-1 rounded-full bg-[#EDE8DC] text-xs font-mono font-bold text-[#0C0C0E]">
+                <h2 class="font-display font-black text-xl text-bone">Consumo en el Salón</h2>
+                <span class="px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-mono font-bold text-ash">
                   En mesa
                 </span>
               </div>
-              <p class="text-xs text-[#8E8E93] mt-1 leading-relaxed">
+              <p class="text-xs text-ash mt-1 leading-relaxed">
                 Disfruta la experiencia en nuestro punto físico, te lo llevamos a la mesa.
               </p>
             </div>
@@ -635,10 +635,10 @@
         <div class="space-y-4">
           
           <!-- SECCIÓN 1: ¿A QUIÉN ENTREGAMOS? -->
-          <div class="bg-white border border-black/10 rounded-[34px] p-5 sm:p-6 space-y-3.5 shadow-none">
+          <div class="bg-char-card border border-white/10 rounded-[34px] p-5 sm:p-6 space-y-3.5 shadow-none">
             <div class="flex items-center gap-2">
               <User class="w-5 h-5 text-[#FF2400]" />
-              <h2 class="font-display font-extrabold text-lg text-[#0C0C0E]">
+              <h2 class="font-display font-extrabold text-lg text-bone">
                 ¿A quién entregamos?
               </h2>
             </div>
@@ -649,7 +649,7 @@
                   type="text" 
                   bind:value={customerName}
                   placeholder="Nombre completo"
-                  class="w-full min-h-[58px] rounded-2xl px-5 bg-[#EDE8DC] border border-black/10 text-[#0C0C0E] placeholder:text-[#8E8E93] text-base font-sans focus:outline-none focus:border-black/30 transition-colors"
+                  class="w-full min-h-[58px] rounded-2xl px-5 bg-char border border-white/10 text-bone placeholder:text-ash/60 text-base font-sans focus:outline-none focus:border-[#FF2400] transition-colors"
                 />
               </div>
 
@@ -658,7 +658,7 @@
                   type="tel" 
                   bind:value={customerPhone}
                   placeholder="Número de WhatsApp (ej. 321 252 0881)"
-                  class="w-full min-h-[58px] rounded-2xl px-5 bg-[#EDE8DC] border border-black/10 text-[#0C0C0E] placeholder:text-[#8E8E93] text-base font-sans focus:outline-none focus:border-black/30 transition-colors"
+                  class="w-full min-h-[58px] rounded-2xl px-5 bg-char border border-white/10 text-bone placeholder:text-ash/60 text-base font-sans focus:outline-none focus:border-[#FF2400] transition-colors"
                 />
               </div>
             </div>
@@ -666,11 +666,11 @@
 
           <!-- SECCIÓN 2: LUGAR DE ENTREGA O MESA -->
           {#if selectedMode === 'delivery'}
-            <div class="bg-white border border-black/10 rounded-[34px] p-5 sm:p-6 space-y-3.5 shadow-none">
+            <div class="bg-char-card border border-white/10 rounded-[34px] p-5 sm:p-6 space-y-3.5 shadow-none">
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
                   <MapPin class="w-5 h-5 text-[#FF2400]" />
-                  <h2 class="font-display font-extrabold text-lg text-[#0C0C0E]">
+                  <h2 class="font-display font-extrabold text-lg text-bone">
                     Dirección en Duitama
                   </h2>
                 </div>
@@ -682,21 +682,21 @@
                   type="text" 
                   bind:value={deliveryAddress}
                   placeholder="Dirección exacta (ej. Carrera 16 # 14-32)"
-                  class="w-full min-h-[58px] rounded-2xl px-5 bg-[#EDE8DC] border border-black/10 text-[#0C0C0E] placeholder:text-[#8E8E93] text-base font-sans focus:outline-none focus:border-black/30 transition-colors"
+                  class="w-full min-h-[58px] rounded-2xl px-5 bg-char border border-white/10 text-bone placeholder:text-ash/60 text-base font-sans focus:outline-none focus:border-[#FF2400] transition-colors"
                 />
 
                 <input 
                   type="text" 
                   bind:value={deliveryNeighborhood}
                   placeholder="Barrio o sector (ej. Centro, El Recreo, Sugamuxi)"
-                  class="w-full min-h-[58px] rounded-2xl px-5 bg-[#EDE8DC] border border-black/10 text-[#0C0C0E] placeholder:text-[#8E8E93] text-base font-sans focus:outline-none focus:border-black/30 transition-colors"
+                  class="w-full min-h-[58px] rounded-2xl px-5 bg-char border border-white/10 text-bone placeholder:text-ash/60 text-base font-sans focus:outline-none focus:border-[#FF2400] transition-colors"
                 />
 
                 <input 
                   type="text" 
                   bind:value={deliveryNotes}
                   placeholder="Indicaciones para el repartidor (ej. Casa blanca, timbre 201)"
-                  class="w-full min-h-[54px] rounded-2xl px-5 bg-[#EDE8DC] border border-black/10 text-[#0C0C0E] placeholder:text-[#8E8E93] text-sm font-sans focus:outline-none focus:border-black/30 transition-colors"
+                  class="w-full min-h-[54px] rounded-2xl px-5 bg-char border border-white/10 text-bone placeholder:text-ash/60 text-sm font-sans focus:outline-none focus:border-[#FF2400] transition-colors"
                 />
 
                 <!-- Chips Rápidos para Notas de Entrega -->
@@ -705,7 +705,7 @@
                     <button
                       type="button"
                       onclick={() => toggleQuickNote(chip)}
-                      class="px-3 py-1.5 rounded-full text-xs font-medium border transition-all cursor-pointer {deliveryNotes.includes(chip) ? 'bg-[#FF2400] text-white border-[#FF2400]' : 'bg-[#EDE8DC] text-[#0C0C0E] border-black/10'}"
+                      class="px-3 py-1.5 rounded-full text-xs font-medium border transition-all cursor-pointer {deliveryNotes.includes(chip) ? 'bg-[#FF2400] text-white border-[#FF2400]' : 'bg-char text-ash border-white/10 hover:text-bone'}"
                     >
                       {chip}
                     </button>
@@ -714,25 +714,25 @@
               </div>
             </div>
           {:else if selectedMode === 'in_store'}
-            <div class="bg-white border border-black/10 rounded-[34px] p-5 sm:p-6 space-y-3 shadow-none">
+            <div class="bg-char-card border border-white/10 rounded-[34px] p-5 sm:p-6 space-y-3 shadow-none">
               <div class="flex items-center gap-2">
                 <UtensilsCrossed class="w-5 h-5 text-[#FF2400]" />
-                <h2 class="font-display font-extrabold text-lg text-[#0C0C0E]">Número de Mesa</h2>
+                <h2 class="font-display font-extrabold text-lg text-bone">Número de Mesa</h2>
               </div>
               <input 
                 type="text" 
                 bind:value={tableNumber}
                 placeholder="Número de mesa (ej. 4)"
-                class="w-full min-h-[58px] rounded-2xl px-5 bg-[#EDE8DC] border border-black/10 text-[#0C0C0E] text-base font-sans focus:outline-none focus:border-black/30 transition-colors"
+                class="w-full min-h-[58px] rounded-2xl px-5 bg-char border border-white/10 text-bone placeholder:text-ash/60 text-base font-sans focus:outline-none focus:border-[#FF2400] transition-colors"
               />
             </div>
           {/if}
 
           <!-- SECCIÓN 3: MÉTODO DE PAGO (TARJETAS GORDAS) -->
-          <div class="bg-white border border-black/10 rounded-[34px] p-5 sm:p-6 space-y-3.5 shadow-none">
+          <div class="bg-char-card border border-white/10 rounded-[34px] p-5 sm:p-6 space-y-3.5 shadow-none">
             <div class="flex items-center justify-between">
-              <h2 class="font-display font-extrabold text-lg text-[#0C0C0E]">Método de Pago</h2>
-              <span class="text-xs font-mono font-bold text-[#8E8E93]">{paymentMethod}</span>
+              <h2 class="font-display font-extrabold text-lg text-bone">Método de Pago</h2>
+              <span class="text-xs font-mono font-bold text-ash">{paymentMethod}</span>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
@@ -740,12 +740,12 @@
               <button
                 type="button"
                 onclick={() => paymentMethod = 'Efectivo'}
-                class="p-4 rounded-2xl border-2 text-left transition-all cursor-pointer flex flex-col justify-between min-h-[84px] {paymentMethod === 'Efectivo' ? 'border-[#FF2400] bg-[#FAF6EE]' : 'border-black/10 bg-white'}"
+                class="p-4 rounded-2xl border-2 text-left transition-all cursor-pointer flex flex-col justify-between min-h-[84px] {paymentMethod === 'Efectivo' ? 'border-[#FF2400] bg-char' : 'border-white/10 bg-char'}"
               >
                 <DollarSign class="w-5 h-5 text-[#FF2400]" />
                 <div>
-                  <span class="font-display font-extrabold text-sm text-[#0C0C0E] block">Efectivo</span>
-                  <span class="text-[11px] text-[#8E8E93]">Contraentrega</span>
+                  <span class="font-display font-extrabold text-sm text-bone block">Efectivo</span>
+                  <span class="text-[11px] text-ash">Contraentrega</span>
                 </div>
               </button>
 
@@ -753,12 +753,12 @@
               <button
                 type="button"
                 onclick={() => paymentMethod = 'Nequi / Daviplata'}
-                class="p-4 rounded-2xl border-2 text-left transition-all cursor-pointer flex flex-col justify-between min-h-[84px] {paymentMethod === 'Nequi / Daviplata' ? 'border-[#FF2400] bg-[#FAF6EE]' : 'border-black/10 bg-white'}"
+                class="p-4 rounded-2xl border-2 text-left transition-all cursor-pointer flex flex-col justify-between min-h-[84px] {paymentMethod === 'Nequi / Daviplata' ? 'border-[#FF2400] bg-char' : 'border-white/10 bg-char'}"
               >
                 <Phone class="w-5 h-5 text-[#FF2400]" />
                 <div>
-                  <span class="font-display font-extrabold text-sm text-[#0C0C0E] block">Nequi / Davi</span>
-                  <span class="text-[11px] text-[#8E8E93]">Transferencia</span>
+                  <span class="font-display font-extrabold text-sm text-bone block">Nequi / Davi</span>
+                  <span class="text-[11px] text-ash">Transferencia</span>
                 </div>
               </button>
 
@@ -766,41 +766,41 @@
               <button
                 type="button"
                 onclick={() => paymentMethod = 'Datáfono contraentrega'}
-                class="p-4 rounded-2xl border-2 text-left transition-all cursor-pointer flex flex-col justify-between min-h-[84px] {paymentMethod === 'Datáfono contraentrega' ? 'border-[#FF2400] bg-[#FAF6EE]' : 'border-black/10 bg-white'}"
+                class="p-4 rounded-2xl border-2 text-left transition-all cursor-pointer flex flex-col justify-between min-h-[84px] {paymentMethod === 'Datáfono contraentrega' ? 'border-[#FF2400] bg-char' : 'border-white/10 bg-char'}"
               >
                 <CreditCard class="w-5 h-5 text-[#FF2400]" />
                 <div>
-                  <span class="font-display font-extrabold text-sm text-[#0C0C0E] block">Datáfono</span>
-                  <span class="text-[11px] text-[#8E8E93]">Tarjeta física</span>
+                  <span class="font-display font-extrabold text-sm text-bone block">Datáfono</span>
+                  <span class="text-[11px] text-ash">Tarjeta física</span>
                 </div>
               </button>
             </div>
 
             <!-- Detalles según método de pago seleccionado -->
             {#if paymentMethod === 'Efectivo'}
-              <div class="p-4 rounded-2xl bg-[#EDE8DC] space-y-2.5">
-                <span class="text-xs font-mono font-bold text-[#0C0C0E] block">
+              <div class="p-4 rounded-2xl bg-char border border-white/5 space-y-2.5">
+                <span class="text-xs font-mono font-bold text-bone block">
                   ¿Con cuánto cancelas? (Para llevar tu cambio exacto)
                 </span>
                 <div class="grid grid-cols-3 gap-2">
                   <button
                     type="button"
                     onclick={() => selectQuickCash(50000)}
-                    class="py-2.5 rounded-xl bg-white border border-black/10 text-xs font-bold font-mono text-[#0C0C0E] hover:border-[#FF2400] cursor-pointer"
+                    class="py-2.5 rounded-xl bg-char-card border border-white/10 text-xs font-bold font-mono text-bone hover:border-[#FF2400] cursor-pointer transition-colors"
                   >
                     $50.000
                   </button>
                   <button
                     type="button"
                     onclick={() => selectQuickCash(100000)}
-                    class="py-2.5 rounded-xl bg-white border border-black/10 text-xs font-bold font-mono text-[#0C0C0E] hover:border-[#FF2400] cursor-pointer"
+                    class="py-2.5 rounded-xl bg-char-card border border-white/10 text-xs font-bold font-mono text-bone hover:border-[#FF2400] cursor-pointer transition-colors"
                   >
                     $100.000
                   </button>
                   <button
                     type="button"
                     onclick={() => selectQuickCash('exact')}
-                    class="py-2.5 rounded-xl bg-white border border-black/10 text-xs font-bold font-mono text-[#0C0C0E] hover:border-[#FF2400] cursor-pointer"
+                    class="py-2.5 rounded-xl bg-char-card border border-white/10 text-xs font-bold font-mono text-bone hover:border-[#FF2400] cursor-pointer transition-colors"
                   >
                     Exacto
                   </button>
@@ -811,25 +811,25 @@
                     type="number"
                     bind:value={cashAmount}
                     placeholder="Otro valor en efectivo..."
-                    class="flex-1 min-h-[48px] rounded-xl px-4 bg-white border border-black/10 text-xs sm:text-sm font-mono text-[#0C0C0E] focus:outline-none focus:border-[#FF2400]"
+                    class="flex-1 min-h-[48px] rounded-xl px-4 bg-char-card border border-white/10 text-xs sm:text-sm font-mono text-bone placeholder:text-ash/60 focus:outline-none focus:border-[#FF2400]"
                   />
                   {#if cashChange > 0}
-                    <span class="text-xs font-mono font-bold text-emerald-700 bg-white px-3 py-3 rounded-xl border border-black/10 shrink-0">
+                    <span class="text-xs font-mono font-bold text-emerald-400 bg-emerald-950/60 px-3 py-3 rounded-xl border border-emerald-700/30 shrink-0">
                       Vueltas: {formatCOP(cashChange)}
                     </span>
                   {/if}
                 </div>
               </div>
             {:else if paymentMethod === 'Nequi / Daviplata'}
-              <div class="p-4 rounded-2xl bg-[#EDE8DC] flex items-center justify-between">
+              <div class="p-4 rounded-2xl bg-char border border-white/5 flex items-center justify-between">
                 <div>
-                  <span class="text-[11px] font-mono uppercase text-[#8E8E93] block">Cuenta Nequi & Daviplata Mías</span>
-                  <span class="font-display font-black text-lg text-[#0C0C0E]">321 252 0881</span>
+                  <span class="text-[11px] font-mono uppercase text-ash block">Cuenta Nequi & Daviplata Mías</span>
+                  <span class="font-display font-black text-lg text-bone">321 252 0881</span>
                 </div>
                 <button
                   type="button"
                   onclick={copyNequi}
-                  class="min-h-[42px] px-4 rounded-xl bg-white border border-black/10 text-xs font-mono font-bold text-[#0C0C0E] hover:border-[#FF2400] transition-colors cursor-pointer flex items-center gap-1.5"
+                  class="min-h-[42px] px-4 rounded-xl bg-char-card border border-white/10 text-xs font-mono font-bold text-bone hover:border-[#FF2400] transition-colors cursor-pointer flex items-center gap-1.5"
                 >
                   <Copy class="w-3.5 h-3.5" />
                   <span>{isCopied ? '¡Copiado!' : 'Copiar'}</span>
@@ -839,20 +839,20 @@
           </div>
 
           <!-- SECCIÓN 4: RESUMEN Y BOTÓN FAT-FINGER FINALIZAR -->
-          <div class="bg-white border border-black/10 rounded-[34px] p-6 space-y-4 shadow-none">
+          <div class="bg-char-card border border-white/10 rounded-[34px] p-6 space-y-4 shadow-none">
             <div class="space-y-2 text-sm">
-              <div class="flex justify-between text-[#8E8E93]">
+              <div class="flex justify-between text-ash">
                 <span>Subtotal de platos:</span>
-                <span class="font-mono font-medium text-[#0C0C0E]">{formatCOP(store.cartSubtotal)}</span>
+                <span class="font-mono font-medium text-bone">{formatCOP(store.cartSubtotal)}</span>
               </div>
-              <div class="flex justify-between text-[#8E8E93]">
+              <div class="flex justify-between text-ash">
                 <span>Costo de domicilio:</span>
-                <span class="font-mono font-medium text-[#0C0C0E]">
+                <span class="font-mono font-medium text-bone">
                   {currentDeliveryFee > 0 ? formatCOP(currentDeliveryFee) : 'Gratis'}
                 </span>
               </div>
-              <div class="border-t border-black/10 pt-2 flex items-center justify-between">
-                <span class="font-display font-black text-xl text-[#0C0C0E]">Total a Pagar</span>
+              <div class="border-t border-white/10 pt-2 flex items-center justify-between">
+                <span class="font-display font-black text-xl text-bone">Total a Pagar</span>
                 <span class="font-display font-black text-2xl sm:text-3xl text-[#FF2400]">
                   {formatCOP(currentTotal)}
                 </span>
@@ -860,7 +860,7 @@
             </div>
 
             {#if formError}
-              <div class="p-3.5 rounded-2xl bg-red-50 border border-red-200 text-xs font-bold text-[#FF2400] text-center">
+              <div class="p-3.5 rounded-2xl bg-red-950/60 border border-red-800/40 text-xs font-bold text-red-400 text-center">
                 {formError}
               </div>
             {/if}
@@ -881,7 +881,7 @@
       <!-- ========================================================================= -->
       {:else if cartStep === 'ticket' && (liveTicketOrder || createdOrder)}
         {@const ord = liveTicketOrder || createdOrder}
-        <div class="bg-white border border-black/10 rounded-[38px] p-6 sm:p-8 space-y-6 shadow-none text-center">
+        <div class="bg-char-card border border-white/10 rounded-[38px] p-6 sm:p-8 space-y-6 shadow-none text-center">
           
           <!-- Encabezado de Éxito con Estado en Vivo -->
           <div class="space-y-2">
@@ -891,7 +891,7 @@
             <span class="font-mono text-xs uppercase font-bold tracking-widest text-[#FF2400] block">
               Comanda #{ord.code}
             </span>
-            <h2 class="font-display font-black text-2xl sm:text-3xl text-[#0C0C0E]">
+            <h2 class="font-display font-black text-2xl sm:text-3xl text-bone">
               {#if ord.status === 'PAID'}
                 ¡Comanda Cobrada y Aprobada!
               {:else if ord.status === 'IN_PREPARATION'}
@@ -904,7 +904,7 @@
                 ¡Tu comanda está registrada!
               {/if}
             </h2>
-            <p class="text-xs sm:text-sm text-[#8E8E93] max-w-sm mx-auto">
+            <p class="text-xs sm:text-sm text-ash max-w-sm mx-auto">
               {#if ord.status === 'PAID'}
                 La caja ha confirmado tu pago satisfactoriamente. Tu orden se está procesando.
               {:else}
@@ -914,15 +914,15 @@
           </div>
 
           <!-- Resumen del Ticket Térmico con Estado en Vivo -->
-          <div class="p-5 rounded-3xl bg-[#EDE8DC] text-left space-y-3 font-mono text-xs">
-            <div class="flex justify-between items-center border-b border-black/10 pb-2">
-              <span class="text-[#8E8E93]">Estado en Vivo:</span>
+          <div class="p-5 rounded-3xl bg-char border border-white/10 text-left space-y-3 font-mono text-xs">
+            <div class="flex justify-between items-center border-b border-white/10 pb-2">
+              <span class="text-ash">Estado en Vivo:</span>
               <span class="font-mono font-bold text-[11px] uppercase px-2.5 py-1 rounded-full {
-                ord.status === 'PAID' ? 'bg-emerald-200 text-emerald-900 border border-emerald-300' :
-                ord.status === 'IN_PREPARATION' ? 'bg-amber-200 text-amber-900 border border-amber-300' :
-                ord.status === 'ON_THE_WAY' ? 'bg-blue-200 text-blue-900 border border-blue-300' :
-                ord.status === 'DELIVERED' ? 'bg-purple-200 text-purple-900 border border-purple-300' :
-                'bg-orange-100 text-[#FF2400] border border-[#FF2400]/30 animate-pulse'
+                ord.status === 'PAID' ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-700/30' :
+                ord.status === 'IN_PREPARATION' ? 'bg-amber-950/60 text-amber-400 border border-amber-700/30' :
+                ord.status === 'ON_THE_WAY' ? 'bg-blue-950/60 text-blue-400 border border-blue-700/30' :
+                ord.status === 'DELIVERED' ? 'bg-purple-950/60 text-purple-400 border border-purple-700/30' :
+                'bg-orange-950/60 text-orange-400 border border-orange-700/30 animate-pulse'
               }">
                 {#if ord.status === 'PAID'}
                   ✓ Pago Aprobado en Caja
@@ -937,28 +937,28 @@
                 {/if}
               </span>
             </div>
-            <div class="flex justify-between border-b border-black/10 pb-2">
-              <span class="text-[#8E8E93]">Modalidad:</span>
-              <span class="font-bold text-[#0C0C0E]">{ord.modeLabel || ord.type}</span>
+            <div class="flex justify-between border-b border-white/10 pb-2">
+              <span class="text-ash">Modalidad:</span>
+              <span class="font-bold text-bone">{ord.modeLabel || ord.type}</span>
             </div>
-            <div class="flex justify-between border-b border-black/10 pb-2">
-              <span class="text-[#8E8E93]">Cliente:</span>
-              <span class="font-bold text-[#0C0C0E]">{ord.customer_name || ord.deliveryName}</span>
+            <div class="flex justify-between border-b border-white/10 pb-2">
+              <span class="text-ash">Cliente:</span>
+              <span class="font-bold text-bone">{ord.customer_name || ord.deliveryName}</span>
             </div>
             {#if ord.delivery_address || ord.deliveryAddress}
-              <div class="flex justify-between border-b border-black/10 pb-2">
-                <span class="text-[#8E8E93]">Dirección:</span>
-                <span class="font-bold text-[#0C0C0E] text-right">{ord.delivery_address || ord.deliveryAddress}</span>
+              <div class="flex justify-between border-b border-white/10 pb-2">
+                <span class="text-ash">Dirección:</span>
+                <span class="font-bold text-bone text-right">{ord.delivery_address || ord.deliveryAddress}</span>
               </div>
             {/if}
             {#if ord.table_number || ord.tableNumber}
-              <div class="flex justify-between border-b border-black/10 pb-2">
-                <span class="text-[#8E8E93]">Mesa:</span>
-                <span class="font-bold text-[#0C0C0E]">#{ord.table_number || ord.tableNumber}</span>
+              <div class="flex justify-between border-b border-white/10 pb-2">
+                <span class="text-ash">Mesa:</span>
+                <span class="font-bold text-bone">#{ord.table_number || ord.tableNumber}</span>
               </div>
             {/if}
             <div class="flex justify-between pt-1">
-              <span class="font-display font-extrabold text-sm text-[#0C0C0E]">Total Comanda:</span>
+              <span class="font-display font-extrabold text-sm text-bone">Total Comanda:</span>
               <span class="font-display font-black text-base text-[#FF2400]">{formatCOP(ord.total)}</span>
             </div>
           </div>
@@ -979,7 +979,7 @@
             <button
               type="button"
               onclick={goToStampsFromTicket}
-              class="w-full min-h-[58px] rounded-full bg-white hover:bg-[#FAF6EE] text-[#0C0C0E] border border-black/15 font-display font-extrabold text-sm sm:text-base tracking-tight transition-all flex items-center justify-center gap-2 cursor-pointer"
+              class="w-full min-h-[58px] rounded-full bg-char hover:bg-char-card text-bone border border-white/10 font-display font-extrabold text-sm sm:text-base tracking-tight transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
               <Award class="w-5 h-5 text-[#FF2400]" />
               <span>Solicitar Sellos en mi Cartilla</span>
@@ -989,7 +989,7 @@
             <button
               type="button"
               onclick={() => { closeOrderModal(); store.currentView = 'menu'; }}
-              class="w-full py-2.5 text-xs font-mono text-[#8E8E93] hover:text-[#0C0C0E] transition-colors cursor-pointer"
+              class="w-full py-2.5 text-xs font-mono text-ash hover:text-bone transition-colors cursor-pointer"
             >
               Volver a la carta principal
             </button>

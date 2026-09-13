@@ -118,7 +118,7 @@
   <!-- EXPERIENCIA EXCLUSIVA DEL CLIENTE -->
   <div 
     bind:this={homeRootEl}
-    class="min-h-screen flex flex-col bg-[#FAF6EE] text-char selection:bg-ember selection:text-white"
+    class="min-h-screen flex flex-col bg-char text-bone selection:bg-ember selection:text-white"
   >
     {#if !isMenuCategoryView}
       <!-- Encabezado exclusivo para paneles del sistema / sellos / historia -->

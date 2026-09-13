@@ -340,24 +340,24 @@
     data-lenis-prevent
     onwheel={(e) => e.stopPropagation()}
     ontouchmove={(e) => e.stopPropagation()}
-    class="fixed inset-0 z-50 w-full h-full min-h-[100dvh] bg-[#FAF6EE] text-[#0C0C0E] overflow-y-auto overscroll-contain"
+    class="fixed inset-0 z-50 w-full h-full min-h-[100dvh] bg-char text-bone overflow-y-auto overscroll-contain"
     style="touch-action: pan-y; -webkit-overflow-scrolling: touch; padding-top: max(1rem, env(safe-area-inset-top, 0px)); padding-bottom: max(5rem, calc(env(safe-area-inset-bottom, 0px) + 3rem)); padding-left: max(1rem, env(safe-area-inset-left, 0px)); padding-right: max(1rem, env(safe-area-inset-right, 0px));"
   >
     <!-- Contenedor con flujo vertical natural -->
     <div data-lenis-prevent class="w-full max-w-md mx-auto py-2 sm:py-4 flex flex-col space-y-6">
       
-      <!-- 1. Cabecera Superior: Botón Atrás Circular Blanco Plano del Menú -->
+      <!-- 1. Cabecera Superior: Botón Atrás Circular Dark Plano del Menú -->
       <header class="flex items-center justify-between w-full pb-1 shrink-0">
         <button 
           type="button"
           onclick={handleBack}
-          class="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white border border-black/5 flex items-center justify-center text-[#3A3A3C] hover:bg-black/5 active:scale-90 transition-all cursor-pointer group shrink-0"
+          class="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-char-card border border-white/10 flex items-center justify-center text-bone hover:bg-char-card-hover active:scale-90 transition-all cursor-pointer group shrink-0"
           aria-label="Volver"
         >
           <ChevronLeft class="w-6 h-6 sm:w-7 sm:h-7 stroke-[2.2] -translate-x-0.5 group-hover:-translate-x-1 transition-transform" />
         </button>
 
-        <span class="font-display font-extrabold text-base sm:text-lg text-[#0C0C0E] tracking-tight">
+        <span class="font-display font-extrabold text-base sm:text-lg text-bone tracking-tight">
           {store.user ? 'Mi Perfil' : 'Acceso Mías'}
         </span>
 
@@ -366,7 +366,7 @@
           <button
             type="button"
             onclick={handleLogout}
-            class="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white border border-black/5 flex items-center justify-center text-[#8E8E93] hover:text-[#FF2400] active:scale-90 transition-all cursor-pointer shrink-0"
+            class="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-char-card border border-white/10 flex items-center justify-center text-ash hover:text-[#FF2400] active:scale-90 transition-all cursor-pointer shrink-0"
             title="Cerrar sesión"
             aria-label="Cerrar sesión"
           >
@@ -389,7 +389,7 @@
         <!-- ========================================================================= -->
         
         <!-- SECCIÓN 1: TARJETA DE PERFIL HERO (EXACTA A LA REFERENCIA CON PALETA MÍAS) -->
-        <div class="bg-white border border-black/10 rounded-[38px] overflow-hidden shadow-none">
+        <div class="bg-char-card border border-white/10 rounded-[38px] overflow-hidden shadow-none">
           
           <!-- Banner Superior Gastronómico con Botón Tipo "Follow +" -->
           <div class="h-40 sm:h-48 w-full relative bg-[#0C0C0E] overflow-hidden">
@@ -402,7 +402,7 @@
 
             <!-- Botón Flotante Superior Derecho (Fiel a la referencia "Follow +") -->
             <div class="absolute top-4 right-4">
-              <span class="px-4 py-1.5 rounded-full bg-white/95 backdrop-blur-md border border-black/10 text-xs font-mono font-bold text-[#0C0C0E] flex items-center gap-1.5 shadow-xs">
+              <span class="px-4 py-1.5 rounded-full bg-char-card/95 backdrop-blur-md border border-white/10 text-xs font-mono font-bold text-bone flex items-center gap-1.5 shadow-xs">
                 <span>Club Mías</span>
                 <span class="text-[#FF2400] font-black">★</span>
               </span>
@@ -413,7 +413,7 @@
           <div class="px-6 pt-0 pb-6 -mt-14 sm:-mt-16 relative z-10">
             <div class="flex items-end justify-between gap-3">
               <!-- Avatar Circular con Anillo de Acento Rojo Vivo (#FF2400) -->
-              <div class="w-24 h-24 sm:w-26 sm:h-26 rounded-full border-4 border-white overflow-hidden bg-[#0C0C0E] text-white flex items-center justify-center font-display font-black text-2xl sm:text-3xl shrink-0 ring-2 ring-[#FF2400]/50 shadow-sm">
+              <div class="w-24 h-24 sm:w-26 sm:h-26 rounded-full border-4 border-char overflow-hidden bg-[#0C0C0E] text-white flex items-center justify-center font-display font-black text-2xl sm:text-3xl shrink-0 ring-2 ring-[#FF2400]/50 shadow-sm">
                 {#if store.user.avatar_url}
                   <img 
                     src={store.user.avatar_url} 
@@ -428,16 +428,16 @@
               <!-- Indicador "exp. ||||||||||||" fiel a la imagen de referencia -->
               <div class="pb-1 text-right">
                 <div class="flex items-center gap-1.5 justify-end">
-                  <span class="text-xs font-mono text-[#8E8E93] lowercase">exp.</span>
+                  <span class="text-xs font-mono text-ash lowercase">exp.</span>
                   <div class="flex items-center gap-0.5 sm:gap-1">
                     {#each Array(16) as _, i}
                       <div 
-                        class="w-1 sm:w-1.5 h-3.5 rounded-full transition-all {i < Math.min(16, (store.stampBalance * 2) || 4) ? 'bg-[#FF2400]' : 'bg-[#EDE8DC]'}"
+                        class="w-1 sm:w-1.5 h-3.5 rounded-full transition-all {i < Math.min(16, (store.stampBalance * 2) || 4) ? 'bg-[#FF2400]' : 'bg-white/10'}"
                       ></div>
                     {/each}
                   </div>
                 </div>
-                <span class="text-[10px] font-mono uppercase text-[#8E8E93] tracking-widest block mt-1.5">
+                <span class="text-[10px] font-mono uppercase text-ash tracking-widest block mt-1.5">
                   Nivel • {store.stampBalance >= 10 ? 'VIP Gold' : (store.stampBalance >= 5 ? 'Sibarita' : 'Comensal')}
                 </span>
               </div>
@@ -445,44 +445,44 @@
 
             <!-- Nombre y Biografía del Comensal -->
             <div class="mt-4">
-              <h1 class="font-display font-black text-2xl sm:text-3xl text-[#0C0C0E] tracking-tight leading-tight">
+              <h1 class="font-display font-black text-2xl sm:text-3xl text-bone tracking-tight leading-tight">
                 {store.user.full_name}
               </h1>
-              <p class="text-xs sm:text-sm text-[#8E8E93] font-medium mt-1 leading-snug">
+              <p class="text-xs sm:text-sm text-ash font-medium mt-1 leading-snug">
                 Comensal de Honor • Experiencia Gastronómica al Carbón
               </p>
             </div>
 
-            <!-- Fila de 3 Métricas en Caja Píldora (Likes / Posts / Views de la referencia) -->
-            <div class="mt-5 p-3.5 sm:p-4 rounded-2xl bg-[#EDE8DC]/50 border border-black/5 grid grid-cols-3 text-center divide-x divide-black/5">
+            <!-- Fila de 3 Métricas en Caja Píldora -->
+            <div class="mt-5 p-3.5 sm:p-4 rounded-2xl bg-char border border-white/10 grid grid-cols-3 text-center divide-x divide-white/10">
               <div>
                 <span class="font-display font-extrabold text-lg sm:text-xl text-[#FF2400] block leading-none">
                   {store.stampBalance}
                 </span>
-                <span class="text-[10px] font-mono uppercase text-[#8E8E93] tracking-wider block mt-1.5">
+                <span class="text-[10px] font-mono uppercase text-ash tracking-wider block mt-1.5">
                   Sellos
                 </span>
               </div>
               <div>
-                <span class="font-display font-extrabold text-lg sm:text-xl text-[#0C0C0E] block leading-none">
+                <span class="font-display font-extrabold text-lg sm:text-xl text-bone block leading-none">
                   {store.activeOrders.length || 0}
                 </span>
-                <span class="text-[10px] font-mono uppercase text-[#8E8E93] tracking-wider block mt-1.5">
+                <span class="text-[10px] font-mono uppercase text-ash tracking-wider block mt-1.5">
                   Comandas
                 </span>
               </div>
               <div>
-                <span class="font-display font-extrabold text-lg sm:text-xl text-[#0C0C0E] block leading-none">
+                <span class="font-display font-extrabold text-lg sm:text-xl text-bone block leading-none">
                   {store.stampBalance >= 10 ? '1 Gratis' : `${10 - (store.stampBalance % 10)} faltan`}
                 </span>
-                <span class="text-[10px] font-mono uppercase text-[#8E8E93] tracking-wider block mt-1.5">
+                <span class="text-[10px] font-mono uppercase text-ash tracking-wider block mt-1.5">
                   Meta Gratis
                 </span>
               </div>
             </div>
 
-            <!-- Accesos Rápidos de Redes y Contacto (Pie de la tarjeta en la referencia) -->
-            <div class="mt-4 pt-4 border-t border-black/5 grid grid-cols-3 divide-x divide-black/5 text-center text-[#8E8E93]">
+            <!-- Accesos Rápidos de Redes y Contacto -->
+            <div class="mt-4 pt-4 border-t border-white/10 grid grid-cols-3 divide-x divide-white/10 text-center text-ash">
               <a 
                 href="https://instagram.com" 
                 target="_blank" 
@@ -509,7 +509,7 @@
                 </svg>
                 <span>WhatsApp</span>
               </a>
-              <span class="flex items-center justify-center gap-1.5 text-xs font-mono text-[#8E8E93] py-1">
+              <span class="flex items-center justify-center gap-1.5 text-xs font-mono text-ash py-1">
                 <MapPin class="w-3.5 h-3.5 text-[#FF2400] shrink-0" />
                 <span>Duitama</span>
               </span>
@@ -519,14 +519,14 @@
 
         <!-- Acceso Directo a Terminal para Personal (Staff) -->
         {#if store.user.role === 'admin' || store.user.role === 'cashier' || store.user.role === 'waiter'}
-          <div class="p-5 rounded-[28px] bg-white border border-black/10 text-center space-y-2">
+          <div class="p-5 rounded-[28px] bg-char-card border border-white/10 text-center space-y-2">
             <span class="text-xs font-mono font-bold uppercase text-[#FF2400] block tracking-wider">
               Turno Operativo Activo ({store.user.role})
             </span>
             <button
               type="button"
               onclick={() => { store.isAuthModalOpen = false; store.currentView = 'staff'; }}
-              class="w-full min-h-[56px] rounded-full bg-[#0C0C0E] hover:bg-black text-white font-display font-extrabold text-base flex items-center justify-center gap-2 active:scale-[0.97] transition-all cursor-pointer"
+              class="w-full min-h-[56px] rounded-full bg-[#FF2400] hover:bg-[#E02000] text-white font-display font-extrabold text-base flex items-center justify-center gap-2 active:scale-[0.97] transition-all cursor-pointer"
             >
               <span>Acceder a la Terminal</span>
               <ArrowRight class="w-5 h-5" />
@@ -535,30 +535,30 @@
         {/if}
 
         <!-- SECCIÓN 2: FIDELIZACIÓN (PROGRAMA DE SELLOS) -->
-        <div class="bg-white border border-black/10 rounded-[36px] p-6 sm:p-7 space-y-5 shadow-none">
+        <div class="bg-char-card border border-white/10 rounded-[36px] p-6 sm:p-7 space-y-5 shadow-none">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
               <Award class="w-5 h-5 text-[#FF2400]" />
-              <h2 class="font-display font-extrabold text-xl sm:text-2xl text-[#0C0C0E] tracking-tight">
+              <h2 class="font-display font-extrabold text-xl sm:text-2xl text-bone tracking-tight">
                 Programa de Sellos
               </h2>
             </div>
-            <span class="min-h-[32px] px-3.5 rounded-full bg-[#EDE8DC] text-xs font-mono font-bold text-[#0C0C0E] flex items-center">
+            <span class="min-h-[32px] px-3.5 rounded-full bg-char border border-white/10 text-xs font-mono font-bold text-bone flex items-center">
               {store.stampBalance} de 10 Sellos
             </span>
           </div>
 
           <!-- Leyenda de Estados de Sellos -->
-          <div class="flex items-center justify-center gap-6 py-1 border-y border-black/5 text-xs font-medium">
+          <div class="flex items-center justify-center gap-6 py-1 border-y border-white/10 text-xs font-medium">
             <div class="flex items-center gap-2">
               <div class="w-4 h-4 rounded-full bg-[#FF2400] flex items-center justify-center text-white">
                 <Check class="w-2.5 h-2.5 stroke-[3]" />
               </div>
-              <span class="text-[#0C0C0E]">Acumulados ({store.stampBalance})</span>
+              <span class="text-bone">Acumulados ({store.stampBalance})</span>
             </div>
             <div class="flex items-center gap-2">
-              <div class="w-4 h-4 rounded-full bg-[#EDE8DC] border border-black/15"></div>
-              <span class="text-[#8E8E93]">Pendientes ({Math.max(0, 10 - store.stampBalance)})</span>
+              <div class="w-4 h-4 rounded-full bg-char border border-white/20"></div>
+              <span class="text-ash">Pendientes ({Math.max(0, 10 - store.stampBalance)})</span>
             </div>
           </div>
 
@@ -567,7 +567,7 @@
             {#each Array(10) as _, i}
               <div class="flex flex-col items-center gap-1">
                 <div 
-                  class="w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center font-display font-extrabold text-sm transition-all {i < store.stampBalance ? 'bg-[#FF2400] text-white shadow-xs' : 'bg-[#EDE8DC] text-[#8E8E93] border border-black/10'}"
+                  class="w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center font-display font-extrabold text-sm transition-all {i < store.stampBalance ? 'bg-[#FF2400] text-white shadow-xs' : 'bg-char text-ash/80 border border-white/10'}"
                 >
                   {#if i < store.stampBalance}
                     <Check class="w-5 h-5 stroke-[2.5]" />
@@ -575,15 +575,15 @@
                     <span>0{i + 1}</span>
                   {/if}
                 </div>
-                <span class="text-[10px] font-mono text-[#8E8E93]">S-{i + 1}</span>
+                <span class="text-[10px] font-mono text-ash">S-{i + 1}</span>
               </div>
             {/each}
           </div>
 
-          <div class="p-4 rounded-2xl bg-[#EDE8DC]/50 border border-black/5">
-            <p class="text-xs text-[#0C0C0E] leading-relaxed">
+          <div class="p-4 rounded-2xl bg-char border border-white/10">
+            <p class="text-xs text-bone leading-relaxed">
               {#if store.stampBalance >= 10}
-                <strong class="text-emerald-700 font-bold block mb-1">¡Felicidades! Has completado tu cartilla.</strong>
+                <strong class="text-emerald-400 font-bold block mb-1">¡Felicidades! Has completado tu cartilla.</strong>
                 Pide tu Hamburguesa Original gratis con tu mesero o en tu próximo pedido en línea.
               {:else}
                 Acumula sellos por cada hamburguesa registrada en tus comandas. Te faltan <strong class="text-[#FF2400] font-bold">{10 - store.stampBalance} sellos</strong> para tu hamburguesa gratis.
@@ -603,13 +603,13 @@
         </div>
 
         <!-- SECCIÓN 3: COMANDAS Y PEDIDOS RECIENTES -->
-        <div class="bg-white border border-black/10 rounded-[36px] p-6 sm:p-7 space-y-4 shadow-none">
+        <div class="bg-char-card border border-white/10 rounded-[36px] p-6 sm:p-7 space-y-4 shadow-none">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
-              <ShoppingBag class="w-5 h-5 text-[#0C0C0E]" />
-              <h2 class="font-display font-extrabold text-xl text-[#0C0C0E]">Mis Comandas</h2>
+              <ShoppingBag class="w-5 h-5 text-[#FF2400]" />
+              <h2 class="font-display font-extrabold text-xl text-bone">Mis Comandas</h2>
             </div>
-            <span class="text-xs font-mono font-bold text-[#8E8E93]">
+            <span class="text-xs font-mono font-bold text-ash">
               {store.activeOrders.length} {store.activeOrders.length === 1 ? 'orden' : 'órdenes'}
             </span>
           </div>
@@ -617,26 +617,26 @@
           {#if store.activeOrders.length > 0}
             <div class="space-y-2.5 pt-1">
               {#each store.activeOrders.slice(0, 3) as order}
-                <div class="p-4 rounded-2xl bg-[#EDE8DC] flex items-center justify-between">
+                <div class="p-4 rounded-2xl bg-char border border-white/10 flex items-center justify-between">
                   <div>
                     <span class="font-mono text-xs font-bold text-[#FF2400]">#{order.code}</span>
-                    <p class="text-sm text-[#0C0C0E] font-display font-extrabold mt-0.5">${order.total?.toLocaleString('es-CO')}</p>
+                    <p class="text-sm text-bone font-display font-extrabold mt-0.5">${order.total?.toLocaleString('es-CO')}</p>
                   </div>
-                  <span class="text-xs font-mono font-bold px-3 py-1 rounded-full bg-white border border-black/10 text-[#0C0C0E]">
+                  <span class="text-xs font-mono font-bold px-3 py-1 rounded-full bg-char-card border border-white/10 text-bone">
                     {order.status || 'En cocina'}
                   </span>
                 </div>
               {/each}
             </div>
           {:else}
-            <div class="p-5 rounded-2xl bg-[#EDE8DC]/40 border border-black/5 text-center space-y-3">
-              <p class="text-xs text-[#8E8E93]">
+            <div class="p-5 rounded-2xl bg-char/60 border border-white/10 text-center space-y-3">
+              <p class="text-xs text-ash">
                 No tienes comandas registradas en este dispositivo actualmente.
               </p>
               <button
                 type="button"
                 onclick={() => { store.isAuthModalOpen = false; store.currentView = 'menu'; }}
-                class="min-h-[46px] px-6 rounded-full bg-[#0C0C0E] text-white text-xs font-display font-bold hover:bg-black active:scale-95 transition-all cursor-pointer"
+                class="min-h-[46px] px-6 rounded-full bg-[#FF2400] text-white text-xs font-display font-bold hover:bg-[#E02000] active:scale-95 transition-all cursor-pointer"
               >
                 Explorar la Carta
               </button>
@@ -645,88 +645,88 @@
         </div>
 
         <!-- SECCIÓN 4: DATOS DE CONTACTO Y ENTREGA A DOMICILIO -->
-        <div class="bg-white border border-black/10 rounded-[36px] p-6 sm:p-7 space-y-4 shadow-none">
+        <div class="bg-char-card border border-white/10 rounded-[36px] p-6 sm:p-7 space-y-4 shadow-none">
           <div class="flex items-center gap-2">
             <Phone class="w-5 h-5 text-[#FF2400]" />
-            <h2 class="font-display font-extrabold text-xl text-[#0C0C0E]">
+            <h2 class="font-display font-extrabold text-xl text-bone">
               Contacto y Domicilio
             </h2>
           </div>
-          <p class="text-xs text-[#8E8E93] leading-relaxed">
+          <p class="text-xs text-ash leading-relaxed">
             Recibe avisos de estado por WhatsApp y registra tu dirección habitual para entregas a domicilio en Duitama.
           </p>
 
           <div class="space-y-3 pt-1">
             <!-- Teléfono WhatsApp -->
             <div class="relative">
-              <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none text-[#0C0C0E]">
+              <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none text-ash">
                 <Phone class="w-5 h-5 stroke-[2]" />
               </div>
               <input 
                 type="tel"
                 bind:value={profilePhone}
                 placeholder="Teléfono WhatsApp (ej. 321 252 0881)"
-                class="w-full min-h-[58px] rounded-full py-4 pl-14 pr-5 bg-[#EDE8DC] border border-black/10 text-[#0C0C0E] placeholder:text-[#8E8E93] text-base font-sans focus:outline-none focus:border-black/30 transition-colors"
+                class="w-full min-h-[58px] rounded-full py-4 pl-14 pr-5 bg-char border border-white/10 text-bone placeholder:text-ash/60 text-base font-sans focus:outline-none focus:border-[#FF2400]/60 transition-colors"
               />
             </div>
 
             <!-- Dirección habitual -->
             <div class="relative">
-              <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none text-[#0C0C0E]">
+              <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none text-ash">
                 <MapPin class="w-5 h-5 stroke-[2]" />
               </div>
               <input 
                 type="text"
                 bind:value={profileAddress}
                 placeholder="Dirección o barrio (ej. Carrera 11 # 15-40)"
-                class="w-full min-h-[58px] rounded-full py-4 pl-14 pr-5 bg-[#EDE8DC] border border-black/10 text-[#0C0C0E] placeholder:text-[#8E8E93] text-base font-sans focus:outline-none focus:border-black/30 transition-colors"
+                class="w-full min-h-[58px] rounded-full py-4 pl-14 pr-5 bg-char border border-white/10 text-bone placeholder:text-ash/60 text-base font-sans focus:outline-none focus:border-[#FF2400]/60 transition-colors"
               />
             </div>
           </div>
 
           {#if profileSavedMessage}
-            <span class="text-xs font-bold text-emerald-700 block text-center py-1">{profileSavedMessage}</span>
+            <span class="text-xs font-bold text-emerald-400 block text-center py-1">{profileSavedMessage}</span>
           {/if}
 
           <button
             type="button"
             onclick={handleSaveProfile}
-            class="w-full min-h-[56px] rounded-full bg-[#0C0C0E] hover:bg-black text-white font-display font-extrabold text-sm active:scale-[0.97] transition-all cursor-pointer"
+            class="w-full min-h-[56px] rounded-full bg-[#FF2400] hover:bg-[#E02000] text-white font-display font-extrabold text-sm active:scale-[0.97] transition-all cursor-pointer"
           >
             Guardar Datos
           </button>
         </div>
 
         <!-- SECCIÓN 5: PREFERENCIAS GASTRONÓMICAS -->
-        <div class="bg-white border border-black/10 rounded-[36px] p-6 sm:p-7 space-y-4 shadow-none">
+        <div class="bg-char-card border border-white/10 rounded-[36px] p-6 sm:p-7 space-y-4 shadow-none">
           <div class="flex items-center gap-2">
             <Utensils class="w-5 h-5 text-[#FF2400]" />
-            <h2 class="font-display font-extrabold text-xl text-[#0C0C0E]">
+            <h2 class="font-display font-extrabold text-xl text-bone">
               Preferencias del Comensal
             </h2>
           </div>
-          <p class="text-xs text-[#8E8E93]">
+          <p class="text-xs text-ash">
             Personaliza tu experiencia culinaria para agilizar tus futuras comandas.
           </p>
 
           <div class="space-y-3 pt-1">
             <!-- Selección de Pan Predilecto -->
             <div>
-              <span class="text-xs font-mono font-bold text-[#0C0C0E] block mb-2">
+              <span class="text-xs font-mono font-bold text-bone block mb-2">
                 Pan Artesanal Favorito
               </span>
               <div class="grid grid-cols-2 gap-2">
                 <button
                   type="button"
                   onclick={() => favoriteBread = 'pretzel'}
-                  class="min-h-[52px] p-3 rounded-2xl border text-xs font-display font-bold transition-all text-center cursor-pointer {favoriteBread === 'pretzel' ? 'bg-[#FF2400] text-white border-[#FF2400]' : 'bg-[#EDE8DC] text-[#0C0C0E] border-black/10'}"
+                  class="min-h-[52px] p-3 rounded-2xl border text-xs font-display font-bold transition-all text-center cursor-pointer {favoriteBread === 'pretzel' ? 'bg-[#FF2400] text-white border-[#FF2400]' : 'bg-char text-bone border-white/10 hover:border-white/20'}"
                 >
                   Pan Pretzel (Insignia)
                 </button>
                 <button
                   type="button"
                   onclick={() => favoriteBread = 'brioche'}
-                  class="min-h-[52px] p-3 rounded-2xl border text-xs font-display font-bold transition-all text-center cursor-pointer {favoriteBread === 'brioche' ? 'bg-[#FF2400] text-white border-[#FF2400]' : 'bg-[#EDE8DC] text-[#0C0C0E] border-black/10'}"
+                  class="min-h-[52px] p-3 rounded-2xl border text-xs font-display font-bold transition-all text-center cursor-pointer {favoriteBread === 'brioche' ? 'bg-[#FF2400] text-white border-[#FF2400]' : 'bg-char text-bone border-white/10 hover:border-white/20'}"
                 >
                   Pan Brioche Dorado
                 </button>
@@ -734,15 +734,15 @@
             </div>
 
             <!-- Notificaciones WhatsApp -->
-            <div class="pt-2 flex items-center justify-between p-3.5 rounded-2xl bg-[#EDE8DC]/50 border border-black/5">
+            <div class="pt-2 flex items-center justify-between p-3.5 rounded-2xl bg-char border border-white/10">
               <div>
-                <span class="text-xs font-bold text-[#0C0C0E] block">Avisos de Comanda por WhatsApp</span>
-                <span class="text-[11px] text-[#8E8E93]">Te escribimos cuando tu smash esté lista</span>
+                <span class="text-xs font-bold text-bone block">Avisos de Comanda por WhatsApp</span>
+                <span class="text-[11px] text-ash">Te escribimos cuando tu smash esté lista</span>
               </div>
               <button
                 type="button"
                 onclick={() => notifyWhatsApp = !notifyWhatsApp}
-                class="w-12 h-7 rounded-full transition-colors cursor-pointer relative p-0.5 {notifyWhatsApp ? 'bg-[#FF2400]' : 'bg-black/20'}"
+                class="w-12 h-7 rounded-full transition-colors cursor-pointer relative p-0.5 {notifyWhatsApp ? 'bg-[#FF2400]' : 'bg-white/10'}"
                 aria-label="Alternar notificaciones WhatsApp"
               >
                 <div class="w-6 h-6 rounded-full bg-white transition-transform {notifyWhatsApp ? 'translate-x-5' : 'translate-x-0'}"></div>
@@ -756,7 +756,7 @@
           <button
             type="button"
             onclick={handleLogout}
-            class="w-full min-h-[60px] sm:min-h-[64px] rounded-full bg-white hover:bg-[#FAF6EE] text-[#8E8E93] hover:text-[#FF2400] active:scale-[0.97] border border-black/15 font-display font-extrabold text-base tracking-tight transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer"
+            class="w-full min-h-[60px] sm:min-h-[64px] rounded-full bg-char-card hover:bg-char-card-hover text-ash hover:text-[#FF2400] active:scale-[0.97] border border-white/10 font-display font-extrabold text-base tracking-tight transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer"
           >
             <LogOut class="w-5 h-5" />
             <span>Cerrar Sesión</span>
@@ -767,22 +767,21 @@
         <!-- ========================================================================= -->
         <!-- CASO B: USUARIO NO AUTENTICADO -> LOGIN / REGISTRO                       -->
         <!-- ========================================================================= -->
-        <main class="w-full py-4 space-y-6 flex-1">
-          
+        <main class="space-y-6">
           <!-- Título y Subtítulo Fieles a la Referencia -->
           <div>
             {#if viewMode === 'register'}
-              <h1 class="font-display font-extrabold text-3xl sm:text-4xl text-[#0C0C0E] tracking-tight leading-none">
+              <h1 class="font-display font-extrabold text-3xl sm:text-4xl text-bone tracking-tight leading-none">
                 Crear Cuenta
               </h1>
-              <p class="text-sm text-[#8E8E93] mt-2 font-medium">
+              <p class="text-sm text-ash mt-2 font-medium">
                 Regístrate para continuar
               </p>
             {:else}
-              <h1 class="font-display font-extrabold text-3xl sm:text-4xl text-[#0C0C0E] tracking-tight leading-none">
+              <h1 class="font-display font-extrabold text-3xl sm:text-4xl text-bone tracking-tight leading-none">
                 ¡Bienvenido de nuevo!
               </h1>
-              <p class="text-sm text-[#8E8E93] mt-2 font-medium">
+              <p class="text-sm text-ash mt-2 font-medium">
                 Inicia sesión para continuar
               </p>
             {/if}
@@ -801,14 +800,14 @@
             {#if viewMode === 'register'}
               <!-- Nombre Completo en Registro -->
               <div class="relative">
-                <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none text-[#0C0C0E]">
+                <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none text-ash">
                   <User class="w-5 h-5 stroke-[2]" />
                 </div>
                 <input 
                   type="text"
                   bind:value={fullName}
                   placeholder="Tu Nombre"
-                  class="w-full min-h-[58px] sm:min-h-[60px] rounded-full py-3.5 sm:py-4 pl-14 pr-5 bg-[#EDE8DC] border border-black/10 text-[#0C0C0E] placeholder:text-[#8E8E93] text-base font-sans focus:outline-none focus:border-black/30 transition-colors"
+                  class="w-full min-h-[58px] sm:min-h-[60px] rounded-full py-3.5 sm:py-4 pl-14 pr-5 bg-char-card border border-white/10 text-bone placeholder:text-ash/60 text-base font-sans focus:outline-none focus:border-[#FF2400]/60 transition-colors"
                   required
                 />
               </div>
@@ -816,34 +815,34 @@
 
             <!-- Campo Correo (Cápsula Redonda Gorda con Icono) -->
             <div class="relative">
-              <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none text-[#0C0C0E]">
+              <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none text-ash">
                 <Mail class="w-5 h-5 stroke-[2]" />
               </div>
               <input 
                 type="email"
                 bind:value={email}
                 placeholder="Tu Correo"
-                class="w-full min-h-[58px] sm:min-h-[60px] rounded-full py-3.5 sm:py-4 pl-14 pr-5 bg-[#EDE8DC] border border-black/10 text-[#0C0C0E] placeholder:text-[#8E8E93] text-base font-sans focus:outline-none focus:border-black/30 transition-colors"
+                class="w-full min-h-[58px] sm:min-h-[60px] rounded-full py-3.5 sm:py-4 pl-14 pr-5 bg-char-card border border-white/10 text-bone placeholder:text-ash/60 text-base font-sans focus:outline-none focus:border-[#FF2400]/60 transition-colors"
                 required
               />
             </div>
 
             <!-- Campo Contraseña (Cápsula Redonda Gorda con Icono y Toggle) -->
             <div class="relative">
-              <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none text-[#0C0C0E]">
+              <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none text-ash">
                 <Lock class="w-5 h-5 stroke-[2]" />
               </div>
               <input 
                 type={showPassword ? 'text' : 'password'}
                 bind:value={password}
                 placeholder="Tu Contraseña"
-                class="w-full min-h-[58px] sm:min-h-[60px] rounded-full py-3.5 sm:py-4 pl-14 pr-14 bg-[#EDE8DC] border border-black/10 text-[#0C0C0E] placeholder:text-[#8E8E93] text-base font-sans focus:outline-none focus:border-black/30 transition-colors"
+                class="w-full min-h-[58px] sm:min-h-[60px] rounded-full py-3.5 sm:py-4 pl-14 pr-14 bg-char-card border border-white/10 text-bone placeholder:text-ash/60 text-base font-sans focus:outline-none focus:border-[#FF2400]/60 transition-colors"
                 required
               />
               <button 
                 type="button" 
                 onclick={() => showPassword = !showPassword}
-                class="absolute inset-y-0 right-0 pr-5 flex items-center text-[#8E8E93] hover:text-[#0C0C0E] cursor-pointer"
+                class="absolute inset-y-0 right-0 pr-5 flex items-center text-ash hover:text-bone cursor-pointer"
                 aria-label="Ver u ocultar contraseña"
               >
                 {#if showPassword}
@@ -860,18 +859,18 @@
                 <input 
                   type="checkbox" 
                   bind:checked={rememberMe}
-                  class="w-5 h-5 rounded-md border-black/20 text-[#FF2400] focus:ring-0 focus:ring-offset-0 bg-transparent cursor-pointer"
+                  class="w-5 h-5 rounded-md border-white/20 text-[#FF2400] focus:ring-0 focus:ring-offset-0 bg-char-card cursor-pointer"
                 />
-                <span class="text-sm font-medium text-[#0C0C0E]">
+                <span class="text-sm font-medium text-bone">
                   Recordarme
                 </span>
               </label>
 
               {#if viewMode === 'login'}
                 <button 
-                  type="button"
+                  type="button" 
                   onclick={() => alert('Para restablecer tu contraseña puedes ingresar directamente con Google o solicitar asistencia en mostrador.')}
-                  class="text-sm font-medium text-[#8E8E93] hover:text-[#0C0C0E] transition-colors py-1 cursor-pointer"
+                  class="text-sm font-medium text-ash hover:text-[#FF2400] transition-colors py-1 cursor-pointer"
                 >
                   ¿Olvidaste tu contraseña?
                 </button>
@@ -899,7 +898,7 @@
               type="button"
               onclick={handleGoogleClick}
               disabled={isLoading}
-              class="w-full min-h-[60px] sm:min-h-[64px] rounded-full bg-white hover:bg-[#FAF6EE] active:scale-[0.97] text-[#0C0C0E] font-display font-extrabold text-base sm:text-lg tracking-tight border border-black/15 transition-all duration-150 flex items-center justify-center gap-3 cursor-pointer disabled:opacity-60"
+              class="w-full min-h-[60px] sm:min-h-[64px] rounded-full bg-char-card hover:bg-char-card-hover active:scale-[0.97] text-bone font-display font-extrabold text-base sm:text-lg tracking-tight border border-white/10 transition-all duration-150 flex items-center justify-center gap-3 cursor-pointer disabled:opacity-60"
             >
               <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -914,23 +913,23 @@
           <!-- Pie de Página: Alternar entre Iniciar Sesión y Registrarse -->
           <footer class="pt-4 pb-1 text-center shrink-0">
             {#if viewMode === 'login'}
-              <p class="text-sm text-[#8E8E93] font-medium">
+              <p class="text-sm text-ash font-medium">
                 ¿No tienes una cuenta aún?
                 <button 
                   type="button" 
                   onclick={() => setMode('register')}
-                  class="font-bold text-[#0C0C0E] hover:text-[#FF2400] ml-1 transition-colors underline underline-offset-4 cursor-pointer"
+                  class="font-bold text-bone hover:text-[#FF2400] ml-1 transition-colors underline underline-offset-4 cursor-pointer"
                 >
                   Regístrate
                 </button>
               </p>
             {:else if viewMode === 'register'}
-              <p class="text-sm text-[#8E8E93] font-medium">
+              <p class="text-sm text-ash font-medium">
                 ¿Ya tienes una cuenta?
                 <button 
                   type="button" 
                   onclick={() => setMode('login')}
-                  class="font-bold text-[#0C0C0E] hover:text-[#FF2400] ml-1 transition-colors underline underline-offset-4 cursor-pointer"
+                  class="font-bold text-bone hover:text-[#FF2400] ml-1 transition-colors underline underline-offset-4 cursor-pointer"
                 >
                   Inicia Sesión
                 </button>

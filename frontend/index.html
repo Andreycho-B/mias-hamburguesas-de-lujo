@@ -4,13 +4,13 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/webp" href="/imagenes/marca/isotipo.webp" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <meta name="color-scheme" content="light dark" />
-    <meta name="theme-color" content="#FAF6EE" id="theme-color-meta" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#0C0C0E" id="theme-color-meta" />
     <meta name="description" content="Mías Hamburguesas de Lujo. Lo Íntimo Hecho para Compartir. Hamburguesas artesanales al carbón y programa de fidelización." />
     
     <!-- iOS Safari PWA Standalone Configuration -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" id="apple-status-bar-meta" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" id="apple-status-bar-meta" />
     <meta name="apple-mobile-web-app-title" content="Mías" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
@@ -35,10 +35,10 @@
           var metaApple = document.getElementById('apple-status-bar-meta');
           if (isIntroDone) {
             root.classList.add('theme-home');
-            root.style.backgroundColor = '#FAF6EE';
-            root.style.colorScheme = 'light';
-            if (metaTheme) metaTheme.setAttribute('content', '#FAF6EE');
-            if (metaApple) metaApple.setAttribute('content', 'default');
+            root.style.backgroundColor = '#0C0C0E';
+            root.style.colorScheme = 'dark';
+            if (metaTheme) metaTheme.setAttribute('content', '#0C0C0E');
+            if (metaApple) metaApple.setAttribute('content', 'black-translucent');
           } else {
             root.classList.add('theme-intro');
             root.style.backgroundColor = '#050507';
@@ -69,9 +69,9 @@
       html.theme-home, 
       html.theme-home body, 
       html.theme-home #app {
-        background-color: #FAF6EE !important;
-        color: #0C0C0E;
-        color-scheme: light;
+        background-color: #0C0C0E !important;
+        color: #EDE8DC;
+        color-scheme: dark;
       }
       #app {
         min-height: 100vh;

@@ -90,37 +90,37 @@
   <!-- RETÍCULA SUPERIOR: BOTÓN MENÚ (=), LOGO CENTRAL "MÍAS" Y BADGE DE PERFIL / SELLOS -->
   <header class="relative flex items-center justify-between pb-6 md:pb-10 pt-1 md:pt-4">
     
-    <!-- 1. Botón Izquierdo Circular (Blanco sólido plano sin sombras) -->
+    <!-- 1. Botón Izquierdo Circular (Estilo card mate con hairline sutil) -->
     <button
       type="button"
       onclick={() => store.toggleSidebar()}
-      class="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white border border-black/5 flex flex-col items-center justify-center gap-1.5 text-[#3A3A3C] hover:bg-black/5 active:scale-95 transition-all cursor-pointer z-20 shrink-0"
+      class="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-char-card border border-white/10 flex flex-col items-center justify-center gap-1.5 text-bone hover:bg-char-card-hover active:scale-95 transition-all cursor-pointer z-20 shrink-0"
       aria-label="Abrir menú de navegación"
     >
-      <span class="w-5 h-[2.5px] bg-[#3A3A3C] rounded-full"></span>
-      <span class="w-5 h-[2.5px] bg-[#3A3A3C] rounded-full"></span>
+      <span class="w-5 h-[2.5px] bg-bone rounded-full"></span>
+      <span class="w-5 h-[2.5px] bg-bone rounded-full"></span>
     </button>
 
-    <!-- 2. Logo Central "Mías" en tamaño generoso y proporción visual noble -->
+    <!-- 2. Logo Central "Mías" en Blanco Noble para fondo carbón -->
     <div class="flex items-center justify-center flex-1 px-3 z-10">
       <img 
-        src="/imagenes/marca/logo_en_negro.webp" 
+        src="/imagenes/marca/logo_en_blanco.webp" 
         alt="Mías Hamburguesas de Lujo" 
         class="h-14 sm:h-16 md:h-20 lg:h-24 w-auto max-w-[195px] sm:max-w-[220px] md:max-w-[280px] lg:max-w-[320px] object-contain select-none pointer-events-none transition-all"
       />
     </div>
 
-    <!-- 3. Badge Derecho: Contador de Sellos y Avatar de Usuario (Plano sin sombras) -->
+    <!-- 3. Badge Derecho: Contador de Sellos y Avatar de Usuario (Estilo card mate) -->
     <button
       type="button"
       onclick={openAuth}
-      class="flex items-center gap-2 pl-3.5 sm:pl-4 pr-1.5 py-1.5 md:py-2 rounded-full bg-white border border-black/5 hover:border-black/15 active:scale-95 transition-all cursor-pointer z-20 shrink-0 group"
+      class="flex items-center gap-2 pl-3.5 sm:pl-4 pr-1.5 py-1.5 md:py-2 rounded-full bg-char-card border border-white/10 hover:border-white/20 active:scale-95 transition-all cursor-pointer z-20 shrink-0 group"
       aria-label="Perfil y cartilla de sellos"
       title={store.user ? `${store.user.full_name} (${store.stampBalance} sellos)` : 'Iniciar sesión / Miembros'}
     >
       <!-- Contador de Sellos / Puntos con estrella en oro pulido facetado con brillo especular -->
       <div class="flex items-center gap-1.5">
-        <span class="font-mono text-xs sm:text-sm font-bold text-[#3A3A3C] tracking-tight">
+        <span class="font-mono text-xs sm:text-sm font-bold text-bone tracking-tight">
           {store.stampBalance}
         </span>
         
@@ -154,7 +154,7 @@
       </div>
 
       <!-- Avatar Circular del Usuario -->
-      <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[#3A3A3C] text-bone flex items-center justify-center overflow-hidden border border-black/10 group-hover:scale-105 transition-transform">
+      <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-char text-bone flex items-center justify-center overflow-hidden border border-white/10 group-hover:scale-105 transition-transform">
         {#if store.user}
           <span class="font-display font-bold text-xs uppercase tracking-wider text-gold">
             {firstName.substring(0, 2)}
@@ -173,22 +173,22 @@
     </p>
     {#if store.user && firstName}
       <!-- Usuario Registrado: "¡Carlos! Qué gusto tenerte de vuelta" -->
-      <h1 class="font-display text-4xl sm:text-5xl md:text-6xl lg:text-[4rem] font-normal text-[#3A3A3C] tracking-tight leading-[1.14] md:leading-[1.10]">
+      <h1 class="font-display text-4xl sm:text-5xl md:text-6xl lg:text-[4rem] font-normal text-bone tracking-tight leading-[1.14] md:leading-[1.10]">
         <span class="font-extrabold text-[#FF2400] capitalize">¡{firstName}!</span> Qué gusto<br class="hidden sm:inline" />
-        <span class="font-normal text-[#3A3A3C]">tenerte de vuelta</span>
+        <span class="font-normal text-bone">tenerte de vuelta</span>
       </h1>
     {:else}
       <!-- Usuario No Registrado: Saludo cálido y natural -->
-      <h1 class="font-display text-4xl sm:text-5xl md:text-6xl lg:text-[4rem] font-normal text-[#3A3A3C] tracking-tight leading-[1.14] md:leading-[1.10]">
+      <h1 class="font-display text-4xl sm:text-5xl md:text-6xl lg:text-[4rem] font-normal text-bone tracking-tight leading-[1.14] md:leading-[1.10]">
         <span class="font-extrabold text-[#FF2400]">¡Hola!</span> Qué gusto<br class="hidden sm:inline" />
-        <span class="font-normal text-[#3A3A3C]">tenerte por aquí</span>
+        <span class="font-normal text-bone">tenerte por aquí</span>
       </h1>
     {/if}
   </div>
 
-  <!-- SECCIÓN "CARTA": CENTRADA EN TIPOGRAFÍA ITÁLICA EDITORIAL (#3A3A3C) -->
+  <!-- SECCIÓN "CARTA": CENTRADA EN TIPOGRAFÍA ITÁLICA EDITORIAL (BONE) -->
   <div class="text-center mt-14 sm:mt-16 md:mt-20 lg:mt-24 mb-7 sm:mb-8 md:mb-12 select-none">
-    <h2 class="font-flourish italic text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-normal tracking-tight text-[#3A3A3C]">
+    <h2 class="font-flourish italic text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-normal tracking-tight text-bone">
       Carta
     </h2>
   </div>
@@ -202,22 +202,22 @@
         ontouchstart={onTouchStart}
         ontouchmove={onTouchMove}
         onclick={(e) => handleCategoryClick(e, cat.slug)}
-        class="category-pill w-full rounded-full bg-white border border-black/30 flex items-center justify-between pl-7 sm:pl-8 md:pl-9 pr-3 md:pr-4 py-4 sm:py-5 min-h-[76px] sm:min-h-[82px] md:min-h-[88px] transition-all duration-200 group cursor-pointer active:scale-[0.985] text-left {i === 4 ? 'md:col-span-2 md:max-w-md md:mx-auto' : ''}"
+        class="category-pill w-full rounded-full bg-char-card border border-white/10 hover:border-white/20 flex items-center justify-between pl-7 sm:pl-8 md:pl-9 pr-3 md:pr-4 py-4 sm:py-5 min-h-[76px] sm:min-h-[82px] md:min-h-[88px] transition-all duration-200 group cursor-pointer active:scale-[0.985] text-left {i === 4 ? 'md:col-span-2 md:max-w-md md:mx-auto' : ''}"
         style="touch-action: pan-y; -webkit-tap-highlight-color: transparent;"
         aria-label="Ver categoría {cat.name}"
       >
         <!-- Nombre de la categoría e información sutil -->
         <div class="flex-1 pr-3 min-w-0">
-          <span class="font-display font-extrabold text-xl sm:text-2xl text-[#3A3A3C] tracking-tight block truncate group-hover:translate-x-0.5 transition-transform">
+          <span class="font-display font-extrabold text-xl sm:text-2xl text-bone tracking-tight block truncate group-hover:translate-x-0.5 transition-transform">
             {cat.name}
           </span>
-          <span class="font-display text-xs sm:text-sm text-ash/85 block truncate font-normal mt-0.5">
+          <span class="font-display text-xs sm:text-sm text-ash block truncate font-normal mt-0.5">
             {cat.detail}
           </span>
         </div>
 
         <!-- Botón Circular con Chevron Mórfico a Flecha -->
-        <div class="category-arrow-circle w-14 h-14 sm:w-16 sm:h-16 rounded-full {isActive ? 'bg-[#FF2400] text-white is-active' : 'bg-[#FAF6EE] text-[#FF2400]'} border border-black/30 flex items-center justify-center shrink-0">
+        <div class="category-arrow-circle w-14 h-14 sm:w-16 sm:h-16 rounded-full {isActive ? 'bg-[#FF2400] text-white is-active' : 'bg-char text-[#FF2400]'} border border-white/10 flex items-center justify-center shrink-0">
           <span class="category-arrow-wrapper inline-flex items-center justify-center">
             <svg 
               viewBox="0 0 24 24" 
