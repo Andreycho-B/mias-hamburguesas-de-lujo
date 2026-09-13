@@ -571,26 +571,26 @@
 
 <!-- CASO 1: ACCESO DENEGADO SI NO ES PERSONAL AUTENTICADO -->
 {#if !isStaffAuthenticated}
-  <div class="min-h-[90dvh] w-full flex items-center justify-center p-4">
-    <div class="w-full max-w-md bg-white rounded-[32px] border border-black/10 p-8 text-center space-y-6">
-      <div class="w-16 h-16 rounded-full bg-[#FF2400]/10 text-[#FF2400] flex items-center justify-center mx-auto">
+  <div class="min-h-[100dvh] w-full bg-char text-bone flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-char-card rounded-[32px] border border-white/10 p-8 text-center space-y-6 shadow-2xl">
+      <div class="w-16 h-16 rounded-full bg-[#FF2400]/10 text-[#FF2400] border border-[#FF2400]/20 flex items-center justify-center mx-auto">
         <Lock class="w-8 h-8" />
       </div>
 
       <div class="space-y-2">
-        <span class="text-xs font-mono uppercase tracking-widest text-[#8E8E93] font-bold">
+        <span class="text-xs font-mono uppercase tracking-widest text-ash font-bold">
           Seguridad Operativa Mías
         </span>
-        <h1 class="font-display font-black text-2xl sm:text-3xl text-[#0C0C0E]">
+        <h1 class="font-display font-black text-2xl sm:text-3xl text-bone">
           Acceso Restringido a Personal
         </h1>
-        <p class="text-xs sm:text-sm text-[#3A3A3C] leading-relaxed">
+        <p class="text-xs sm:text-sm text-ash leading-relaxed">
           Esta terminal está reservada exclusivamente para el equipo autorizado de salón, caja y administración.
         </p>
       </div>
 
-      <div class="p-4 rounded-2xl bg-[#EDE8DC] text-left text-xs font-mono space-y-1 text-[#3A3A3C]">
-        <p class="font-bold text-[#0C0C0E]">Cuentas autorizadas:</p>
+      <div class="p-4 rounded-2xl bg-char border border-white/10 text-left text-xs font-mono space-y-1 text-ash">
+        <p class="font-bold text-bone">Cuentas autorizadas:</p>
         <p>• Mesero: mesero@mias.com</p>
         <p>• Cajero: cajero@mias.com</p>
         <p>• Admin: admin@mias.com</p>
@@ -608,7 +608,7 @@
         <button
           type="button"
           onclick={() => store.currentView = 'menu'}
-          class="w-full min-h-[52px] rounded-full bg-[#EDE8DC] hover:bg-[#EDE8DC]/80 text-[#3A3A3C] font-display font-bold text-sm transition-all cursor-pointer"
+          class="w-full min-h-[52px] rounded-full bg-char hover:bg-white/5 border border-white/10 text-bone font-display font-bold text-sm transition-all cursor-pointer"
         >
           Volver a la Carta de Clientes
         </button>
@@ -619,17 +619,17 @@
 <!-- CASO 2: TERMINAL OPERATIVA AUTENTICADA POR ROL -->
 {:else}
   <div 
-    class="min-h-[100dvh] w-full bg-[#FAF6EE] text-[#0C0C0E] select-none flex flex-col"
+    class="min-h-[100dvh] w-full bg-char text-bone select-none flex flex-col"
     style="padding-top: max(1rem, env(safe-area-inset-top, 0px)); padding-bottom: max(3rem, env(safe-area-inset-bottom, 0px)); padding-left: max(1.25rem, env(safe-area-inset-left, 0px)); padding-right: max(1.25rem, env(safe-area-inset-right, 0px));"
   >
     <div class="w-full max-w-5xl mx-auto flex-1 flex flex-col space-y-6">
       
       <!-- 1. Cabecera Principal con Botón Atrás y Selector Estricto de Rol -->
-      <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-black/10">
+      <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-white/10">
         
         <div class="flex items-center gap-3">
           <!-- Insignia de Rol de Personal -->
-          <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white border border-black/10 flex items-center justify-center text-[#FF2400] shadow-xs shrink-0">
+          <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-char-card border border-white/10 flex items-center justify-center text-[#FF2400] shadow-xs shrink-0">
             {#if effectiveRole === 'waiter'}
               <Utensils class="w-6 h-6 sm:w-7 sm:h-7 stroke-[2.2]" />
             {:else if effectiveRole === 'cashier'}
@@ -650,10 +650,10 @@
                   Rol: Administrador General
                 {/if}
               </span>
-              <span class="text-xs text-[#8E8E93]">• {store.user?.full_name || 'Staff'}</span>
+              <span class="text-xs text-ash">• {store.user?.full_name || 'Staff'}</span>
             </div>
 
-            <h1 class="font-display font-black text-2xl sm:text-3xl text-[#0C0C0E] tracking-tight leading-none mt-0.5">
+            <h1 class="font-display font-black text-2xl sm:text-3xl text-bone tracking-tight leading-none mt-0.5">
               {#if effectiveRole === 'waiter'}
                 Terminal de Meseros
               {:else if effectiveRole === 'cashier'}
@@ -673,7 +673,7 @@
             <button 
               type="button"
               onclick={() => currentTab = 'waiter'}
-              class="min-h-[48px] px-5 rounded-full text-xs font-mono font-bold uppercase transition-all cursor-pointer shrink-0 {currentTab === 'waiter' ? 'bg-[#FF2400] text-white' : 'bg-white text-[#0C0C0E] border border-black/10 hover:bg-[#EDE8DC]'}"
+              class="min-h-[48px] px-5 rounded-full text-xs font-mono font-bold uppercase transition-all cursor-pointer shrink-0 {currentTab === 'waiter' ? 'bg-[#FF2400] text-white' : 'bg-char-card text-bone border border-white/10 hover:bg-char-card-hover'}"
             >
               Sellos en Sala ({stampRequests.length + redemptions.length})
             </button>
@@ -681,7 +681,7 @@
             <button 
               type="button"
               onclick={() => currentTab = 'waiter_orders'}
-              class="min-h-[48px] px-5 rounded-full text-xs font-mono font-bold uppercase transition-all cursor-pointer shrink-0 {currentTab === 'waiter_orders' ? 'bg-[#FF2400] text-white' : 'bg-white text-[#0C0C0E] border border-black/10 hover:bg-[#EDE8DC]'}"
+              class="min-h-[48px] px-5 rounded-full text-xs font-mono font-bold uppercase transition-all cursor-pointer shrink-0 {currentTab === 'waiter_orders' ? 'bg-[#FF2400] text-white' : 'bg-char-card text-bone border border-white/10 hover:bg-char-card-hover'}"
             >
               Comandas Salón ({inStoreOrders.length})
             </button>
@@ -692,7 +692,7 @@
             <button 
               type="button"
               onclick={() => currentTab = 'cashier_orders'}
-              class="min-h-[48px] px-5 rounded-full text-xs font-mono font-bold uppercase transition-all cursor-pointer shrink-0 {currentTab === 'cashier_orders' ? 'bg-[#FF2400] text-white' : 'bg-white text-[#0C0C0E] border border-black/10 hover:bg-[#EDE8DC]'}"
+              class="min-h-[48px] px-5 rounded-full text-xs font-mono font-bold uppercase transition-all cursor-pointer shrink-0 {currentTab === 'cashier_orders' ? 'bg-[#FF2400] text-white' : 'bg-char-card text-bone border border-white/10 hover:bg-char-card-hover'}"
             >
               Comandas ({inStoreOrders.filter(o => o.status === 'PENDING_PAYMENT').length})
             </button>
@@ -700,7 +700,7 @@
             <button 
               type="button"
               onclick={() => currentTab = 'cashier_delivery'}
-              class="min-h-[48px] px-5 rounded-full text-xs font-mono font-bold uppercase transition-all cursor-pointer shrink-0 {currentTab === 'cashier_delivery' ? 'bg-[#FF2400] text-white' : 'bg-white text-[#0C0C0E] border border-black/10 hover:bg-[#EDE8DC]'}"
+              class="min-h-[48px] px-5 rounded-full text-xs font-mono font-bold uppercase transition-all cursor-pointer shrink-0 {currentTab === 'cashier_delivery' ? 'bg-[#FF2400] text-white' : 'bg-char-card text-bone border border-white/10 hover:bg-char-card-hover'}"
             >
               Domicilios ({deliveryOrders.filter(d => d.status === 'IN_PREPARATION').length})
             </button>
@@ -708,7 +708,7 @@
             <button 
               type="button"
               onclick={() => currentTab = 'cashier_stamps'}
-              class="min-h-[48px] px-5 rounded-full text-xs font-mono font-bold uppercase transition-all cursor-pointer shrink-0 {currentTab === 'cashier_stamps' ? 'bg-[#FF2400] text-white' : 'bg-white text-[#0C0C0E] border border-black/10 hover:bg-[#EDE8DC]'}"
+              class="min-h-[48px] px-5 rounded-full text-xs font-mono font-bold uppercase transition-all cursor-pointer shrink-0 {currentTab === 'cashier_stamps' ? 'bg-[#FF2400] text-white' : 'bg-char-card text-bone border border-white/10 hover:bg-char-card-hover'}"
             >
               Sellos ({stampRequests.length + redemptions.length})
             </button>
@@ -719,7 +719,7 @@
             <button 
               type="button"
               onclick={() => currentTab = 'waiter'}
-              class="min-h-[48px] px-4 rounded-full text-xs font-mono font-bold uppercase transition-all cursor-pointer shrink-0 {currentTab === 'waiter' ? 'bg-[#FF2400] text-white' : 'bg-white text-[#0C0C0E] border border-black/10 hover:bg-[#EDE8DC]'}"
+              class="min-h-[48px] px-4 rounded-full text-xs font-mono font-bold uppercase transition-all cursor-pointer shrink-0 {currentTab === 'waiter' ? 'bg-[#FF2400] text-white' : 'bg-char-card text-bone border border-white/10 hover:bg-char-card-hover'}"
             >
               Meseros
             </button>
@@ -727,7 +727,7 @@
             <button 
               type="button"
               onclick={() => currentTab = 'cashier_orders'}
-              class="min-h-[48px] px-4 rounded-full text-xs font-mono font-bold uppercase transition-all cursor-pointer shrink-0 {currentTab === 'cashier_orders' ? 'bg-[#FF2400] text-white' : 'bg-white text-[#0C0C0E] border border-black/10 hover:bg-[#EDE8DC]'}"
+              class="min-h-[48px] px-4 rounded-full text-xs font-mono font-bold uppercase transition-all cursor-pointer shrink-0 {currentTab === 'cashier_orders' ? 'bg-[#FF2400] text-white' : 'bg-char-card text-bone border border-white/10 hover:bg-char-card-hover'}"
             >
               Caja Punto
             </button>
@@ -735,7 +735,7 @@
             <button 
               type="button"
               onclick={() => currentTab = 'cashier_delivery'}
-              class="min-h-[48px] px-4 rounded-full text-xs font-mono font-bold uppercase transition-all cursor-pointer shrink-0 {currentTab === 'cashier_delivery' ? 'bg-[#FF2400] text-white' : 'bg-white text-[#0C0C0E] border border-black/10 hover:bg-[#EDE8DC]'}"
+              class="min-h-[48px] px-4 rounded-full text-xs font-mono font-bold uppercase transition-all cursor-pointer shrink-0 {currentTab === 'cashier_delivery' ? 'bg-[#FF2400] text-white' : 'bg-char-card text-bone border border-white/10 hover:bg-char-card-hover'}"
             >
               Domicilios
             </button>
@@ -743,7 +743,7 @@
             <button 
               type="button"
               onclick={() => currentTab = 'cashier_stamps'}
-              class="min-h-[48px] px-4 rounded-full text-xs font-mono font-bold uppercase transition-all cursor-pointer shrink-0 {currentTab === 'cashier_stamps' ? 'bg-[#FF2400] text-white' : 'bg-white text-[#0C0C0E] border border-black/10 hover:bg-[#EDE8DC]'}"
+              class="min-h-[48px] px-4 rounded-full text-xs font-mono font-bold uppercase transition-all cursor-pointer shrink-0 {currentTab === 'cashier_stamps' ? 'bg-[#FF2400] text-white' : 'bg-char-card text-bone border border-white/10 hover:bg-char-card-hover'}"
             >
               Sellos
             </button>
@@ -751,7 +751,7 @@
             <button 
               type="button"
               onclick={() => currentTab = 'admin_bi'}
-              class="min-h-[48px] px-4 rounded-full text-xs font-mono font-bold uppercase transition-all cursor-pointer shrink-0 {currentTab === 'admin_bi' ? 'bg-[#FF2400] text-white' : 'bg-white text-[#0C0C0E] border border-black/10 hover:bg-[#EDE8DC]'}"
+              class="min-h-[48px] px-4 rounded-full text-xs font-mono font-bold uppercase transition-all cursor-pointer shrink-0 {currentTab === 'admin_bi' ? 'bg-[#FF2400] text-white' : 'bg-char-card text-bone border border-white/10 hover:bg-char-card-hover'}"
             >
               Métricas BI
             </button>
@@ -761,7 +761,7 @@
           <button
             type="button"
             onclick={playChime}
-            class="w-12 h-12 rounded-full bg-white border border-black/10 text-[#0C0C0E] hover:bg-[#EDE8DC] flex items-center justify-center transition-colors shrink-0 cursor-pointer"
+            class="w-12 h-12 rounded-full bg-char-card border border-white/10 text-bone hover:text-[#FF2400] hover:bg-char-card-hover flex items-center justify-center transition-colors shrink-0 cursor-pointer"
             title="Probar Timbre de Comanda"
           >
             <Volume2 class="w-5 h-5" />
@@ -771,7 +771,7 @@
           <button
             type="button"
             onclick={handleLogoutStaff}
-            class="min-h-[48px] px-4 rounded-full bg-white border border-black/10 text-xs font-mono font-bold text-[#8E8E93] hover:text-[#FF2400] flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
+            class="min-h-[48px] px-4 rounded-full bg-char-card border border-white/10 text-xs font-mono font-bold text-ash hover:text-[#FF2400] hover:bg-char-card-hover flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
           >
             <LogOut class="w-4 h-4" />
             <span class="hidden sm:inline">Cerrar Sesión</span>
@@ -786,15 +786,15 @@
         <div class="space-y-6">
           
           <!-- Notificación / Resumen Superior del Mesero -->
-          <div class="p-5 rounded-[28px] bg-white border border-black/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div class="p-5 rounded-[28px] bg-char-card border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
             <div>
-              <h2 class="font-display font-extrabold text-xl text-[#0C0C0E]">Acreditación de Sellos en Sala</h2>
-              <p class="text-xs text-[#8E8E93]">
+              <h2 class="font-display font-extrabold text-xl text-bone">Acreditación de Sellos en Sala</h2>
+              <p class="text-xs text-ash">
                 Verifica el recibo físico de la comanda de mesa antes de pulsar aprobar.
               </p>
             </div>
             <div class="flex items-center gap-2">
-              <span class="min-h-[38px] px-4 rounded-full bg-[#EDE8DC] font-mono text-xs font-bold text-[#0C0C0E] flex items-center">
+              <span class="min-h-[38px] px-4 rounded-full bg-char border border-white/10 font-mono text-xs font-bold text-bone flex items-center">
                 {stampRequests.length} pendientes
               </span>
             </div>
@@ -802,46 +802,46 @@
 
           <!-- SECCIÓN A: SOLICITUDES DE CLIENTES EN MESA -->
           <div class="space-y-4">
-            <h3 class="font-display font-bold text-lg text-[#0C0C0E] flex items-center gap-2">
+            <h3 class="font-display font-bold text-lg text-bone flex items-center gap-2">
               <Award class="w-5 h-5 text-[#FF2400]" />
               Solicitudes Recientes de Comensales
             </h3>
 
             {#if stampRequests.length === 0}
-              <div class="p-8 rounded-[32px] bg-white border border-black/10 text-center space-y-2">
-                <CheckCircle2 class="w-10 h-10 text-emerald-600 mx-auto" />
-                <p class="font-display font-bold text-lg text-[#0C0C0E]">No hay solicitudes pendientes</p>
-                <p class="text-xs text-[#8E8E93]">Todas las comandas de sala han sido verificadas.</p>
+              <div class="p-8 rounded-[32px] bg-char-card border border-white/10 text-center space-y-2 shadow-sm">
+                <CheckCircle2 class="w-10 h-10 text-emerald-400 mx-auto" />
+                <p class="font-display font-bold text-lg text-bone">No hay solicitudes pendientes</p>
+                <p class="text-xs text-ash">Todas las comandas de sala han sido verificadas.</p>
               </div>
             {:else}
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {#each stampRequests as req}
-                  <div class="p-6 rounded-[32px] bg-white border border-black/10 space-y-4">
+                  <div class="p-6 rounded-[32px] bg-char-card border border-white/10 space-y-4 shadow-sm">
                     <div class="flex justify-between items-start">
                       <div>
-                        <span class="font-mono text-xs text-[#FF2400] font-bold bg-[#FF2400]/10 px-3 py-1 rounded-full inline-block">
+                        <span class="font-mono text-xs text-[#FF2400] font-bold bg-[#FF2400]/10 border border-[#FF2400]/20 px-3 py-1 rounded-full inline-block">
                           Orden #{req.orderCode}
                         </span>
-                        <h4 class="font-display font-black text-xl text-[#0C0C0E] mt-2 leading-tight">
+                        <h4 class="font-display font-black text-xl text-bone mt-2 leading-tight">
                           {req.customer}
                         </h4>
                       </div>
-                      <span class="font-mono text-xs text-[#8E8E93]">{req.time}</span>
+                      <span class="font-mono text-xs text-ash">{req.time}</span>
                     </div>
 
                     <!-- Datos Estructurados Claros -->
-                    <div class="p-4 rounded-2xl bg-[#EDE8DC] text-xs font-mono space-y-2">
+                    <div class="p-4 rounded-2xl bg-char border border-white/10 text-xs font-mono space-y-2">
                       <div class="flex justify-between items-center">
-                        <span class="text-[#8E8E93]">Factura / Recibo:</span>
-                        <span class="text-[#0C0C0E] font-extrabold text-sm">#{req.receiptNumber}</span>
+                        <span class="text-ash">Factura / Recibo:</span>
+                        <span class="text-bone font-extrabold text-sm">#{req.receiptNumber}</span>
                       </div>
                       <div class="flex justify-between items-center">
-                        <span class="text-[#8E8E93]">Hamburguesas a sellar:</span>
+                        <span class="text-ash">Hamburguesas a sellar:</span>
                         <span class="text-[#FF2400] font-black text-sm">+{req.burgersCount} sellos digitales</span>
                       </div>
-                      <div class="flex justify-between items-center border-t border-black/10 pt-1.5">
-                        <span class="text-[#8E8E93]">Total Cobrado:</span>
-                        <span class="text-[#0C0C0E] font-bold">${req.total.toLocaleString('es-CO')}</span>
+                      <div class="flex justify-between items-center border-t border-white/10 pt-1.5">
+                        <span class="text-ash">Total Cobrado:</span>
+                        <span class="text-bone font-bold">${req.total.toLocaleString('es-CO')}</span>
                       </div>
                     </div>
 
@@ -850,7 +850,7 @@
                       <button
                         type="button"
                         onclick={() => handleRejectStamp(req)}
-                        class="flex-1 min-h-[56px] rounded-full bg-[#EDE8DC] hover:bg-[#EDE8DC]/80 text-[#FF2400] font-display font-bold text-sm transition-all active:scale-[0.98] cursor-pointer"
+                        class="flex-1 min-h-[56px] rounded-full bg-char hover:bg-white/5 border border-white/10 text-[#FF2400] font-display font-bold text-sm transition-all active:scale-[0.98] cursor-pointer"
                       >
                         Rechazar
                       </button>
@@ -869,25 +869,25 @@
           </div>
 
           <!-- SECCIÓN B: OTORGAR SELLOS MANUALES DIRECTAMENTE EN MESA -->
-          <div class="p-6 sm:p-8 rounded-[32px] bg-white border border-black/10 space-y-4">
+          <div class="p-6 sm:p-8 rounded-[32px] bg-char-card border border-white/10 space-y-4 shadow-sm">
             <div>
-              <h3 class="font-display font-black text-xl text-[#0C0C0E]">
+              <h3 class="font-display font-black text-xl text-bone">
                 Otorgar Sellos en Mesa (Asignación Rápida)
               </h3>
-              <p class="text-xs text-[#8E8E93] mt-1">
+              <p class="text-xs text-ash mt-1">
                 Usa este formulario cuando el comensal te solicite sus sellos presencialmente con el ticket de mesa.
               </p>
             </div>
 
             {#if manualSuccessMsg}
-              <div class="p-4 rounded-2xl bg-emerald-100 border border-emerald-300 text-emerald-900 font-mono text-xs font-bold flex items-center gap-2">
-                <Check class="w-4 h-4 text-emerald-700" /> {manualSuccessMsg}
+              <div class="p-4 rounded-2xl bg-emerald-950/60 border border-emerald-500/30 text-emerald-300 font-mono text-xs font-bold flex items-center gap-2">
+                <Check class="w-4 h-4 text-emerald-400" /> {manualSuccessMsg}
               </div>
             {/if}
 
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div class="space-y-1">
-                <label for="man-ticket" class="text-xs font-mono text-[#8E8E93] uppercase font-bold block">
+                <label for="man-ticket" class="text-xs font-mono text-ash uppercase font-bold block">
                   Número de Ticket / Factura
                 </label>
                 <input 
@@ -895,27 +895,27 @@
                   type="text" 
                   bind:value={manualTicket}
                   placeholder="Ej. 00128"
-                  class="w-full min-h-[56px] px-4 rounded-2xl bg-[#EDE8DC] border border-black/10 text-[#0C0C0E] font-mono text-sm focus:outline-none focus:border-[#FF2400]"
+                  class="w-full min-h-[56px] px-4 rounded-2xl bg-char border border-white/10 text-bone placeholder:text-ash/60 font-mono text-sm focus:outline-none focus:border-[#FF2400]"
                 />
               </div>
 
               <div class="space-y-1">
-                <label for="man-burgers" class="text-xs font-mono text-[#8E8E93] uppercase font-bold block">
+                <label for="man-burgers" class="text-xs font-mono text-ash uppercase font-bold block">
                   Cantidad de Hamburguesas
                 </label>
                 <div class="flex items-center gap-2">
                   <button
                     type="button"
                     onclick={() => manualBurgers = Math.max(1, manualBurgers - 1)}
-                    class="w-14 min-h-[56px] rounded-2xl bg-[#EDE8DC] font-black text-lg text-[#0C0C0E] cursor-pointer"
+                    class="w-14 min-h-[56px] rounded-2xl bg-char border border-white/10 font-black text-lg text-bone hover:bg-white/5 cursor-pointer"
                   >-</button>
-                  <span class="flex-1 min-h-[56px] rounded-2xl bg-[#EDE8DC] flex items-center justify-center font-mono font-black text-lg text-[#0C0C0E]">
+                  <span class="flex-1 min-h-[56px] rounded-2xl bg-char border border-white/10 flex items-center justify-center font-mono font-black text-lg text-bone">
                     {manualBurgers}
                   </span>
                   <button
                     type="button"
                     onclick={() => manualBurgers = Math.min(10, manualBurgers + 1)}
-                    class="w-14 min-h-[56px] rounded-2xl bg-[#EDE8DC] font-black text-lg text-[#0C0C0E] cursor-pointer"
+                    class="w-14 min-h-[56px] rounded-2xl bg-char border border-white/10 font-black text-lg text-bone hover:bg-white/5 cursor-pointer"
                   >+</button>
                 </div>
               </div>
@@ -934,24 +934,24 @@
 
           <!-- SECCIÓN C: REDENCIONES DE HAMBURGUESA GRATIS (10/10) -->
           {#if redemptions.length > 0}
-            <div class="p-6 sm:p-8 rounded-[32px] bg-[#EDE8DC] border border-[#FF2400]/40 space-y-4">
+            <div class="p-6 sm:p-8 rounded-[32px] bg-char-card border border-[#FF2400]/40 space-y-4 shadow-sm">
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
                   <Sparkles class="w-5 h-5 text-[#FF2400]" />
-                  <h3 class="font-display font-black text-xl text-[#0C0C0E]">Redenciones VIP en Mesa</h3>
+                  <h3 class="font-display font-black text-xl text-bone">Redenciones VIP en Mesa</h3>
                 </div>
-                <span class="text-xs font-mono font-bold text-[#FF2400] bg-white px-3 py-1 rounded-full">
+                <span class="text-xs font-mono font-bold text-[#FF2400] bg-char border border-[#FF2400]/30 px-3 py-1 rounded-full">
                   10/10 Sellos Cumplidos
                 </span>
               </div>
 
               <div class="space-y-3">
                 {#each redemptions as red}
-                  <div class="p-4 sm:p-5 rounded-2xl bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div class="p-4 sm:p-5 rounded-2xl bg-char border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
-                      <span class="text-xs font-mono font-bold text-emerald-700">Comensal Verificado</span>
-                      <h4 class="font-display font-black text-lg text-[#0C0C0E]">{red.customer}</h4>
-                      <p class="text-xs text-[#8E8E93] font-mono">{red.targetItem} • {red.time}</p>
+                      <span class="text-xs font-mono font-bold text-emerald-400">Comensal Verificado</span>
+                      <h4 class="font-display font-black text-lg text-bone">{red.customer}</h4>
+                      <p class="text-xs text-ash font-mono">{red.targetItem} • {red.time}</p>
                     </div>
 
                     <button
@@ -974,53 +974,53 @@
       <!-- ======================================================== -->
       {#if currentTab === 'waiter_orders'}
         <div class="space-y-6">
-          <div class="p-5 rounded-[28px] bg-white border border-black/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div class="p-5 rounded-[28px] bg-char-card border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
             <div>
-              <h2 class="font-display font-extrabold text-xl text-[#0C0C0E]">Comandas de Salón Activas</h2>
-              <p class="text-xs text-[#8E8E93]">
+              <h2 class="font-display font-extrabold text-xl text-bone">Comandas de Salón Activas</h2>
+              <p class="text-xs text-ash">
                 Supervisa los pedidos y el estado de cobro de los comensales en mesa.
               </p>
             </div>
-            <span class="min-h-[38px] px-4 rounded-full bg-[#EDE8DC] font-mono text-xs font-bold text-[#0C0C0E] flex items-center">
+            <span class="min-h-[38px] px-4 rounded-full bg-char border border-white/10 font-mono text-xs font-bold text-bone flex items-center">
               {inStoreOrders.length} {inStoreOrders.length === 1 ? 'comanda' : 'comandas'}
             </span>
           </div>
 
           {#if inStoreOrders.length === 0}
-            <div class="p-8 rounded-[32px] bg-white border border-black/10 text-center space-y-2">
-              <CheckCircle2 class="w-10 h-10 text-emerald-600 mx-auto" />
-              <p class="font-display font-bold text-lg text-[#0C0C0E]">No hay comandas activas en salón</p>
-              <p class="text-xs text-[#8E8E93]">Los nuevos pedidos realizados por los comensales aparecerán aquí en tiempo real.</p>
+            <div class="p-8 rounded-[32px] bg-char-card border border-white/10 text-center space-y-2 shadow-sm">
+              <CheckCircle2 class="w-10 h-10 text-emerald-400 mx-auto" />
+              <p class="font-display font-bold text-lg text-bone">No hay comandas activas en salón</p>
+              <p class="text-xs text-ash">Los nuevos pedidos realizados por los comensales aparecerán aquí en tiempo real.</p>
             </div>
           {:else}
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               {#each inStoreOrders as ord}
-                <div class="p-6 rounded-[32px] bg-white border border-black/10 space-y-4">
+                <div class="p-6 rounded-[32px] bg-char-card border border-white/10 space-y-4 shadow-sm">
                   <div class="flex justify-between items-start">
                     <div>
-                      <span class="font-mono text-xs text-[#FF2400] font-bold bg-[#FF2400]/10 px-3 py-1 rounded-full inline-block">
+                      <span class="font-mono text-xs text-[#FF2400] font-bold bg-[#FF2400]/10 border border-[#FF2400]/20 px-3 py-1 rounded-full inline-block">
                         Orden #{ord.code}
                       </span>
-                      <h4 class="font-display font-black text-xl text-[#0C0C0E] mt-2 leading-tight">
+                      <h4 class="font-display font-black text-xl text-bone mt-2 leading-tight">
                         {ord.customer}
                       </h4>
                     </div>
-                    <span class="font-mono text-xs font-bold px-3 py-1 rounded-full {ord.status === 'PAID' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-amber-100 text-amber-800 border border-amber-300'}">
+                    <span class="font-mono text-xs font-bold px-3 py-1 rounded-full {ord.status === 'PAID' ? 'bg-emerald-950/60 text-emerald-300 border border-emerald-500/30' : 'bg-amber-950/60 text-amber-300 border border-amber-500/30'}">
                       {ord.status === 'PAID' ? '✓ PAGADO EN CAJA' : '⏳ PENDIENTE DE PAGO'}
                     </span>
                   </div>
 
-                  <div class="p-4 rounded-2xl bg-[#EDE8DC] text-xs font-mono space-y-2">
+                  <div class="p-4 rounded-2xl bg-char border border-white/10 text-xs font-mono space-y-2">
                     <div class="flex justify-between items-center">
-                      <span class="text-[#8E8E93]">Hora registro:</span>
-                      <span class="text-[#0C0C0E] font-bold">{ord.time}</span>
+                      <span class="text-ash">Hora registro:</span>
+                      <span class="text-bone font-bold">{ord.time}</span>
                     </div>
                     <div class="flex justify-between items-center">
-                      <span class="text-[#8E8E93]">Detalle:</span>
-                      <span class="text-[#0C0C0E] font-bold text-right">{ord.items}</span>
+                      <span class="text-ash">Detalle:</span>
+                      <span class="text-bone font-bold text-right">{ord.items}</span>
                     </div>
-                    <div class="flex justify-between items-center border-t border-black/10 pt-1.5">
-                      <span class="text-[#8E8E93]">Total a Cobrar:</span>
+                    <div class="flex justify-between items-center border-t border-white/10 pt-1.5">
+                      <span class="text-ash">Total a Cobrar:</span>
                       <span class="text-[#FF2400] font-black text-sm">${ord.total?.toLocaleString('es-CO')}</span>
                     </div>
                   </div>
@@ -1036,25 +1036,25 @@
       <!-- ======================================================== -->
       {#if currentTab === 'cashier_orders'}
         <div class="space-y-6">
-          <div class="p-6 sm:p-8 rounded-[32px] bg-white border border-black/10 space-y-4">
-            <div class="flex items-center justify-between border-b border-black/10 pb-3">
+          <div class="p-6 sm:p-8 rounded-[32px] bg-char-card border border-white/10 space-y-4 shadow-sm">
+            <div class="flex items-center justify-between border-b border-white/10 pb-3">
               <div class="flex items-center gap-2">
                 <Utensils class="w-5 h-5 text-[#FF2400]" />
-                <h2 class="font-display font-black text-xl text-[#0C0C0E]">Comandas Salón y Para Llevar</h2>
+                <h2 class="font-display font-black text-xl text-bone">Comandas Salón y Para Llevar</h2>
               </div>
-              <span class="text-xs font-mono text-[#8E8E93]">Cobro en caja y despacho</span>
+              <span class="text-xs font-mono text-ash">Cobro en caja y despacho</span>
             </div>
 
             <div class="space-y-3">
               {#each inStoreOrders as ord}
-                <div class="p-5 rounded-2xl bg-[#EDE8DC] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div class="p-5 rounded-2xl bg-char border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
                     <div class="flex items-center gap-2">
-                      <span class="font-mono text-base font-black text-[#0C0C0E]">#{ord.code}</span>
-                      <span class="text-xs font-mono text-[#8E8E93]">• {ord.customer} ({ord.time})</span>
+                      <span class="font-mono text-base font-black text-bone">#{ord.code}</span>
+                      <span class="text-xs font-mono text-ash">• {ord.customer} ({ord.time})</span>
                     </div>
-                    <p class="text-xs text-[#3A3A3C] font-medium mt-1">{ord.items}</p>
-                    <span class="text-lg font-display font-black text-[#0C0C0E] mt-1 block">
+                    <p class="text-xs text-bone/80 font-medium mt-1">{ord.items}</p>
+                    <span class="text-lg font-display font-black text-bone mt-1 block">
                       ${ord.total.toLocaleString('es-CO')}
                     </span>
                   </div>
@@ -1069,7 +1069,7 @@
                         Cobrar y Marcar Pago
                       </button>
                     {:else}
-                      <span class="min-h-[48px] px-5 rounded-full bg-emerald-200 text-emerald-900 text-xs font-mono font-bold flex items-center">
+                      <span class="min-h-[48px] px-5 rounded-full bg-emerald-950/60 text-emerald-300 border border-emerald-500/30 text-xs font-mono font-bold flex items-center">
                         ✓ ORDEN PAGADA
                       </span>
                     {/if}
@@ -1077,7 +1077,7 @@
                     <button
                       type="button"
                       onclick={() => handlePrintReceipt(ord)}
-                      class="w-12 h-12 rounded-full bg-white border border-black/10 flex items-center justify-center text-[#0C0C0E] hover:bg-[#FAF6EE] transition-colors cursor-pointer"
+                      class="w-12 h-12 rounded-full bg-char-card border border-white/10 flex items-center justify-center text-bone hover:text-[#FF2400] hover:bg-char-card-hover transition-colors cursor-pointer"
                       title="Imprimir Comanda Térmica"
                     >
                       <Printer class="w-5 h-5" />
@@ -1095,28 +1095,28 @@
       <!-- ======================================================== -->
       {#if currentTab === 'cashier_delivery'}
         <div class="space-y-6">
-          <div class="p-6 sm:p-8 rounded-[32px] bg-white border border-black/10 space-y-4">
-            <div class="flex items-center justify-between border-b border-black/10 pb-3">
+          <div class="p-6 sm:p-8 rounded-[32px] bg-char-card border border-white/10 space-y-4 shadow-sm">
+            <div class="flex items-center justify-between border-b border-white/10 pb-3">
               <div class="flex items-center gap-2">
                 <Bike class="w-5 h-5 text-[#FF2400]" />
-                <h2 class="font-display font-black text-xl text-[#0C0C0E]">Despacho de Domicilios</h2>
+                <h2 class="font-display font-black text-xl text-bone">Despacho de Domicilios</h2>
               </div>
-              <span class="text-xs font-mono text-[#8E8E93]">Coordinación directa vía WhatsApp</span>
+              <span class="text-xs font-mono text-ash">Coordinación directa vía WhatsApp</span>
             </div>
 
             <div class="space-y-4">
               {#each deliveryOrders as dom}
-                <div class="p-5 sm:p-6 rounded-[28px] bg-[#EDE8DC] flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div class="p-5 sm:p-6 rounded-[28px] bg-char border border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div class="space-y-1 flex-1">
                     <div class="flex items-center gap-2 flex-wrap">
-                      <span class="font-mono text-base font-black text-[#0C0C0E]">#{dom.code}</span>
-                      <span class="text-xs font-mono text-[#8E8E93]">• {dom.customer} ({dom.time})</span>
-                      <span class="px-2.5 py-0.5 rounded-full bg-white text-[11px] font-mono font-bold text-[#FF2400]">
+                      <span class="font-mono text-base font-black text-bone">#{dom.code}</span>
+                      <span class="text-xs font-mono text-ash">• {dom.customer} ({dom.time})</span>
+                      <span class="px-2.5 py-0.5 rounded-full bg-char-card border border-white/10 text-[11px] font-mono font-bold text-[#FF2400]">
                         {dom.neighborhood}
                       </span>
                     </div>
 
-                    <p class="text-xs sm:text-sm text-[#0C0C0E] font-medium pt-1">
+                    <p class="text-xs sm:text-sm text-bone/90 font-medium pt-1">
                       📍 {dom.address}
                     </p>
 
@@ -1124,7 +1124,7 @@
                       <span class="text-xs font-mono font-bold text-[#FF2400]">
                         Pago: {dom.payment}
                       </span>
-                      <span class="text-xs font-mono font-black text-[#0C0C0E]">
+                      <span class="text-xs font-mono font-black text-bone">
                         • Total: ${dom.total.toLocaleString('es-CO')}
                       </span>
                     </div>
@@ -1151,7 +1151,7 @@
                         Despachar a Domiciliario
                       </button>
                     {:else}
-                      <span class="min-h-[48px] px-5 rounded-full bg-blue-100 text-blue-900 text-xs font-mono font-bold flex items-center">
+                      <span class="min-h-[48px] px-5 rounded-full bg-sky-950/60 text-sky-300 border border-sky-500/30 text-xs font-mono font-bold flex items-center">
                         🛵 EN RUTA AL CLIENTE
                       </span>
                     {/if}
@@ -1168,41 +1168,41 @@
       <!-- ======================================================== -->
       {#if currentTab === 'cashier_stamps'}
         <div class="space-y-6">
-          <div class="p-6 sm:p-8 rounded-[32px] bg-white border border-black/10 space-y-4">
-            <div class="flex items-center justify-between border-b border-black/10 pb-3">
+          <div class="p-6 sm:p-8 rounded-[32px] bg-char-card border border-white/10 space-y-4 shadow-sm">
+            <div class="flex items-center justify-between border-b border-white/10 pb-3">
               <div class="flex items-center gap-2">
                 <Award class="w-5 h-5 text-[#FF2400]" />
-                <h2 class="font-display font-black text-xl text-[#0C0C0E]">Acreditación de Sellos en Caja</h2>
+                <h2 class="font-display font-black text-xl text-bone">Acreditación de Sellos en Caja</h2>
               </div>
-              <span class="text-xs font-mono text-[#8E8E93]">{stampRequests.length} solicitudes</span>
+              <span class="text-xs font-mono text-ash">{stampRequests.length} solicitudes</span>
             </div>
 
             {#if stampRequests.length === 0}
-              <p class="text-xs text-[#8E8E93] py-4 text-center">No hay solicitudes de sellos pendientes en este momento.</p>
+              <p class="text-xs text-ash py-4 text-center">No hay solicitudes de sellos pendientes en este momento.</p>
             {:else}
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {#each stampRequests as req}
-                  <div class="p-5 rounded-2xl bg-[#EDE8DC] space-y-3">
+                  <div class="p-5 rounded-2xl bg-char border border-white/10 space-y-3">
                     <div class="flex justify-between items-center">
                       <span class="font-mono text-xs font-bold text-[#FF2400]">Factura #{req.receiptNumber}</span>
-                      <span class="font-mono text-xs text-[#8E8E93]">{req.time}</span>
+                      <span class="font-mono text-xs text-ash">{req.time}</span>
                     </div>
 
                     <div>
-                      <h4 class="font-display font-bold text-base text-[#0C0C0E]">{req.customer}</h4>
-                      <p class="text-xs text-[#3A3A3C]">Orden #{req.orderCode} • Total ${req.total.toLocaleString('es-CO')}</p>
+                      <h4 class="font-display font-bold text-base text-bone">{req.customer}</h4>
+                      <p class="text-xs text-ash">Orden #{req.orderCode} • Total ${req.total.toLocaleString('es-CO')}</p>
                     </div>
 
                     <div class="flex items-center gap-2 pt-1">
                       <button
                         type="button"
                         onclick={() => handleRejectStamp(req)}
-                        class="flex-1 min-h-[48px] rounded-full bg-white text-[#FF2400] font-display font-bold text-xs"
+                        class="flex-1 min-h-[48px] rounded-full bg-char-card border border-white/10 text-[#FF2400] hover:bg-white/5 font-display font-bold text-xs"
                       >Rechazar</button>
                       <button
                         type="button"
                         onclick={() => handleApproveStamp(req)}
-                        class="flex-1 min-h-[48px] rounded-full bg-[#FF2400] text-white font-display font-extrabold text-xs"
+                        class="flex-1 min-h-[48px] rounded-full bg-[#FF2400] hover:bg-[#E02000] text-white font-display font-extrabold text-xs"
                       >✓ Otorgar {req.burgersCount} Sellos</button>
                     </div>
                   </div>
@@ -1213,19 +1213,19 @@
 
           <!-- Redenciones de Hamburguesa Gratis -->
           {#if redemptions.length > 0}
-            <div class="p-6 sm:p-8 rounded-[32px] bg-[#EDE8DC] border border-[#FF2400]/40 space-y-4">
-              <div class="flex items-center justify-between border-b border-black/10 pb-3">
+            <div class="p-6 sm:p-8 rounded-[32px] bg-char-card border border-[#FF2400]/40 space-y-4 shadow-sm">
+              <div class="flex items-center justify-between border-b border-white/10 pb-3">
                 <div class="flex items-center gap-2">
                   <Sparkles class="w-5 h-5 text-[#FF2400]" />
-                  <h3 class="font-display font-black text-xl text-[#0C0C0E]">Entrega de Hamburguesas Gratis (10/10)</h3>
+                  <h3 class="font-display font-black text-xl text-bone">Entrega de Hamburguesas Gratis (10/10)</h3>
                 </div>
               </div>
 
               {#each redemptions as red}
-                <div class="p-4 rounded-2xl bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div class="p-4 rounded-2xl bg-char border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
-                    <h4 class="font-display font-bold text-base text-[#0C0C0E]">{red.customer}</h4>
-                    <p class="text-xs text-[#8E8E93]">{red.targetItem}</p>
+                    <h4 class="font-display font-bold text-base text-bone">{red.customer}</h4>
+                    <p class="text-xs text-ash">{red.targetItem}</p>
                   </div>
 
                   <button
@@ -1249,7 +1249,7 @@
         <div class="space-y-6">
           
           <!-- Cabecera de Control BI con Actualización en Vivo -->
-          <div class="p-6 sm:p-7 rounded-[32px] bg-white border border-black/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div class="p-6 sm:p-7 rounded-[32px] bg-char-card border border-white/10 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <div class="flex items-center gap-2 mb-1">
                 <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -1257,23 +1257,23 @@
                   Métricas en Tiempo Real
                 </span>
               </div>
-              <h2 class="font-display font-black text-2xl sm:text-3xl text-[#0C0C0E]">
+              <h2 class="font-display font-black text-2xl sm:text-3xl text-bone">
                 Panel de Inteligencia Comercial
               </h2>
-              <p class="text-xs text-[#8E8E93] mt-0.5">
+              <p class="text-xs text-ash mt-0.5">
                 Calculadas en vivo a partir de comandas pagadas, despachos y sellos digitales acumulados.
               </p>
             </div>
 
             <div class="flex items-center gap-3 self-start sm:self-center">
-              <span class="text-xs font-mono text-[#8E8E93] hidden md:inline">
+              <span class="text-xs font-mono text-ash hidden md:inline">
                 Sincronizado: {metricsLastSync}
               </span>
               <button
                 type="button"
                 onclick={loadAdminMetrics}
                 disabled={isRefreshingMetrics}
-                class="min-h-[48px] px-5 rounded-full bg-[#EDE8DC] hover:bg-[#EDE8DC]/80 text-[#0C0C0E] font-display font-bold text-xs flex items-center gap-2 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50"
+                class="min-h-[48px] px-5 rounded-full bg-white/10 hover:bg-white/15 text-bone border border-white/10 font-display font-bold text-xs flex items-center gap-2 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50"
               >
                 <RefreshCw class="w-4 h-4 {isRefreshingMetrics ? 'animate-spin text-[#FF2400]' : ''}" />
                 <span>{isRefreshingMetrics ? 'Actualizando...' : 'Actualizar'}</span>
@@ -1284,79 +1284,79 @@
           <!-- FILA 1: LAS 4 MÉTRICAS CLAVE DEL NEGOCIO (FAT CARDS) -->
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <!-- 1. Ingresos Totales Reales -->
-            <div class="p-6 rounded-[28px] bg-white border border-black/10 space-y-2">
+            <div class="p-6 rounded-[28px] bg-char-card border border-white/10 shadow-lg space-y-2">
               <div class="flex items-center justify-between">
-                <span class="text-xs font-mono uppercase tracking-widest text-[#8E8E93] font-bold">
+                <span class="text-xs font-mono uppercase tracking-widest text-ash font-bold">
                   Ventas Confirmadas
                 </span>
-                <div class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center">
+                <div class="w-8 h-8 rounded-full bg-emerald-950/60 text-emerald-400 border border-emerald-700/30 flex items-center justify-center">
                   <DollarSign class="w-4 h-4 stroke-[2.5]" />
                 </div>
               </div>
-              <span class="font-display font-black text-3xl text-[#0C0C0E] block tracking-tight">
+              <span class="font-display font-black text-3xl text-bone block tracking-tight">
                 {formatCOP(realTotalRevenue)}
               </span>
-              <span class="text-xs font-mono font-bold text-emerald-700 block">
+              <span class="text-xs font-mono font-bold text-emerald-400 block">
                 ✓ {realTotalOrdersCount} comandas facturadas hoy
               </span>
             </div>
 
             <!-- 2. Ticket Promedio Real -->
-            <div class="p-6 rounded-[28px] bg-white border border-black/10 space-y-2">
+            <div class="p-6 rounded-[28px] bg-char-card border border-white/10 shadow-lg space-y-2">
               <div class="flex items-center justify-between">
-                <span class="text-xs font-mono uppercase tracking-widest text-[#8E8E93] font-bold">
+                <span class="text-xs font-mono uppercase tracking-widest text-ash font-bold">
                   Ticket Promedio
                 </span>
-                <div class="w-8 h-8 rounded-full bg-[#EDE8DC] text-[#0C0C0E] flex items-center justify-center">
+                <div class="w-8 h-8 rounded-full bg-white/5 border border-white/10 text-bone flex items-center justify-center">
                   <TrendingUp class="w-4 h-4 stroke-[2.5]" />
                 </div>
               </div>
-              <span class="font-display font-black text-3xl text-[#0C0C0E] block tracking-tight">
+              <span class="font-display font-black text-3xl text-bone block tracking-tight">
                 {formatCOP(realAverageTicket)}
               </span>
-              <span class="text-xs font-mono text-[#8E8E93] block">
+              <span class="text-xs font-mono text-ash block">
                 Total ventas / N° comandas
               </span>
             </div>
 
             <!-- 3. Canales: Salón vs Domicilio -->
-            <div class="p-6 rounded-[28px] bg-white border border-black/10 space-y-2">
+            <div class="p-6 rounded-[28px] bg-char-card border border-white/10 shadow-lg space-y-2">
               <div class="flex items-center justify-between">
-                <span class="text-xs font-mono uppercase tracking-widest text-[#8E8E93] font-bold">
+                <span class="text-xs font-mono uppercase tracking-widest text-ash font-bold">
                   Canales de Venta
                 </span>
-                <div class="w-8 h-8 rounded-full bg-[#FF2400]/10 text-[#FF2400] flex items-center justify-center">
+                <div class="w-8 h-8 rounded-full bg-[#FF2400]/10 border border-[#FF2400]/20 text-[#FF2400] flex items-center justify-center">
                   <Bike class="w-4 h-4 stroke-[2.5]" />
                 </div>
               </div>
               <div class="flex items-baseline justify-between">
-                <span class="font-display font-black text-2xl text-[#0C0C0E]">
+                <span class="font-display font-black text-2xl text-bone">
                   {channelPercentages.inStorePct}% Salón
                 </span>
                 <span class="font-display font-bold text-base text-[#FF2400]">
                   {channelPercentages.delivPct}% Domicilio
                 </span>
               </div>
-              <div class="w-full h-2 rounded-full bg-[#EDE8DC] overflow-hidden flex">
-                <div class="bg-[#0C0C0E] h-full" style="width: {channelPercentages.inStorePct}%;"></div>
+              <div class="w-full h-2 rounded-full bg-char overflow-hidden flex border border-white/5">
+                <div class="bg-bone h-full" style="width: {channelPercentages.inStorePct}%;"></div>
                 <div class="bg-[#FF2400] h-full" style="width: {channelPercentages.delivPct}%;"></div>
               </div>
             </div>
 
             <!-- 4. Fidelización y Sellos -->
-            <div class="p-6 rounded-[28px] bg-white border border-black/10 space-y-2">
+            <div class="p-6 rounded-[28px] bg-char-card border border-white/10 shadow-lg space-y-2">
               <div class="flex items-center justify-between">
-                <span class="text-xs font-mono uppercase tracking-widest text-[#8E8E93] font-bold">
+                <span class="text-xs font-mono uppercase tracking-widest text-ash font-bold">
                   Fidelización Mías
                 </span>
-                <div class="w-8 h-8 rounded-full bg-[#FF2400]/10 text-[#FF2400] flex items-center justify-center">
+                <div class="w-8 h-8 rounded-full bg-[#FF2400]/10 border border-[#FF2400]/20 text-[#FF2400] flex items-center justify-center">
                   <Award class="w-4 h-4 stroke-[2.5]" />
                 </div>
               </div>
               <span class="font-display font-black text-3xl text-[#FF2400] block tracking-tight">
                 {realStampsApproved} / {realRedemptionsCount}
               </span>
-              <span class="text-xs font-mono font-medium text-[#3A3A3C] block">
+              <span class="text-xs font-mono font-medium text-ash block">
                 Sellos activos • {realRedemptionsCount} hamburguesas gratis
               </span>
             </div>
@@ -1366,29 +1366,29 @@
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
             
             <!-- TARJETA 1: DESGLOSE POR MÉTODO DE PAGO REAL -->
-            <div class="p-6 sm:p-7 rounded-[32px] bg-white border border-black/10 space-y-4">
-              <div class="flex items-center justify-between border-b border-black/10 pb-3">
+            <div class="p-6 sm:p-7 rounded-[32px] bg-char-card border border-white/10 shadow-xl space-y-4">
+              <div class="flex items-center justify-between border-b border-white/10 pb-3">
                 <div class="flex items-center gap-2">
                   <PieChart class="w-5 h-5 text-[#FF2400]" />
-                  <h3 class="font-display font-black text-lg text-[#0C0C0E]">Cobros por Método de Pago</h3>
+                  <h3 class="font-display font-black text-lg text-bone">Cobros por Método de Pago</h3>
                 </div>
-                <span class="text-xs font-mono text-[#8E8E93]">Caja y Domicilios</span>
+                <span class="text-xs font-mono text-ash">Caja y Domicilios</span>
               </div>
 
               <div class="space-y-3">
                 {#each paymentMethodsBreakdown as method}
-                  <div class="p-4 rounded-2xl bg-[#EDE8DC] space-y-2">
+                  <div class="p-4 rounded-2xl bg-char border border-white/5 space-y-2">
                     <div class="flex justify-between items-center text-xs font-mono">
-                      <span class="font-bold text-[#0C0C0E]">{method.name}</span>
-                      <span class="font-bold text-[#0C0C0E]">{formatCOP(method.total)} ({method.pct}%)</span>
+                      <span class="font-bold text-bone">{method.name}</span>
+                      <span class="font-bold text-bone">{formatCOP(method.total)} ({method.pct}%)</span>
                     </div>
-                    <div class="w-full h-2 rounded-full bg-white/60 overflow-hidden">
+                    <div class="w-full h-2 rounded-full bg-white/10 overflow-hidden">
                       <div 
                         class="h-full bg-[#FF2400] rounded-full transition-all duration-500"
                         style="width: {method.pct}%;"
                       ></div>
                     </div>
-                    <div class="flex justify-between text-[11px] text-[#8E8E93] font-mono">
+                    <div class="flex justify-between text-[11px] text-ash font-mono">
                       <span>{method.count} transacciones registradas</span>
                     </div>
                   </div>
@@ -1397,27 +1397,27 @@
             </div>
 
             <!-- TARJETA 2: TOP 5 PRODUCTOS MÁS VENDIDOS -->
-            <div class="p-6 sm:p-7 rounded-[32px] bg-white border border-black/10 space-y-4">
-              <div class="flex items-center justify-between border-b border-black/10 pb-3">
+            <div class="p-6 sm:p-7 rounded-[32px] bg-char-card border border-white/10 shadow-xl space-y-4">
+              <div class="flex items-center justify-between border-b border-white/10 pb-3">
                 <div class="flex items-center gap-2">
                   <Flame class="w-5 h-5 text-[#FF2400]" />
-                  <h3 class="font-display font-black text-lg text-[#0C0C0E]">Top 5 Productos Más Vendidos</h3>
+                  <h3 class="font-display font-black text-lg text-bone">Top 5 Productos Más Vendidos</h3>
                 </div>
-                <span class="text-xs font-mono text-[#8E8E93]">En sala y delivery</span>
+                <span class="text-xs font-mono text-ash">En sala y delivery</span>
               </div>
 
               <div class="space-y-2.5">
                 {#each topProductsRanking as prod, idx}
-                  <div class="p-3.5 rounded-2xl bg-[#EDE8DC] flex items-center justify-between gap-3">
+                  <div class="p-3.5 rounded-2xl bg-char border border-white/5 flex items-center justify-between gap-3">
                     <div class="flex items-center gap-3 min-w-0">
-                      <span class="w-7 h-7 rounded-full bg-white font-mono font-black text-xs text-[#0C0C0E] flex items-center justify-center shrink-0">
+                      <span class="w-7 h-7 rounded-full bg-white/10 border border-white/10 font-mono font-black text-xs text-bone flex items-center justify-center shrink-0">
                         #{idx + 1}
                       </span>
                       <div class="min-w-0">
-                        <span class="font-display font-bold text-sm text-[#0C0C0E] block truncate">
+                        <span class="font-display font-bold text-sm text-bone block truncate">
                           {prod.name}
                         </span>
-                        <span class="text-[10px] font-mono text-[#8E8E93]">
+                        <span class="text-[10px] font-mono text-ash">
                           {prod.bread_type === 'pretzel' ? 'Pan Pretzel' : prod.bread_type === 'brioche' ? 'Pan Brioche' : 'Especialidad'}
                         </span>
                       </div>
@@ -1427,7 +1427,7 @@
                       <span class="font-mono font-black text-sm text-[#FF2400] block">
                         {prod.units_sold} uds
                       </span>
-                      <span class="text-[10px] font-mono text-[#8E8E93]">
+                      <span class="text-[10px] font-mono text-ash">
                         {formatCOP(prod.total_revenue)}
                       </span>
                     </div>
@@ -1438,27 +1438,27 @@
           </div>
 
           <!-- FILA 3: CONTROL DE DISPONIBILIDAD DE CARTA EN TIEMPO REAL -->
-          <div class="p-6 sm:p-8 rounded-[32px] bg-white border border-black/10 space-y-4">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-black/10 pb-3">
+          <div class="p-6 sm:p-8 rounded-[32px] bg-char-card border border-white/10 shadow-xl space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-3">
               <div>
-                <h3 class="font-display font-black text-xl text-[#0C0C0E]">
+                <h3 class="font-display font-black text-xl text-bone">
                   Disponibilidad de Carta en Tiempo Real
                 </h3>
-                <p class="text-xs text-[#8E8E93] mt-0.5">
+                <p class="text-xs text-ash mt-0.5">
                   Conmuta con un solo toque los platos disponibles o agotados para clientes en la app.
                 </p>
               </div>
-              <span class="text-xs font-mono font-bold text-[#8E8E93]">
+              <span class="text-xs font-mono font-bold text-ash">
                 {store.products.filter(p => p.is_in_stock).length} de {store.products.length} activos
               </span>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {#each store.products as p}
-                <div class="p-4 rounded-2xl bg-[#EDE8DC] flex items-center justify-between gap-3">
+                <div class="p-4 rounded-2xl bg-char border border-white/5 flex items-center justify-between gap-3">
                   <div class="min-w-0">
-                    <span class="font-display font-bold text-sm text-[#0C0C0E] block truncate">{p.name}</span>
-                    <span class="font-mono text-xs text-[#8E8E93]">{formatCOP(p.price)}</span>
+                    <span class="font-display font-bold text-sm text-bone block truncate">{p.name}</span>
+                    <span class="font-mono text-xs text-ash">{formatCOP(p.price)}</span>
                   </div>
                   <button 
                     type="button"

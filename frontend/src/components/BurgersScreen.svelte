@@ -509,7 +509,7 @@
 <svelte:window onkeydown={handleKeyDown} bind:innerWidth={windowWidth} bind:innerHeight={windowHeight} />
 
 <section 
-  class="fixed inset-0 z-40 h-[100dvh] w-full bg-[#FAF6EE] text-[#3A3A3C] flex flex-col justify-between select-none overflow-x-hidden overflow-y-hidden will-change-[transform,opacity] transition-all duration-500 {isEntering ? 'opacity-0 translate-y-8 scale-[0.98]' : isClosing ? 'opacity-0 translate-y-8 scale-[0.98] pointer-events-none' : 'opacity-100 translate-y-0 scale-100'} {isStandalone ? 'is-pwa-standalone' : ''}"
+  class="fixed inset-0 z-40 h-[100dvh] w-full bg-char text-bone flex flex-col justify-between select-none overflow-x-hidden overflow-y-hidden will-change-[transform,opacity] transition-all duration-500 {isEntering ? 'opacity-0 translate-y-8 scale-[0.98]' : isClosing ? 'opacity-0 translate-y-8 scale-[0.98] pointer-events-none' : 'opacity-100 translate-y-0 scale-100'} {isStandalone ? 'is-pwa-standalone' : ''}"
   style="transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1); padding-top: max(0.5rem, calc(env(safe-area-inset-top, 0px) + 0.35rem)); padding-bottom: max({isStandalone ? '2rem' : '1.2rem'}, calc(env(safe-area-inset-bottom, 0px) + {isStandalone ? '1.5rem' : '0.85rem'}));"
 >
 
@@ -518,18 +518,18 @@
     
     <!-- 1. BARRA SUPERIOR: BOTÓN ATRÁS (<), BADGE CATEGORÍA Y BOTÓN FAVORITO -->
     <header class="flex items-center justify-between py-1.5 sm:py-2 z-30 shrink-0 px-5 sm:px-6">
-      <!-- Botón Atrás Circular Blanco Plano (Mismo tamaño y diseño que Home) -->
+      <!-- Botón Atrás Circular Dark Plano (Mismo tamaño y diseño que Home) -->
       <button 
         type="button"
         onclick={handleBack}
-        class="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white border border-black/5 flex items-center justify-center text-[#3A3A3C] hover:bg-black/5 active:scale-90 transition-all cursor-pointer group shrink-0"
+        class="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-char-card border border-white/10 flex items-center justify-center text-bone hover:bg-char-card-hover active:scale-90 transition-all cursor-pointer group shrink-0"
         aria-label="Volver a la carta principal"
       >
         <ChevronLeft class="w-6 h-6 sm:w-7 sm:h-7 stroke-[2.2] -translate-x-0.5 group-hover:-translate-x-1 transition-transform" />
       </button>
 
       <!-- Indicador de Posición -->
-      <div class="flex items-center gap-1.5 font-mono text-xs font-bold text-[#3A3A3C]">
+      <div class="flex items-center gap-1.5 font-mono text-xs font-bold text-bone">
         <span>0{currentIndex + 1}</span>
         <span class="text-[10px] text-ash/60">/</span>
         <span class="text-[11px] text-ash/80">0{burgers.length}</span>
@@ -539,7 +539,7 @@
       <button 
         type="button"
         onclick={() => isFavorite = !isFavorite}
-        class="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white border border-black/5 flex items-center justify-center transition-all cursor-pointer active:scale-95 shrink-0 {isFavorite ? 'text-[#FF2400] border-[#FF2400]/40' : 'text-ash hover:text-[#3A3A3C]'}"
+        class="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-char-card border border-white/10 flex items-center justify-center transition-all cursor-pointer active:scale-95 shrink-0 {isFavorite ? 'text-[#FF2400] border-[#FF2400]/40' : 'text-ash hover:text-bone'}"
         aria-label="Marcar como favorita"
       >
         <Heart class="w-6 h-6 sm:w-6.5 sm:h-6.5 {isFavorite ? 'fill-[#FF2400]' : ''}" />
@@ -563,7 +563,7 @@
     >
       <!-- Marca de Agua Arquitectónica en Escritorio (Referencia 2) -->
       <div class="hidden md:flex absolute inset-0 items-center justify-center pointer-events-none select-none overflow-hidden">
-        <span class="font-display font-black text-black/[0.025] tracking-[0.25em] text-5xl lg:text-7xl xl:text-8xl uppercase whitespace-nowrap">
+        <span class="font-display font-black text-white/[0.03] tracking-[0.25em] text-5xl lg:text-7xl xl:text-8xl uppercase whitespace-nowrap">
           MÍAS • AL CARBÓN
         </span>
       </div>
@@ -572,7 +572,7 @@
       <button
         type="button"
         onclick={prevBurger}
-        class="hidden md:flex absolute left-2 lg:left-6 z-30 w-11 h-11 lg:w-12 lg:h-12 rounded-full bg-white/85 hover:bg-white border border-black/10 text-[#3A3A3C] items-center justify-center shadow-xs hover:shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer group"
+        class="hidden md:flex absolute left-2 lg:left-6 z-30 w-11 h-11 lg:w-12 lg:h-12 rounded-full bg-char-card/85 hover:bg-char-card border border-white/10 text-bone items-center justify-center shadow-xs hover:scale-105 active:scale-95 transition-all cursor-pointer group"
         aria-label="Ver hamburguesa anterior"
       >
         <ChevronLeft class="w-5 h-5 lg:w-6 lg:h-6 stroke-[2] group-hover:-translate-x-0.5 transition-transform" />
@@ -581,7 +581,7 @@
       <button
         type="button"
         onclick={nextBurger}
-        class="hidden md:flex absolute right-2 lg:right-6 z-30 w-11 h-11 lg:w-12 lg:h-12 rounded-full bg-white/85 hover:bg-white border border-black/10 text-[#3A3A3C] items-center justify-center shadow-xs hover:shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer group"
+        class="hidden md:flex absolute right-2 lg:right-6 z-30 w-11 h-11 lg:w-12 lg:h-12 rounded-full bg-char-card/85 hover:bg-char-card border border-white/10 text-bone items-center justify-center shadow-xs hover:scale-105 active:scale-95 transition-all cursor-pointer group"
         aria-label="Ver hamburguesa siguiente"
       >
         <ChevronRight class="w-5 h-5 lg:w-6 lg:h-6 stroke-[2] group-hover:translate-x-0.5 transition-transform" />
@@ -591,7 +591,7 @@
       <div class="burger-roulette-container relative z-20 flex items-center justify-center w-full max-w-[260px] sm:max-w-[310px] md:max-w-[340px] lg:max-w-[360px] max-h-[32vh] aspect-square -translate-y-16 sm:-translate-y-18 md:-translate-y-12 lg:-translate-y-14">
         <!-- Sombra elíptica independiente en el suelo -->
         <div 
-          class="absolute -bottom-2 sm:-bottom-3 w-40 sm:w-52 h-5 rounded-[100%] bg-black/10 blur-[5px] pointer-events-none transition-transform duration-300"
+          class="absolute -bottom-2 sm:-bottom-3 w-40 sm:w-52 h-5 rounded-[100%] bg-black/40 blur-[6px] pointer-events-none transition-transform duration-300"
           style="transform: scale({isDragging ? Math.max(0.68, 1 - Math.abs(dragX) / 400) : 1});"
         ></div>
 
@@ -626,7 +626,7 @@
               type="button"
               onclick={(e) => { e.stopPropagation(); selectBurger(idx); }}
               ontouchstart={(e) => e.stopPropagation()}
-              class="h-2 rounded-full transition-all duration-300 cursor-pointer {idx === currentIndex ? 'w-7 bg-[#FF2400]' : 'w-2 bg-black/15 hover:bg-black/30'}"
+              class="h-2 rounded-full transition-all duration-300 cursor-pointer {idx === currentIndex ? 'w-7 bg-[#FF2400]' : 'w-2 bg-white/20 hover:bg-white/40'}"
               aria-label="Ir a {b.name}"
             ></button>
           {/each}
@@ -634,12 +634,12 @@
 
         <!-- Botones Gordos Grandes en Píldora con Curva Apple (Mismo grosor y altura que la carta) -->
         <div class="pill-buttons-container absolute top-[calc(100%+4.4rem)] sm:top-[calc(100%+5rem)] left-1/2 -translate-x-1/2 w-[calc(100vw-2.5rem)] max-w-md md:max-w-xl flex items-center justify-center gap-3 sm:gap-4 z-30 pointer-events-auto">
-          <!-- 1. Botón Ingredientes (Blanco, gordo alto, estilo carta) -->
+          <!-- 1. Botón Ingredientes (Estilo card oscura, gordo alto) -->
           <button
             bind:this={ingredientsBtnEl}
             type="button"
             onclick={openIngredientsModal}
-            class="pill-action-btn flex-1 min-h-[76px] sm:min-h-[82px] md:min-h-[88px] rounded-full bg-white text-[#3A3A3C] font-display font-extrabold text-lg sm:text-xl md:text-2xl tracking-tight border border-black/30 shadow-xs hover:shadow-sm hover:bg-[#FAF6EE] active:scale-[0.97] transition-all duration-150 flex items-center justify-center cursor-pointer select-none px-4"
+            class="pill-action-btn flex-1 min-h-[76px] sm:min-h-[82px] md:min-h-[88px] rounded-full bg-char-card text-bone font-display font-extrabold text-lg sm:text-xl md:text-2xl tracking-tight border border-white/10 shadow-xs hover:bg-char-card-hover active:scale-[0.97] transition-all duration-150 flex items-center justify-center cursor-pointer select-none px-4"
           >
             Ingredientes
           </button>
@@ -664,13 +664,13 @@
     </div>
 
     <!-- 4. BARRA INFERIOR DE ACCIÓN: PRECIO Y MI ORDEN -->
-    <div class="burger-bottom-bar flex items-center justify-between pt-2.5 pb-1 border-t border-black/[0.06] mt-auto shrink-0 z-20 px-5 sm:px-6">
+    <div class="burger-bottom-bar flex items-center justify-between pt-2.5 pb-1 border-t border-white/10 mt-auto shrink-0 z-20 px-5 sm:px-6">
       <!-- Precio a la izquierda -->
       <div class="flex flex-col">
         <span class="font-mono text-[10px] sm:text-xs uppercase text-ash tracking-wider">
           Precio
         </span>
-        <span class="font-display font-extrabold text-2xl sm:text-3xl lg:text-4xl text-[#3A3A3C] tracking-tight">
+        <span class="font-display font-extrabold text-2xl sm:text-3xl lg:text-4xl text-bone tracking-tight">
           {formatCOP(currentBurger.price)}
         </span>
       </div>
@@ -680,7 +680,7 @@
         bind:this={orderBtnEl}
         type="button"
         onclick={openOrderModal}
-        class="pill-action-btn min-h-[76px] sm:min-h-[82px] md:min-h-[88px] rounded-full bg-white text-[#3A3A3C] font-display font-extrabold text-lg sm:text-xl md:text-2xl tracking-tight border border-black/30 shadow-xs hover:shadow-sm hover:bg-[#FAF6EE] active:scale-[0.97] transition-all duration-150 flex items-center justify-center gap-3 cursor-pointer select-none px-6 sm:px-8 shrink-0"
+        class="pill-action-btn min-h-[76px] sm:min-h-[82px] md:min-h-[88px] rounded-full bg-char-card text-bone font-display font-extrabold text-lg sm:text-xl md:text-2xl tracking-tight border border-white/10 shadow-xs hover:bg-char-card-hover active:scale-[0.97] transition-all duration-150 flex items-center justify-center gap-3 cursor-pointer select-none px-6 sm:px-8 shrink-0"
         aria-label="Ver mi orden ({store.cartCount} productos añadidos)"
       >
         <span>Mi orden</span>
@@ -693,8 +693,6 @@
     </div>
 
   </div>
-
-  <!-- TARJETA EDITORIAL DE INGREDIENTES (IDÉNTICA A LA TARJETA DE LA PANTALLA DE INICIO CON ANIMACIÓN GSAP) -->
 
   <!-- TARJETA EDITORIAL DE INGREDIENTES (IDÉNTICA A LA TARJETA DE LA PANTALLA DE INICIO CON ANIMACIÓN GSAP) -->
   {#if showIngredients}
@@ -710,7 +708,7 @@
       <div 
         bind:this={cardEl}
         data-lenis-prevent
-        class="welcome-card-modal w-full h-full lg:max-w-[94vw] xl:max-w-[1440px] 2xl:max-w-[1560px] lg:h-[88vh] xl:h-[90vh] bg-[#FAF6EE] shadow-2xl lg:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.6)] relative border border-black/30 rounded-[38px] sm:rounded-[48px] overflow-hidden cursor-default flex flex-col p-6 sm:p-10 md:p-14 lg:p-16 justify-between text-[#3A3A3C]"
+        class="welcome-card-modal w-full h-full lg:max-w-[94vw] xl:max-w-[1440px] 2xl:max-w-[1560px] lg:h-[88vh] xl:h-[90vh] bg-char shadow-2xl lg:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] relative border border-white/10 rounded-[38px] sm:rounded-[48px] overflow-hidden cursor-default flex flex-col p-6 sm:p-10 md:p-14 lg:p-16 justify-between text-bone"
         style="container-type: inline-size; touch-action: pan-y;"
         onclick={(e) => e.stopPropagation()}
       >
@@ -718,7 +716,7 @@
         <button 
           type="button"
           onclick={closeIngredientsModal}
-          class="absolute top-5 right-5 lg:top-7 lg:right-7 w-10 h-10 rounded-full bg-black/[0.06] hover:bg-black/[0.12] active:scale-95 flex items-center justify-center text-char/80 hover:text-char transition-all cursor-pointer shadow-sm z-30 shrink-0"
+          class="absolute top-5 right-5 lg:top-7 lg:right-7 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 flex items-center justify-center text-bone transition-all cursor-pointer shadow-sm z-30 shrink-0"
           aria-label="Cerrar ingredientes"
         >
           <X class="w-5 h-5 stroke-[2.2]" />
@@ -727,7 +725,7 @@
         <!-- Nombre de la Hamburguesa (Editorial de alta legibilidad Playfair Display / Cormorant) -->
         <header class="select-none pr-14 shrink-0">
           <h2 
-            class="burger-modal-title uppercase tracking-tight leading-none text-3xl sm:text-5xl md:text-6xl lg:text-7xl text-[#1A1A1D] font-extrabold"
+            class="burger-modal-title uppercase tracking-tight leading-none text-3xl sm:text-5xl md:text-6xl lg:text-7xl text-bone font-extrabold"
             style="font-family: 'Playfair Display', 'Cormorant Garamond', Georgia, serif;"
           >
             {currentBurger.name}
@@ -740,7 +738,7 @@
             {@const isHighlighted = idx === currentBurger.highlightIndex}
             <div class="flex items-start group">
               <span 
-                class="ingredient-item-text uppercase tracking-normal leading-[1.14] select-none text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl transition-colors duration-200 {isHighlighted ? 'text-[#FF2400] font-bold' : 'text-[#1A1A1D] font-semibold'}"
+                class="ingredient-item-text uppercase tracking-normal leading-[1.14] select-none text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl transition-colors duration-200 {isHighlighted ? 'text-[#FF2400] font-bold' : 'text-bone font-semibold'}"
                 style="font-family: 'Playfair Display', 'Cormorant Garamond', Georgia, serif;"
               >
                 {item}

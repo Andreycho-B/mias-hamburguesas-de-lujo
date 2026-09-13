@@ -47,7 +47,7 @@
 </script>
 
 <section 
-  class="relative min-h-[100dvh] w-full flex flex-col justify-between bg-[#FAF6EE] text-[#3A3A3C] select-none"
+  class="relative min-h-[100dvh] w-full flex flex-col justify-between bg-char text-bone select-none"
   style="padding-top: max(1rem, env(safe-area-inset-top, 0px)); padding-bottom: max(1.25rem, env(safe-area-inset-bottom, 0px)); padding-left: max(1.25rem, env(safe-area-inset-left, 0px)); padding-right: max(1.25rem, env(safe-area-inset-right, 0px));"
 >
   <div class="w-full max-w-md md:max-w-4xl lg:max-w-5xl mx-auto flex-1 flex flex-col">
@@ -57,7 +57,7 @@
       <button
         type="button"
         onclick={onBack}
-        class="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white border border-black/5 flex items-center justify-center text-[#3A3A3C] hover:bg-black/5 active:scale-90 transition-all cursor-pointer group shrink-0 shadow-2xs"
+        class="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-char-card border border-white/10 flex items-center justify-center text-bone hover:bg-char-card-hover active:scale-90 transition-all cursor-pointer group shrink-0 shadow-2xs"
         aria-label="Volver a la carta"
       >
         <ChevronLeft class="w-6 h-6 sm:w-7 sm:h-7 stroke-[2.2] -translate-x-0.5 group-hover:-translate-x-1 transition-transform" />
@@ -67,7 +67,7 @@
         <span class="font-mono text-[10px] sm:text-xs uppercase tracking-widest text-ash font-bold block">
           {kicker}
         </span>
-        <h1 class="font-flourish text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-normal tracking-tight text-[#0C0C0E]">
+        <h1 class="font-flourish text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-normal tracking-tight text-bone">
           {title}
         </h1>
       </div>
@@ -80,11 +80,11 @@
     {#if heroImage}
       <div class="mt-3 sm:mt-5 mb-5 sm:mb-7 flex flex-col items-center justify-center text-center">
         <div class="relative w-full max-w-[320px] sm:max-w-[380px] md:max-w-[440px] aspect-[16/10] flex items-center justify-center">
-          <div class="absolute bottom-1 w-52 sm:w-64 h-4 rounded-[100%] bg-black/10 blur-[4px] pointer-events-none"></div>
+          <div class="absolute bottom-1 w-52 sm:w-64 h-4 rounded-[100%] bg-black/40 blur-[5px] pointer-events-none"></div>
           <img 
             src={heroImage} 
             alt={title} 
-            class="w-full h-full object-contain pointer-events-none select-none drop-shadow-md"
+            class="w-full h-full object-contain pointer-events-none select-none drop-shadow-[0_10px_20px_rgba(0,0,0,0.5)]"
             loading="eager"
           />
         </div>
@@ -108,7 +108,7 @@
         {#each categoryProducts as item (item.id)}
           {@const isAdded = addedItemId === item.id}
           {@const isFeatured = featuredSlug ? item.slug === featuredSlug : (item.is_chef_choice || item.is_bestseller)}
-          <div class="bg-white rounded-[28px] sm:rounded-[34px] border {isFeatured ? 'border-[#FF2400]/30 shadow-sm' : 'border-black/[0.08] shadow-2xs'} p-5 flex flex-col justify-between transition-all select-none hover:shadow-xs">
+          <div class="bg-char-card rounded-[28px] sm:rounded-[34px] border {isFeatured ? 'border-[#FF2400]/40 shadow-sm' : 'border-white/10 shadow-2xs'} p-5 flex flex-col justify-between transition-all select-none hover:border-white/20">
             <div class="min-w-0 pr-1">
               <div class="flex items-center gap-1.5 mb-1">
                 <span class="text-[10px] sm:text-xs font-mono font-bold uppercase tracking-wider {isFeatured ? 'text-[#FF2400]' : 'text-ash'}">
@@ -119,7 +119,7 @@
                 {/if}
               </div>
 
-              <h2 class="font-display font-black text-lg sm:text-xl text-[#0C0C0E] tracking-tight">
+              <h2 class="font-display font-black text-lg sm:text-xl text-bone tracking-tight">
                 {item.name}
               </h2>
 
@@ -128,7 +128,7 @@
               </p>
             </div>
 
-            <div class="mt-4 pt-3 border-t border-black/[0.05] flex items-center justify-between gap-3">
+            <div class="mt-4 pt-3 border-t border-white/10 flex items-center justify-between gap-3">
               <span class="font-display font-black text-lg sm:text-xl text-[#FF2400] tracking-tight">
                 {formatCOP(item.price)}
               </span>
@@ -156,7 +156,7 @@
         {#each categoryProducts as item (item.id)}
           {@const isAdded = addedItemId === item.id}
           {@const isFeatured = featuredSlug ? item.slug === featuredSlug : (item.is_chef_choice || item.is_bestseller)}
-          <div class="bg-white rounded-[30px] sm:rounded-[36px] border {isFeatured ? 'border-[#FF2400]/30 shadow-sm' : 'border-black/[0.08] shadow-2xs'} p-5 sm:p-6 transition-all hover:shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4 select-none relative">
+          <div class="bg-char-card rounded-[30px] sm:rounded-[36px] border {isFeatured ? 'border-[#FF2400]/40 shadow-sm' : 'border-white/10 shadow-2xs'} p-5 sm:p-6 transition-all hover:border-white/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4 select-none relative">
             <!-- Contenido Descriptivo -->
             <div class="flex-1 min-w-0 pr-0 sm:pr-4">
               <div class="flex items-center gap-2 mb-1">
@@ -168,7 +168,7 @@
                 {/if}
               </div>
 
-              <h2 class="font-display font-black text-xl sm:text-2xl text-[#0C0C0E] tracking-tight">
+              <h2 class="font-display font-black text-xl sm:text-2xl text-bone tracking-tight">
                 {item.name}
               </h2>
 
@@ -206,17 +206,17 @@
   </div>
 
   <!-- 4. BARRA INFERIOR FIJA: BOTÓN MI ORDEN CON PRIORIDAD TÁCTIL -->
-  <div class="fixed bottom-0 left-0 right-0 z-40 bg-gradient-to-t from-[#FAF6EE] via-[#FAF6EE]/95 to-transparent pt-6 pb-5 px-5 sm:px-8 pointer-events-none">
+  <div class="fixed bottom-0 left-0 right-0 z-40 bg-gradient-to-t from-char via-char/95 to-transparent pt-6 pb-5 px-5 sm:px-8 pointer-events-none">
     <div class="max-w-md md:max-w-4xl lg:max-w-5xl mx-auto flex items-center justify-between pointer-events-auto gap-4">
       <div class="hidden sm:flex flex-col">
         <span class="font-mono text-xs uppercase tracking-wider text-ash">Mías • Orden Activa</span>
-        <span class="font-display font-bold text-sm text-[#0C0C0E]">{store.cartCount} productos en tu carrito</span>
+        <span class="font-display font-bold text-sm text-bone">{store.cartCount} productos en tu carrito</span>
       </div>
 
       <button
         type="button"
         onclick={openOrder}
-        class="w-full sm:w-auto ml-auto min-h-[72px] sm:min-h-[76px] px-8 sm:px-10 rounded-full bg-white text-[#3A3A3C] font-display font-extrabold text-lg sm:text-xl tracking-tight border border-black/30 shadow-lg hover:shadow-xl hover:bg-[#FAF6EE] active:scale-[0.97] transition-all flex items-center justify-center gap-3.5 cursor-pointer select-none"
+        class="w-full sm:w-auto ml-auto min-h-[72px] sm:min-h-[76px] px-8 sm:px-10 rounded-full bg-char-card text-bone font-display font-extrabold text-lg sm:text-xl tracking-tight border border-white/10 shadow-lg hover:bg-char-card-hover active:scale-[0.97] transition-all flex items-center justify-center gap-3.5 cursor-pointer select-none"
         aria-label="Ver mi orden ({store.cartCount} productos)"
       >
         <span>Mi orden</span>
