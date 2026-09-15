@@ -89,25 +89,25 @@
       onComplete: () => {
         isModalAnimating = false;
         if (cardEl) {
-          gsap.set(cardEl, { clearProps: 'transform' });
+          gsap.set(cardEl, { scale: 1, opacity: 1, force3D: true });
         }
       }
     });
 
-    // 1. Fondo oscuro cinematográfico (Misma animación que inicio)
+    // 1. Fondo oscuro cinematográfico (120 FPS power3 curve)
     tl.to(modalBackdropEl, {
       opacity: 1,
-      duration: 0.28,
-      ease: 'power2.out',
+      duration: 0.30,
+      ease: 'power3.out',
       force3D: true
     }, 0);
 
-    // 2. Expansión fluida de la tarjeta estilo Apple Spring (Misma animación que inicio)
+    // 2. Expansión fluida de la tarjeta estilo Apple Spring (120 FPS power3 curve)
     tl.to(cardEl, {
       scale: 1,
       opacity: 1,
-      duration: 0.30,
-      ease: 'power2.out',
+      duration: 0.32,
+      ease: 'power3.out',
       force3D: true
     }, 0);
   }
@@ -148,22 +148,22 @@
       }
     });
 
-    // Colapso en espejo de la tarjeta hacia el botón (Misma animación que inicio)
+    // Colapso en espejo de la tarjeta hacia el botón (120 FPS)
     tl.to(cardEl, {
-      scale: 0.18,
-      opacity: 0,
-      duration: 0.22,
-      ease: 'power2.in',
-      force3D: true
-    }, 0);
+       scale: 0.18,
+       opacity: 0,
+       duration: 0.24,
+       ease: 'power3.in',
+       force3D: true
+     }, 0);
 
-    // Desvanecimiento del fondo oscuro
+    // Desvanecimiento del fondo oscuro (120 FPS)
     tl.to(modalBackdropEl, {
-      opacity: 0,
-      duration: 0.20,
-      ease: 'power2.in',
-      force3D: true
-    }, 0.02);
+       opacity: 0,
+       duration: 0.22,
+       ease: 'power3.in',
+       force3D: true
+     }, 0.02);
   }
 
   function openOrderModal(e) {
@@ -214,20 +214,9 @@
     }, 500);
   }
 
-  // 6 Hamburguesas de Autor de Mías
-  const burgers = [
-    {
-      id: 1,
-      category_id: 1,
-      slug: 'original',
-      name: 'Original',
+  const defaultBurgerMetadata = {
+    original: {
       shortDesc: 'Pan pretzel artesanal, 160g de res al carbón, tocineta crujiente y mozzarella fundido.',
-      description: 'Pan pretzel, 160gr de carne de res premium, tocineta crujiente, queso mozzarella, cebolla caramelizada, tomate, salsa de la casa.',
-      price: 17000,
-      bread_type: 'pretzel',
-      image_url: '/imagenes/hamburguesas/Orignal.webp',
-      is_bestseller: true,
-      is_chef_choice: false,
       badge: 'La Clásica de Autor',
       highlight: '160g Res al Carbón',
       highlightIndex: 2,
@@ -241,18 +230,8 @@
         'SALSA DE LA CASA'
       ]
     },
-    {
-      id: 2,
-      category_id: 1,
-      slug: 'crispy',
-      name: 'Crispy',
+    crispy: {
       shortDesc: 'Pan pretzel artesanal, pechuga apanada crujiente, coleslaw de repollo y miel mostaza.',
-      description: 'Pan pretzel, carne de pechuga apanada, queso mozzarella, ensalada coleslaw de repollo, pepinillos agridulces encurtidos, salsa miel mostaza artesanal.',
-      price: 17000,
-      bread_type: 'pretzel',
-      image_url: '/imagenes/hamburguesas/Crispy.webp',
-      is_bestseller: false,
-      is_chef_choice: false,
       badge: 'Pechuga Crujiente',
       highlight: 'Coleslaw & Miel Mostaza',
       highlightIndex: 1,
@@ -265,18 +244,8 @@
         'SALSA MIEL MOSTAZA'
       ]
     },
-    {
-      id: 3,
-      category_id: 1,
-      slug: 'dorada',
-      name: 'Dorada',
+    dorada: {
       shortDesc: 'Pan pretzel, 160g de res al carbón, queso Paipa fundido, piña glaseada al ron oscuro y alioli.',
-      description: 'Pan pretzel, 160gr de carne de res premium, queso Paipa fundido, piña glaseada al ron oscuro, tocineta crujiente, cebolla caramelizada, alioli de ajo rostizado artesanal.',
-      price: 23000,
-      bread_type: 'pretzel',
-      image_url: '/imagenes/hamburguesas/Golden.webp',
-      is_bestseller: true,
-      is_chef_choice: true,
       badge: 'Elección del Chef',
       highlight: 'Queso Paipa & Ron Oscuro',
       highlightIndex: 2,
@@ -290,18 +259,8 @@
         'ALIOLI DE AJO ROSTIZADO'
       ]
     },
-    {
-      id: 4,
-      category_id: 1,
-      slug: 'criolla',
-      name: 'Criolla',
+    criolla: {
       shortDesc: 'Pan pretzel, 160g de res al carbón, suero costeño, plátano maduro en cubitos y cebolla morada.',
-      description: 'Pan pretzel, 160gr de carne de res premium, base de suero costeño, cubitos de plátano maduro, cebolla morada encurtida, lechuga en chiffonade.',
-      price: 23000,
-      bread_type: 'pretzel',
-      image_url: '/imagenes/hamburguesas/Criolla.webp',
-      is_bestseller: false,
-      is_chef_choice: false,
       badge: 'Sabor Tradición',
       highlight: 'Suero Costeño & Plátano',
       highlightIndex: 3,
@@ -314,18 +273,8 @@
         'LECHUGA EN CHIFFONADE'
       ]
     },
-    {
-      id: 5,
-      category_id: 1,
-      slug: 'brava',
-      name: 'Brava',
+    brava: {
       shortDesc: 'Pan pretzel, 160g de res al carbón, queso colby jack, aguacate, cebolla al tequila y chipotle.',
-      description: 'Pan pretzel, 160gr de carne de res premium, queso colby jack, crema de aguacate, mermelada de cebolla al tequila, slaw de repollo y cilantro, mayonesa de chipotle artesanal.',
-      price: 26000,
-      bread_type: 'pretzel',
-      image_url: '/imagenes/hamburguesas/Brava.webp',
-      is_bestseller: false,
-      is_chef_choice: true,
       badge: 'Gourmet Picante',
       highlight: 'Cebolla al Tequila & Chipotle',
       highlightIndex: 4,
@@ -339,18 +288,8 @@
         'MAYONESA DE CHIPOTLE'
       ]
     },
-    {
-      id: 6,
-      category_id: 1,
-      slug: 'suprema',
-      name: 'Suprema',
+    suprema: {
       shortDesc: 'Pan pretzel, doble carne premium de 320g, cheddar americano, tocineta y cebolla caramelizada.',
-      description: 'Pan pretzel, doble carne premium (res, pechuga apanada o mixta), queso cheddar americano, cebolla caramelizada, tocineta crujiente, salsas de la casa.',
-      price: 28000,
-      bread_type: 'pretzel',
-      image_url: '/imagenes/hamburguesas/Suprema.webp',
-      is_bestseller: true,
-      is_chef_choice: false,
       badge: 'Doble Poder 320g',
       highlight: 'Doble Res & Cheddar',
       highlightIndex: 1,
@@ -363,11 +302,29 @@
         'SALSAS DE LA CASA'
       ]
     }
-  ];
+  };
+
+  // Hamburguesas sincronizadas dinámicamente con el store y enriquecidas con metadatos visuales
+  let burgers = $derived.by(() => {
+    const list = store.products.filter((p) => p.category_id === 1);
+    if (!list || list.length === 0) return [];
+    return list.map((p) => {
+      const meta = defaultBurgerMetadata[p.slug] || {};
+      const customMeta = typeof p.metadata === 'object' && p.metadata !== null ? p.metadata : {};
+      return {
+        ...p,
+        shortDesc: customMeta.shortDesc || meta.shortDesc || p.description,
+        badge: customMeta.badge || meta.badge || (p.is_chef_choice ? 'Elección del Chef' : p.is_bestseller ? 'La Más Vendida' : 'Hamburguesa de Autor'),
+        highlight: customMeta.highlight || meta.highlight || '160g Res al Carbón',
+        highlightIndex: customMeta.highlightIndex ?? meta.highlightIndex ?? 1,
+        ingredients: customMeta.ingredients || meta.ingredients || (p.description ? p.description.split(',').map((s) => s.trim().toUpperCase()) : ['PAN PRETZEL', 'CARNE PREMIUM', 'QUESO FUNDIDO'])
+      };
+    });
+  });
 
   // Estado del carrusel de hamburguesas
-  let currentIndex = $state(2); // Inicia en 'Dorada' (la favorita del chef)
-  let currentBurger = $derived(burgers[currentIndex]);
+  let currentIndex = $state(2); // Inicia en 'Dorada' (la favorita del chef) o el índice seguro
+  let currentBurger = $derived(burgers[currentIndex] || burgers[0] || {});
 
   let isFavorite = $state(false);
   let isAddingToCart = $state(false);
@@ -381,11 +338,13 @@
   }
 
   function nextBurger() {
+    if (burgers.length === 0) return;
     currentIndex = (currentIndex + 1) % burgers.length;
     isFavorite = false;
   }
 
   function prevBurger() {
+    if (burgers.length === 0) return;
     currentIndex = (currentIndex - 1 + burgers.length) % burgers.length;
     isFavorite = false;
   }
@@ -522,7 +481,7 @@
       <button 
         type="button"
         onclick={handleBack}
-        class="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-char-card border border-white/10 flex items-center justify-center text-bone hover:bg-char-card-hover active:scale-90 transition-all cursor-pointer group shrink-0"
+        class="btn-gold-outline w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center text-bone active:scale-90 transition-all cursor-pointer group shrink-0"
         aria-label="Volver a la carta principal"
       >
         <ChevronLeft class="w-6 h-6 sm:w-7 sm:h-7 stroke-[2.2] -translate-x-0.5 group-hover:-translate-x-1 transition-transform" />
@@ -539,7 +498,7 @@
       <button 
         type="button"
         onclick={() => isFavorite = !isFavorite}
-        class="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-char-card border border-white/10 flex items-center justify-center transition-all cursor-pointer active:scale-95 shrink-0 {isFavorite ? 'text-[#FF2400] border-[#FF2400]/40' : 'text-ash hover:text-bone'}"
+        class="btn-gold-outline w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center transition-all cursor-pointer active:scale-95 shrink-0 {isFavorite ? 'text-[#FF2400]' : 'text-ash hover:text-bone'}"
         aria-label="Marcar como favorita"
       >
         <Heart class="w-6 h-6 sm:w-6.5 sm:h-6.5 {isFavorite ? 'fill-[#FF2400]' : ''}" />
@@ -639,18 +598,18 @@
             bind:this={ingredientsBtnEl}
             type="button"
             onclick={openIngredientsModal}
-            class="pill-action-btn flex-1 min-h-[76px] sm:min-h-[82px] md:min-h-[88px] rounded-full bg-char-card text-bone font-display font-extrabold text-lg sm:text-xl md:text-2xl tracking-tight border border-white/10 shadow-xs hover:bg-char-card-hover active:scale-[0.97] transition-all duration-150 flex items-center justify-center cursor-pointer select-none px-4"
+            class="pill-action-btn btn-gold-outline flex-1 min-h-[76px] sm:min-h-[82px] md:min-h-[88px] rounded-full text-bone font-display font-extrabold text-lg sm:text-xl md:text-2xl tracking-tight shadow-xs active:scale-[0.97] transition-all duration-150 flex items-center justify-center cursor-pointer select-none px-4"
           >
             Ingredientes
           </button>
 
-          <!-- 2. Botón Añadir (Rojo vivo, gordo alto, estilo carta) -->
+          <!-- 2. Botón Añadir (Rojo vivo con borde dorado biselado) -->
           <button
             type="button"
             onclick={(e) => { e.stopPropagation(); handleAddToCart(); }}
             ontouchstart={(e) => e.stopPropagation()}
             disabled={isAddingToCart}
-            class="pill-action-btn flex-1 min-h-[76px] sm:min-h-[82px] md:min-h-[88px] rounded-full bg-[#FF2400] text-white font-display font-extrabold text-lg sm:text-xl md:text-2xl tracking-tight border border-[#FF2400] shadow-sm hover:shadow-md hover:bg-[#E02000] active:scale-[0.97] transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer select-none px-4"
+            class="pill-action-btn btn-gold-red flex-1 min-h-[76px] sm:min-h-[82px] md:min-h-[88px] rounded-full text-white font-display font-extrabold text-lg sm:text-xl md:text-2xl tracking-tight shadow-md active:scale-[0.97] transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer select-none px-4"
           >
             {#if isAddingToCart}
               <Check class="w-6 h-6 stroke-[2.5] animate-in zoom-in-50 duration-150" />
@@ -680,7 +639,7 @@
         bind:this={orderBtnEl}
         type="button"
         onclick={openOrderModal}
-        class="pill-action-btn min-h-[76px] sm:min-h-[82px] md:min-h-[88px] rounded-full bg-char-card text-bone font-display font-extrabold text-lg sm:text-xl md:text-2xl tracking-tight border border-white/10 shadow-xs hover:bg-char-card-hover active:scale-[0.97] transition-all duration-150 flex items-center justify-center gap-3 cursor-pointer select-none px-6 sm:px-8 shrink-0"
+        class="pill-action-btn btn-gold-outline min-h-[76px] sm:min-h-[82px] md:min-h-[88px] rounded-full text-bone font-display font-extrabold text-lg sm:text-xl md:text-2xl tracking-tight shadow-xs active:scale-[0.97] transition-all duration-150 flex items-center justify-center gap-3 cursor-pointer select-none px-6 sm:px-8 shrink-0"
         aria-label="Ver mi orden ({store.cartCount} productos añadidos)"
       >
         <span>Mi orden</span>
@@ -708,22 +667,22 @@
       <div 
         bind:this={cardEl}
         data-lenis-prevent
-        class="welcome-card-modal w-full h-full lg:max-w-[94vw] xl:max-w-[1440px] 2xl:max-w-[1560px] lg:h-[88vh] xl:h-[90vh] bg-char shadow-2xl lg:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] relative border border-white/10 rounded-[38px] sm:rounded-[48px] overflow-hidden cursor-default flex flex-col p-6 sm:p-10 md:p-14 lg:p-16 justify-between text-bone"
-        style="container-type: inline-size; touch-action: pan-y;"
+        class="welcome-card-modal gold-border-card w-full h-full lg:max-w-[94vw] xl:max-w-[1440px] 2xl:max-w-[1560px] lg:h-[88vh] xl:h-[90vh] shadow-2xl lg:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] relative rounded-[38px] sm:rounded-[48px] overflow-hidden cursor-default flex flex-col p-6 sm:p-10 md:p-14 lg:p-16 justify-between text-bone"
+        style="container-type: inline-size; touch-action: pan-y; --gold-card-bg: #0C0C0E;"
         onclick={(e) => e.stopPropagation()}
       >
-        <!-- Botón Cerrar Flotante Apple Standard (top-5 right-5 idéntico a IntroScreen) -->
+        <!-- Botón Cerrar Flotante Apple Standard con aro dorado (Mismo tamaño que botón atrás y corazón) -->
         <button 
           type="button"
           onclick={closeIngredientsModal}
-          class="absolute top-5 right-5 lg:top-7 lg:right-7 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 flex items-center justify-center text-bone transition-all cursor-pointer shadow-sm z-30 shrink-0"
+          class="btn-gold-outline absolute top-4 right-4 sm:top-6 sm:right-6 lg:top-7 lg:right-7 w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center text-bone active:scale-90 transition-all cursor-pointer shadow-md z-30 shrink-0"
           aria-label="Cerrar ingredientes"
         >
-          <X class="w-5 h-5 stroke-[2.2]" />
+          <X class="w-6 h-6 sm:w-7 sm:h-7 stroke-[2.2]" />
         </button>
 
         <!-- Nombre de la Hamburguesa (Editorial de alta legibilidad Playfair Display / Cormorant) -->
-        <header class="select-none pr-14 shrink-0">
+        <header class="select-none pr-16 sm:pr-20 md:pr-24 shrink-0">
           <h2 
             class="burger-modal-title uppercase tracking-tight leading-none text-3xl sm:text-5xl md:text-6xl lg:text-7xl text-bone font-extrabold"
             style="font-family: 'Playfair Display', 'Cormorant Garamond', Georgia, serif;"

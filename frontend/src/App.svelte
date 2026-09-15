@@ -11,8 +11,8 @@
   import StampBooklet from './components/StampBooklet.svelte';
   import StaffPanels from './components/StaffPanels.svelte';
   import AuthModal from './components/AuthModal.svelte';
-  import SidebarMenu from './components/SidebarMenu.svelte';
   import IntroScreen from './components/IntroScreen.svelte';
+  import OrdersScreen from './components/OrdersScreen.svelte';
   import { Sparkles, Award } from 'lucide-svelte';
 
   let homeRootEl = $state(null);
@@ -103,7 +103,47 @@
     }
   });
 
-  const isMenuCategoryView = $derived(['menu', 'hamburguesas', 'perros', 'de_la_casa', 'adicionales', 'bebidas'].includes(store.currentView));
+  const categoryConfig = {
+    hamburguesas: {
+      type: 'burgers'
+    },
+    perros: {
+      kicker: 'Mías • Línea de Autor',
+      heroImage: '/imagenes/perros/perro.png',
+      heroSubtitle: 'Pan brioche artesanal dorado a la mantequilla con embutidos premium y salsas de la casa.',
+      featuredSlug: 'parrillero-choriperro',
+      featuredBadge: '★ RECOMENDADO DEL CHEF',
+      defaultBadge: 'RECETA TRADICIONAL',
+      breadInfo: 'Pan Brioche'
+    },
+    de_la_casa: {
+      kicker: 'Mías • Tradición Gastronómica',
+      heroImage: '/imagenes/de_la_casa/salchi_papa.png',
+      heroSubtitle: 'Recetas tradicionales de la casa preparadas con papas seleccionadas y carnes premium.',
+      featuredSlug: 'salchipapa-especial',
+      featuredBadge: '★ FAVORITA DE LA CASA',
+      defaultBadge: 'ESPECIALIDAD'
+    },
+    adicionales: {
+      kicker: 'Mías • Acompañamientos y Extras',
+      heroSubtitle: 'Personaliza cada bocado con porciones adicionales, salsas de autor y papas rústicas al carbón.',
+      featuredSlug: 'combo-papa-gaseosa',
+      featuredBadge: '★ COMBO RECOMENDADO',
+      defaultBadge: 'PORCIÓN EXTRA',
+      layout: 'grid'
+    },
+    bebidas: {
+      kicker: 'Mías • Línea en Vidrio y Refrescos',
+      heroImage: '/imagenes/bebidas/bretana-vidrio.png',
+      heroSubtitle: 'Gaseosas frías y bebidas refrescantes servidas en vidrio tradicional.',
+      featuredSlug: 'bretana-vidrio',
+      featuredBadge: '★ CLÁSICA EN VIDRIO',
+      defaultBadge: 'REFRESCO'
+    }
+  };
+
+  const activeCategory = $derived(store.categories.find(c => c.slug === store.currentView));
+  const isMenuCategoryView = $derived(['menu', ...store.categories.map(c => c.slug)].includes(store.currentView));
   const isStaff = $derived(Boolean(store.user && ['waiter', 'cashier', 'admin'].includes(store.user.role)) || store.currentView === 'staff');
 </script>
 
@@ -136,80 +176,35 @@
           }}
         />
 
-      {:else if store.currentView === 'hamburguesas'}
-        <!-- Pantalla Completa de Hamburguesas de Autor -->
-        <BurgersScreen onBack={() => store.currentView = 'menu'} />
+      {:else if activeCategory}
+        {#if activeCategory.slug === 'hamburguesas' || activeCategory.id === 1}
+          <!-- Pantalla Completa de Hamburguesas de Autor -->
+          <BurgersScreen onBack={() => store.currentView = 'menu'} />
+        {:else}
+          {@const config = categoryConfig[activeCategory.slug] || {}}
+          <!-- Pantalla Dinámica de Categoría Gobernada por DB -->
+          <CategoryScreen 
+            categoryId={activeCategory.id}
+            title={activeCategory.name}
+            kicker={activeCategory.metadata?.kicker || config.kicker || `Mías • ${activeCategory.name}`}
+            heroImage={activeCategory.metadata?.heroImage || config.heroImage || ''}
+            heroSubtitle={activeCategory.metadata?.heroSubtitle || config.heroSubtitle || `Platos seleccionados de ${activeCategory.name}.`}
+            featuredSlug={activeCategory.metadata?.featuredSlug || config.featuredSlug || ''}
+            featuredBadge={activeCategory.metadata?.featuredBadge || config.featuredBadge || '★ RECOMENDADO'}
+            defaultBadge={activeCategory.metadata?.defaultBadge || config.defaultBadge || 'ESPECIALIDAD'}
+            breadInfo={activeCategory.metadata?.breadInfo || config.breadInfo || ''}
+            layout={activeCategory.metadata?.layout || config.layout || 'list'}
+            onBack={() => store.currentView = 'menu'} 
+          />
+        {/if}
 
-      {:else if store.currentView === 'perros'}
-        <!-- Pantalla Completa de Perros Calientes -->
-        <CategoryScreen 
-          categoryId={2}
-          title="Perros Calientes"
-          kicker="Mías • Línea de Autor"
-          heroImage="/imagenes/perros/perro.png"
-          heroSubtitle="Pan brioche artesanal dorado a la mantequilla con embutidos premium y salsas de la casa."
-          featuredSlug="parrillero-choriperro"
-          featuredBadge="★ RECOMENDADO DEL CHEF"
-          defaultBadge="RECETA TRADICIONAL"
-          breadInfo="Pan Brioche"
-          onBack={() => store.currentView = 'menu'} 
-        />
-
-      {:else if store.currentView === 'de_la_casa'}
-        <!-- Pantalla Completa De la Casa -->
-        <CategoryScreen 
-          categoryId={3}
-          title="De la Casa"
-          kicker="Mías • Tradición Gastronómica"
-          heroImage="/imagenes/de_la_casa/salchi_papa.png"
-          heroSubtitle="Recetas tradicionales de la casa preparadas con papas seleccionadas y carnes premium."
-          featuredSlug="salchipapa-especial"
-          featuredBadge="★ FAVORITA DE LA CASA"
-          defaultBadge="ESPECIALIDAD"
-          onBack={() => store.currentView = 'menu'} 
-        />
-
-      {:else if store.currentView === 'adicionales'}
-        <!-- Pantalla Completa de Adicionales y Acompañamientos -->
-        <CategoryScreen 
-          categoryId={5}
-          title="Adicionales"
-          kicker="Mías • Acompañamientos y Extras"
-          heroSubtitle="Personaliza cada bocado con porciones adicionales, salsas de autor y papas rústicas al carbón."
-          featuredSlug="combo-papa-gaseosa"
-          featuredBadge="★ COMBO RECOMENDADO"
-          defaultBadge="PORCIÓN EXTRA"
-          layout="grid"
-          onBack={() => store.currentView = 'menu'} 
-        />
-
-      {:else if store.currentView === 'bebidas'}
-        <!-- Pantalla Completa de Bebidas frías y en vidrio -->
-        <CategoryScreen 
-          categoryId={4}
-          title="Bebidas"
-          kicker="Mías • Línea en Vidrio y Refrescos"
-          heroImage="/imagenes/bebidas/bretana-vidrio.png"
-          heroSubtitle="Gaseosas frías y bebidas refrescantes servidas en vidrio tradicional."
-          featuredSlug="bretana-vidrio"
-          featuredBadge="★ CLÁSICA EN VIDRIO"
-          defaultBadge="REFRESCO"
-          onBack={() => store.currentView = 'menu'} 
-        />
+      {:else if store.currentView === 'orders'}
+        <!-- Vista de Mis Pedidos y Seguimiento en Vivo -->
+        <OrdersScreen onBack={() => store.currentView = 'menu'} />
 
       {:else if store.currentView === 'stamps'}
         <!-- Vista de Cartilla de Sellos Digital -->
         <StampBooklet />
-
-      {:else if store.currentView === 'history'}
-        <!-- Historia y Manifiesto integrados directamente en la carta principal -->
-        <HomeHero 
-          selectedCategory={selectedCategory}
-          onSelectCategory={(slug) => {
-            selectedCategory = slug;
-            store.currentView = slug;
-          }}
-        />
       {/if}
     </main>
 
@@ -221,7 +216,7 @@
           <span class="font-serif text-lg font-bold text-bone tracking-wide">Mías Hamburguesas de Lujo</span>
         </div>
         <p class="font-mono text-[11px] text-ash/80">
-          Todos los días: 3:00 PM – 9:30 PM • Domicilios: 321 252 0881
+          Lunes a Viernes: 3:00 PM – 9:00 PM • Sábados y Domingos: 3:00 PM – 10:00 PM • Domicilios: 321 252 0881
         </p>
         <p class="text-[10px] text-ash/50 font-mono">
           Sistema de Alta Fidelización y Comandas • Estándar Senior de Ingeniería 2026
@@ -232,7 +227,6 @@
     <!-- Modales y Componentes Flotantes del Cliente -->
     <ProductDetailModal />
     <FloatingCart />
-    <SidebarMenu />
   </div>
 {/if}
 

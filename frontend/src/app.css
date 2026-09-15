@@ -48,6 +48,255 @@
   padding-top: max(1.25rem, calc(env(safe-area-inset-top, 0px) + 0.85rem));
 }
 
+/* ========================================================================= */
+/* SISTEMA DE LATÓN Y ORO PULIDO BISELADO (LUXURY GOLD SHADER 2026)          */
+/* Inspirado en joyería física: biseles a 135°, brillo marfil y micro-sombra */
+/* ========================================================================= */
+
+@property --gold-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes gold-sheen-rotate {
+  0% {
+    --gold-angle: 0deg;
+  }
+  100% {
+    --gold-angle: 360deg;
+  }
+}
+
+@keyframes gold-ambient-pulse {
+  0%, 100% {
+    box-shadow: 
+      0 2px 8px rgba(0, 0, 0, 0.45),
+      0 8px 24px -6px rgba(197, 160, 89, 0.16),
+      inset 0 1px 1px rgba(255, 245, 207, 0.14);
+  }
+  50% {
+    box-shadow: 
+      0 4px 14px rgba(0, 0, 0, 0.5),
+      0 12px 30px -4px rgba(201, 158, 71, 0.28),
+      inset 0 1px 1px rgba(255, 245, 207, 0.24);
+  }
+}
+
+/* Tarjetas y Contenedores con Borde Dorado Biselado y Refracción Líquida (Optimizado 120 FPS) */
+.gold-border-card {
+  background: 
+    linear-gradient(var(--gold-card-bg, #161619), var(--gold-card-bg, #161619)) padding-box,
+    conic-gradient(
+      from var(--gold-angle),
+      #7A5212 0deg,
+      #C99E47 45deg,
+      #FFFDF0 90deg,
+      #F0CA76 120deg,
+      #C99E47 160deg,
+      #7A5212 210deg,
+      #4A3108 260deg,
+      #8A601A 310deg,
+      #7A5212 360deg
+    ) border-box;
+  border: 1.5px solid transparent !important;
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.45),
+    0 8px 24px -6px rgba(197, 160, 89, 0.20),
+    inset 0 1px 1px rgba(255, 245, 207, 0.16);
+  animation: gold-sheen-rotate 9s linear infinite;
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  will-change: transform;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.gold-border-card:hover {
+  animation-duration: 4.5s;
+  box-shadow: 
+    0 6px 20px rgba(0, 0, 0, 0.55),
+    0 16px 40px -4px rgba(201, 158, 71, 0.38),
+    inset 0 1px 1px rgba(255, 245, 207, 0.35);
+}
+
+/* Botón de Contorno con Borde Dorado Biselado y Refracción Líquida (Optimizado 120 FPS) */
+.btn-gold-outline {
+  background: 
+    linear-gradient(#161619, #161619) padding-box,
+    conic-gradient(
+      from var(--gold-angle),
+      #7A5212 0deg,
+      #C99E47 45deg,
+      #FFFDF0 90deg,
+      #F0CA76 120deg,
+      #C99E47 160deg,
+      #7A5212 210deg,
+      #4A3108 260deg,
+      #8A601A 310deg,
+      #7A5212 360deg
+    ) border-box;
+  border: 1.5px solid transparent !important;
+  color: #EDE8DC;
+  box-shadow: 
+    0 2px 6px rgba(0, 0, 0, 0.35),
+    0 8px 24px -4px rgba(197, 160, 89, 0.20),
+    inset 0 1px 1px rgba(255, 245, 207, 0.14);
+  animation: gold-sheen-rotate 9s linear infinite;
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  will-change: transform;
+  transition: transform 0.20s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), color 0.2s ease;
+}
+
+.btn-gold-outline:hover {
+  animation-duration: 4s;
+  color: #FFF5CF;
+  box-shadow: 
+    0 4px 14px rgba(0, 0, 0, 0.5),
+    0 14px 36px -4px rgba(201, 158, 71, 0.42),
+    inset 0 1px 1px rgba(255, 245, 207, 0.32);
+}
+
+/* Botón de Acción Rojo con Borde Dorado Biselado y Refracción Líquida (Optimizado 120 FPS) */
+.btn-gold-red {
+  background: 
+    linear-gradient(#FF2400, #FF2400) padding-box,
+    conic-gradient(
+      from var(--gold-angle),
+      #7A5212 0deg,
+      #C99E47 45deg,
+      #FFFDF0 90deg,
+      #F0CA76 120deg,
+      #C99E47 160deg,
+      #7A5212 210deg,
+      #4A3108 260deg,
+      #8A601A 310deg,
+      #7A5212 360deg
+    ) border-box;
+  border: 1.5px solid transparent !important;
+  color: #FFFFFF;
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.35),
+    0 8px 24px -4px rgba(255, 36, 0, 0.35),
+    inset 0 1px 1px rgba(255, 245, 207, 0.35);
+  animation: gold-sheen-rotate 9s linear infinite;
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  will-change: transform;
+  transition: transform 0.20s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-gold-red:hover {
+  background: 
+    linear-gradient(#E02000, #E02000) padding-box,
+    conic-gradient(
+      from var(--gold-angle),
+      #7A5212 0deg,
+      #C99E47 45deg,
+      #FFFDF0 90deg,
+      #F0CA76 120deg,
+      #C99E47 160deg,
+      #7A5212 210deg,
+      #4A3108 260deg,
+      #8A601A 310deg,
+      #7A5212 360deg
+    ) border-box;
+  animation-duration: 4s;
+  box-shadow: 
+    0 4px 16px rgba(0, 0, 0, 0.45),
+    0 14px 36px -4px rgba(255, 36, 0, 0.45),
+    0 0 20px rgba(201, 158, 71, 0.25),
+    inset 0 1px 1px rgba(255, 245, 207, 0.45);
+}
+
+/* Botón Sólido de Oro Pulido Biselado (Full Metallic Pill) */
+.btn-gold-solid {
+  background: linear-gradient(145deg, #FFF5CF 0%, #F0CA76 18%, #C99E47 50%, #8A601A 82%, #634311 100%);
+  color: #1A1204;
+  border: 1px solid rgba(255, 245, 207, 0.6) !important;
+  box-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.25),
+    0 10px 26px -4px rgba(197, 160, 89, 0.35),
+    inset 0 1px 2px rgba(255, 255, 255, 0.85),
+    inset 0 -2px 4px rgba(74, 49, 8, 0.35);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-gold-solid:hover {
+  background: linear-gradient(145deg, #FFFFEB 0%, #F5CE7C 18%, #D6AB50 50%, #9B7026 82%, #7A5212 100%);
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.3),
+    0 14px 34px -4px rgba(197, 160, 89, 0.48),
+    inset 0 1px 2px rgba(255, 255, 255, 0.95),
+    inset 0 -2px 4px rgba(74, 49, 8, 0.25);
+}
+
+/* Remache o Botón Convexo Abombado (Stud metálico - Referencia 1) */
+.gold-stud {
+  background: radial-gradient(circle at 35% 32%, #FFFDF5 0%, #F0CA76 28%, #C99E47 65%, #7D5314 100%);
+  border: 1px solid rgba(255, 245, 207, 0.45);
+  box-shadow: 
+    0 2px 6px rgba(0, 0, 0, 0.4),
+    0 0 12px rgba(197, 160, 89, 0.25),
+    inset 0 1px 2px rgba(255, 255, 255, 0.75),
+    inset 0 -1.5px 3px rgba(74, 49, 8, 0.5);
+}
+
+/* Texto Metálico Serigrafiado (Gold Foil Text - Referencia 2) */
+.gold-text-foil {
+  background: linear-gradient(135deg, #FFF5CF 0%, #F0CA76 25%, #C99E47 55%, #8A601A 85%, #634311 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Tipografía Pinyon Script en Oro Champagne Líquido Biselado (Anti-clipping para ascendentes y descendentes) */
+.gold-text-pinyon {
+  font-family: 'Pinyon Script', cursive;
+  font-style: normal;
+  font-weight: 400;
+  display: inline-block;
+  line-height: 1.25;
+  padding-top: 0.25em;
+  padding-bottom: 0.52em;
+  padding-left: 0.22em;
+  padding-right: 0.45em;
+  margin-top: -0.25em;
+  margin-bottom: -0.52em;
+  margin-left: -0.22em;
+  margin-right: 0.10em;
+  vertical-align: baseline;
+  overflow: visible;
+  background: linear-gradient(
+    135deg,
+    #FFFDF0 0%,
+    #F5D78E 22%,
+    #D4AF37 46%,
+    #8A601A 70%,
+    #F5D78E 86%,
+    #FFFDF0 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+
+  animation: gold-text-sheen 7s ease-in-out infinite alternate;
+}
+
+@keyframes gold-text-sheen {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 100% 50%;
+  }
+}
+
 /* Estilos de Impresión Térmica ESC/POS (80mm / 58mm) */
 @media print {
   body * {

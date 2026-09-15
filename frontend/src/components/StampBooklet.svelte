@@ -1,82 +1,146 @@
 <script>
+  import { onMount } from 'svelte';
   import { store } from '../lib/store.svelte.js';
-  import { requestStampAPI, requestRedemptionAPI } from '../lib/api.js';
-  import { Award, Lock, Check, Clock, Sparkles, AlertCircle, ChevronLeft } from 'lucide-svelte';
+  import { requestStampAPI, requestRedemptionAPI, oauthLoginAPI, getOrderByCodeAPI } from '../lib/api.js';
+  import { Award, Lock, Check, Clock, Sparkles, AlertCircle, ChevronLeft, Send, RefreshCw, Receipt } from 'lucide-svelte';
   import confetti from 'canvas-confetti';
 
-  let receiptModalOpen = $state(false);
-  let selectedOrderForStamp = $state(null);
   let receiptNumberInput = $state('');
-  let pendingStampRequests = $state([]);
-  let isAwaitingRedemptionApproval = $state(false);
+  let customerEmailInput = $state('');
   let stampError = $state('');
+  let stampSuccess = $state('');
+  let isSubmitting = $state(false);
+  let isAwaitingRedemptionApproval = $state(false);
+  let redemptionError = $state('');
 
-  function openReceiptModal(order) {
-    selectedOrderForStamp = order;
-    receiptNumberInput = '';
-    stampError = '';
-    receiptModalOpen = true;
-  }
+  // Orden activa para el modal de sellos
+  let orderForModal = $derived(store.selectedOrderForStamp);
+
+  // Autocompletar correo cuando se abre el modal de factura si no hay sesión
+  $effect(() => {
+    if (store.isReceiptModalOpen && !customerEmailInput) {
+      if (store.user?.email) {
+        customerEmailInput = store.user.email;
+      } else if (orderForModal?.customer_phone) {
+        customerEmailInput = `${orderForModal.customer_phone.replace(/\D/g, '')}@gmail.com`;
+      }
+    }
+  });
 
   async function submitStampRequest() {
-    if (!receiptNumberInput.trim()) {
-      stampError = 'Por favor digita el número de factura física';
+    stampError = '';
+    stampSuccess = '';
+
+    const receiptNum = receiptNumberInput.trim();
+    if (!receiptNum) {
+      stampError = 'Por favor digita el número de factura o recibo físico (ej. 00124)';
       return;
     }
 
-    const receiptNum = receiptNumberInput.trim();
-    const burgersCount = selectedOrderForStamp?.items?.filter(it => it.product?.bread_type === 'pretzel')?.reduce((s, it) => s + it.quantity, 0) || 1;
-
-    const isOnlineOrder = selectedOrderForStamp?.id && !selectedOrderForStamp.id.startsWith('ord-');
-    let apiSuccess = false;
-
-    try {
-      if (isOnlineOrder) {
-        await requestStampAPI(selectedOrderForStamp.id, receiptNum);
-        apiSuccess = true;
-      }
-    } catch (err) {
-      console.warn('[Stamps] Error conectando con API, registrando en Anillo 0', err);
+    const ord = orderForModal;
+    if (!ord) {
+      stampError = 'No se encontró la comanda vinculada.';
+      return;
     }
 
-    const newReq = {
-      id: 'req-' + Date.now(),
-      orderCode: selectedOrderForStamp?.code || 'ORD-' + Math.floor(1000 + Math.random() * 9000),
-      receiptNumber: receiptNum,
-      burgersCount,
-      status: 'PENDING',
-      createdAt: new Date().toLocaleTimeString()
-    };
+    isSubmitting = true;
 
-    pendingStampRequests = [newReq, ...pendingStampRequests];
-    receiptModalOpen = false;
-
-    // Solo si opera 100% offline o en modo demo local sin backend, simular tras 5s
-    if (!apiSuccess && !isOnlineOrder) {
-      setTimeout(() => {
-        newReq.status = 'APPROVED';
-        const newTotal = Math.min(10, store.stampBalance + newReq.burgersCount);
-        store.setStampBalance(newTotal);
-
-        if (newTotal === 10) {
-          confetti({
-            particleCount: 120,
-            spread: 70,
-            origin: { y: 0.6 }
-          });
+    // 1. Re-verificación inmediata contra el servidor
+    if (ord.code) {
+      try {
+        const liveRes = await getOrderByCodeAPI(ord.code);
+        if (liveRes && liveRes.order) {
+          ord.status = liveRes.order.status;
+          if (liveRes.order.id) ord.id = liveRes.order.id;
+          store.updateOrderStatus(ord.code, liveRes.order.status, liveRes.order.id);
         }
-      }, 5000);
+      } catch {}
+    }
+
+    if (ord.status !== 'PAID' && ord.status !== 'DELIVERED') {
+      isSubmitting = false;
+      stampError = `La orden #${ord.code} aún no ha sido pagada en caja.`;
+      return;
+    }
+
+    // 2. Si el cliente no tiene sesión iniciada, registrar/iniciar automáticamente
+    let token = typeof window !== 'undefined' ? localStorage.getItem('mias_access_token') : null;
+    if (!store.user || !token) {
+      const emailToUse = customerEmailInput.trim() || 
+        (ord.customer_phone ? `${ord.customer_phone.replace(/\D/g, '')}@gmail.com` : '') ||
+        (ord.delivery_phone ? `${ord.delivery_phone.replace(/\D/g, '')}@gmail.com` : '');
+
+      if (!emailToUse) {
+        isSubmitting = false;
+        stampError = 'Por favor ingresa tu correo electrónico para guardar tus sellos.';
+        return;
+      }
+
+      try {
+        const authData = await oauthLoginAPI({
+          email: emailToUse,
+          full_name: ord.customer_name || ord.delivery_name || emailToUse.split('@')[0],
+          phone: ord.customer_phone || ord.delivery_phone || '',
+          habeas_data_accepted: true
+        });
+        if (authData?.tokens) {
+          localStorage.setItem('mias_access_token', authData.tokens.access_token);
+          localStorage.setItem('mias_refresh_token', authData.tokens.refresh_token);
+          store.setUser(authData.user);
+          token = authData.tokens.access_token;
+        }
+      } catch (err) {
+        isSubmitting = false;
+        stampError = 'Error al registrar tu usuario: ' + (err.message || 'Verifica tu correo');
+        return;
+      }
+    }
+
+    // 3. Enviar solicitud de sellos
+    try {
+      if (!ord.id || ord.id.startsWith('ord-') || ord.id.startsWith('dom-')) {
+        throw new Error('La orden aún no tiene un identificador de servidor válido. Intenta en unos segundos.');
+      }
+
+      await requestStampAPI(ord.id, receiptNum);
+
+      // Actualizar inmediatamente el estado en el cliente
+      store.updateOrderStampStatus(ord.code, 'PENDING');
+      store.updateOrderStampStatus(ord.id, 'PENDING');
+      if (orderForModal) {
+        orderForModal.stamp_status = 'PENDING';
+      }
+
+      confetti({
+        particleCount: 60,
+        spread: 70,
+        origin: { y: 0.6 }
+      });
+
+      stampSuccess = `¡Solicitud enviada para la factura #${receiptNum}! El cajero la autorizará en caja.`;
+      receiptNumberInput = '';
+      setTimeout(() => {
+        store.closeStampModal();
+      }, 900);
+      await store.refreshStampBalance();
+      await store.refreshUserOrders();
+    } catch (err) {
+      stampError = err.message || 'Error al conectar con el servidor para registrar sellos';
+    } finally {
+      isSubmitting = false;
     }
   }
 
   async function handleRedeem() {
     if (store.stampBalance < 10) return;
+    redemptionError = '';
     isAwaitingRedemptionApproval = true;
 
     try {
       await requestRedemptionAPI();
     } catch (err) {
-      console.warn('[Redemption] Error registrando redención en API', err);
+      isAwaitingRedemptionApproval = false;
+      redemptionError = err.message || 'Error al solicitar redención en caja';
     }
   }
 </script>
@@ -209,87 +273,39 @@
             <Clock class="w-4 h-4 text-[#FF2400]" /> A la espera de aprobación en caja...
           </div>
         {/if}
+
+        {#if redemptionError}
+          <p class="text-xs text-[#FF2400] font-medium flex items-center justify-center gap-1.5 pt-1">
+            <AlertCircle class="w-3.5 h-3.5 shrink-0" /> {redemptionError}
+          </p>
+        {/if}
       </div>
     {/if}
   </div>
 
-  <!-- Órdenes del Cliente y Solicitud de Sellos -->
-  <div class="p-6 sm:p-8 rounded-[32px] bg-char-card border border-white/10 shadow-xl space-y-4">
-    <div class="flex items-center justify-between border-b border-white/10 pb-3">
-      <div>
-        <h2 class="font-display font-extrabold text-xl sm:text-2xl text-bone">Tus Órdenes Recientes</h2>
-        <span class="text-xs font-mono text-ash">Solicita tus sellos tras realizar tu pedido</span>
-      </div>
-    </div>
-
-    {#if store.activeOrders.length === 0}
-      <div class="py-8 text-center space-y-3">
-        <p class="text-sm text-ash">Aún no tienes órdenes registradas.</p>
-        <button
-          type="button"
-          onclick={() => store.currentView = 'menu'}
-          class="min-h-[50px] px-6 rounded-full bg-white/10 hover:bg-white/15 text-bone border border-white/10 font-display font-bold text-xs uppercase tracking-wider transition-all cursor-pointer"
-        >
-          Explorar la Carta
-        </button>
-      </div>
-    {:else}
-      <div class="space-y-3">
-        {#each store.activeOrders as ord}
-          <div class="p-4 sm:p-5 rounded-2xl bg-char border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <div class="flex items-center gap-2">
-                <span class="font-mono text-sm font-bold text-bone">#{ord.code}</span>
-                <span class="text-[10px] font-mono uppercase px-2.5 py-1 rounded-full font-bold {
-                  ord.status === 'PAID' ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-700/30' :
-                  ord.status === 'IN_PREPARATION' ? 'bg-amber-950/60 text-amber-400 border border-amber-700/30' :
-                  ord.status === 'ON_THE_WAY' ? 'bg-blue-950/60 text-blue-400 border border-blue-700/30' :
-                  ord.status === 'DELIVERED' ? 'bg-purple-950/60 text-purple-400 border border-purple-700/30' :
-                  'bg-orange-950/60 text-orange-400 border border-orange-700/30'
-                }">
-                  {#if ord.status === 'PAID'}
-                    ✓ ORDEN PAGA
-                  {:else if ord.status === 'IN_PREPARATION'}
-                    🔥 EN PREPARACIÓN
-                  {:else if ord.status === 'ON_THE_WAY'}
-                    🛵 EN CAMINO
-                  {:else if ord.status === 'DELIVERED'}
-                    ✨ ENTREGADO
-                  {:else}
-                    ⏳ PENDIENTE DE PAGO
-                  {/if}
-                </span>
-                <span class="text-xs text-ash font-mono">• {ord.type === 'in_store' ? 'En Salón' : ord.type === 'takeout' ? 'Para Llevar' : 'A Domicilio'}</span>
-              </div>
-              <span class="text-sm text-bone font-display font-bold mt-1 block">${ord.total.toLocaleString('es-CO')}</span>
-            </div>
-
-            <div>
-              <button
-                type="button"
-                onclick={() => openReceiptModal(ord)}
-                class="min-h-[48px] px-5 rounded-full bg-[#FF2400] hover:bg-[#E02000] text-white font-display font-extrabold text-xs flex items-center gap-2 transition-all active:scale-[0.98] cursor-pointer"
-              >
-                <Award class="w-4 h-4" /> Solicitar Sellos
-              </button>
-            </div>
-          </div>
-        {/each}
-      </div>
-    {/if}
+  <!-- ENLACE AL HISTORIAL DE PEDIDOS -->
+  <div class="pt-4 text-center">
+    <button
+      type="button"
+      onclick={() => store.currentView = 'orders'}
+      class="w-full min-h-[60px] sm:min-h-[64px] rounded-full bg-char-card hover:bg-white/10 border-2 border-white/15 text-bone font-display font-black text-sm sm:text-base tracking-wide transition-all flex items-center justify-center gap-3 cursor-pointer shadow-xl active:scale-[0.97]"
+    >
+      <Receipt class="w-5 h-5 text-amber-400 stroke-[2.2]" />
+      <span>Ver Mis Pedidos & Solicitar Sellos</span>
+    </button>
   </div>
 </div>
 
-<!-- Modal Fat-Finger para Digitar el Número de Factura Física -->
-{#if receiptModalOpen}
+<!-- Modal Fat-Finger para Digitar el Número de Factura Física de la Orden -->
+{#if store.isReceiptModalOpen}
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div 
     data-lenis-prevent
     onwheel={(e) => e.stopPropagation()}
     ontouchmove={(e) => e.stopPropagation()}
-    class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4"
   >
-    <div class="bg-char w-full max-w-md rounded-[32px] border border-white/10 p-6 sm:p-8 space-y-5 relative text-bone">
+    <div class="bg-char w-full max-w-md rounded-[32px] border border-white/10 p-6 sm:p-8 space-y-5 relative text-bone shadow-2xl">
       <div>
         <span class="text-xs font-mono text-ash uppercase tracking-wider font-bold block mb-1">
           Acreditación de Compra
@@ -299,8 +315,21 @@
         </h3>
       </div>
 
+      {#if orderForModal}
+        <div class="p-3.5 rounded-xl bg-char-card border border-white/10 flex items-center justify-between text-xs font-mono">
+          <span>Comanda: <strong class="text-bone">#{orderForModal.code}</strong> • ${orderForModal.total?.toLocaleString('es-CO')}</span>
+          <span class="px-2.5 py-0.5 rounded-full font-bold {
+            orderForModal.status === 'PAID' ? 'bg-emerald-950/70 text-emerald-400' :
+            orderForModal.status === 'DELIVERED' ? 'bg-purple-950/70 text-purple-400' :
+            'bg-amber-950/70 text-amber-400'
+          }">
+            {orderForModal.status === 'PAID' ? '✓ PAGADA' : orderForModal.status === 'DELIVERED' ? '✨ ENTREGADA' : '⏳ PENDIENTE'}
+          </span>
+        </div>
+      {/if}
+
       <p class="text-xs text-ash leading-relaxed">
-        Ingresa el número impreso en el ticket o recibo que te entregaron en caja o con tu domicilio (ej. <strong class="text-bone">00124</strong> o <strong class="text-bone">4580</strong>).
+        Ingresa el número impreso en el ticket o recibo entregado en caja física o con tu comanda (ej. <strong class="text-bone">00124</strong> o <strong class="text-bone">4580</strong>).
       </p>
 
       <div class="space-y-1.5">
@@ -314,17 +343,39 @@
           placeholder="Ej. 00124"
           class="w-full min-h-[56px] px-4 rounded-2xl bg-char-card border border-white/10 text-bone font-mono text-base focus:outline-none focus:border-[#FF2400] transition-colors"
         />
-        {#if stampError}
-          <p class="text-xs text-[#FF2400] font-medium flex items-center gap-1 pt-1">
-            <AlertCircle class="w-3.5 h-3.5" /> {stampError}
-          </p>
-        {/if}
       </div>
+
+      {#if !store.user}
+        <div class="space-y-1.5">
+          <label for="sb-email" class="text-xs font-mono text-ash uppercase tracking-wider block font-bold">
+            Tu Correo Electrónico (para guardar tus sellos)
+          </label>
+          <input 
+            id="sb-email"
+            type="email" 
+            bind:value={customerEmailInput}
+            placeholder="ejemplo@correo.com"
+            class="w-full min-h-[54px] px-4 rounded-2xl bg-char-card border border-white/10 text-bone font-sans text-sm focus:outline-none focus:border-[#FF2400] transition-colors"
+          />
+        </div>
+      {/if}
+
+      {#if stampError}
+        <p class="text-xs text-[#FF2400] font-medium flex items-center gap-1 pt-1">
+          <AlertCircle class="w-3.5 h-3.5 shrink-0" /> {stampError}
+        </p>
+      {/if}
+
+      {#if stampSuccess}
+        <p class="text-xs text-emerald-400 font-medium flex items-center gap-1 pt-1">
+          <Check class="w-3.5 h-3.5 shrink-0" /> {stampSuccess}
+        </p>
+      {/if}
 
       <div class="flex items-center gap-3 pt-2">
         <button 
           type="button"
-          onclick={() => receiptModalOpen = false}
+          onclick={() => store.closeStampModal()}
           class="flex-1 min-h-[56px] rounded-full bg-char-card hover:bg-char-card-hover text-bone font-display font-bold text-sm transition-all cursor-pointer border border-white/10"
         >
           Cancelar
@@ -332,9 +383,10 @@
         <button 
           type="button"
           onclick={submitStampRequest}
-          class="flex-1 min-h-[56px] rounded-full bg-[#FF2400] hover:bg-[#E02000] text-white font-display font-extrabold text-sm tracking-wide transition-all active:scale-[0.98] cursor-pointer"
+          disabled={isSubmitting}
+          class="flex-1 min-h-[56px] rounded-full bg-[#FF2400] hover:bg-[#E02000] text-white font-display font-extrabold text-sm tracking-wide transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50"
         >
-          Enviar Solicitud
+          {isSubmitting ? 'Enviando...' : 'Enviar Solicitud'}
         </button>
       </div>
     </div>

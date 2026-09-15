@@ -1,47 +1,44 @@
 <script>
-  import { tick } from 'svelte';
-  import { fly, scale } from 'svelte/transition';
-  import { backOut, cubicOut } from 'svelte/easing';
-  import gsap from 'gsap';
   import { store } from '../lib/store.svelte.js';
   import { createOrderAPI } from '../lib/api.js';
-  import { 
-    X, 
-    Plus, 
-    Minus, 
-    Trash2, 
-    ShoppingBag, 
-    Sparkles, 
-    ArrowRight, 
-    Check, 
-    ChevronLeft, 
-    UtensilsCrossed, 
-    Bike, 
-    Send, 
-    Copy, 
-    CheckCircle2,
-    MessageSquare,
+  import {
+    X,
+    Plus,
+    Minus,
+    ShoppingBag,
+    Sparkles,
+    ArrowRight,
+    Check,
+    ChevronLeft,
+    UtensilsCrossed,
+    Bike,
+    Send,
+    Copy,
     DollarSign,
     CreditCard,
     Award,
     MapPin,
     Phone,
     User,
-    FileText,
+    LogIn,
     Flame,
-    Utensils
+    Utensils,
+    Clock,
+    Receipt
   } from 'lucide-svelte';
 
-  let orderBtnEl = $state(null);
-  let orderCardEl = $state(null);
-  let orderBackdropEl = $state(null);
-  let isModalAnimating = false;
-  let recentlyAddedUpsellId = $state(null);
+  // ═══════════════════════════════════════════════════════════════════════
+  // ESTADOS DEL FLUJO MULTI-PÁGINA
+  // Pasos: 'upsell' → 'review' → 'mode' → 'delivery_form' → 'ticket'
+  // En salón: upsell → review → mode (auto-finaliza) → ticket
+  // ═══════════════════════════════════════════════════════════════════════
+  let cartStep = $state('upsell');
+  let selectedMode = $state('delivery');
 
-  // Pasos de la comanda: 'cart' | 'mode' | 'delivery_form' | 'ticket'
-  let cartStep = $state('cart');
-  let selectedMode = $state('delivery'); // 'delivery' | 'takeout' | 'in_store'
-  
+  // Estado de upsell (burbujas de acompañamientos)
+  let selectedUpsells = $state([]);
+  let highlightedUpsell = $state(null);
+
   // Datos del cliente para la orden
   let customerName = $state(store.user?.full_name || '');
   let customerPhone = $state(store.user?.phone || '');
@@ -51,19 +48,40 @@
   let tableNumber = $state('1');
 
   // Método de pago
-  let paymentMethod = $state('Efectivo'); // 'Efectivo' | 'Nequi / Daviplata' | 'Datáfono contraentrega'
+  let paymentMethod = $state('Efectivo');
   let cashAmount = $state('');
   let formError = $state('');
 
-  const deliveryFee = 6000;
+  const deliveryFee = 0;
   let createdOrder = $state(null);
   let isCopied = $state(false);
+
+  // Producto hero: primer ítem del carrito (imagen central del upsell)
+  let heroProduct = $derived(store.cart.length > 0 ? store.cart[0] : null);
+
+  // Desglose reactivo de unidades individuales añadidas al pedido para posicionamiento en escena
+  let cartUnits = $derived.by(() => {
+    const units = [];
+    for (const item of store.cart) {
+      const qty = item.quantity || 1;
+      for (let q = 0; q < qty; q++) {
+        units.push({
+          id: `${item.id}-${q}`,
+          name: item.product?.name || 'Producto',
+          image_url: item.product?.image_url || '',
+          price: item.product?.price || 0,
+          slug: item.product?.slug || ''
+        });
+      }
+    }
+    return units;
+  });
 
   let liveTicketOrder = $derived(
     createdOrder ? (store.activeOrders.find(o => o.code === createdOrder.code) || createdOrder) : null
   );
 
-  // Sincronizar datos si el usuario inicia sesión o cambia su perfil
+  // Sincronizar datos si el usuario inicia sesión
   $effect(() => {
     if (store.user) {
       if (!customerName) customerName = store.user.full_name || '';
@@ -72,17 +90,48 @@
     }
   });
 
+  // Redirigir a upsell si el carrito queda vacío durante review
+  $effect(() => {
+    if (store.cart.length === 0 && cartStep === 'review') {
+      cartStep = 'upsell';
+    }
+  });
+
+  // Reset a upsell cuando hay nuevos ítems tras una orden completada
+  $effect(() => {
+    if (store.isCartOpen && store.cart.length > 0 && createdOrder) {
+      createdOrder = null;
+      cartStep = 'upsell';
+      selectedUpsells = [];
+      highlightedUpsell = null;
+      formError = '';
+    }
+  });
+
   let currentDeliveryFee = $derived(selectedMode === 'delivery' ? deliveryFee : 0);
   let currentTotal = $derived(store.cartSubtotal + currentDeliveryFee);
 
   let cashChange = $derived.by(() => {
     const val = parseInt(cashAmount, 10);
-    if (!isNaN(val) && val >= currentTotal) {
-      return val - currentTotal;
-    }
+    if (!isNaN(val) && val >= currentTotal) return val - currentTotal;
     return 0;
   });
 
+  // ═══════════════════════════════════════════════════════════════════════
+  // CATÁLOGO AMPLIADO DE ACOMPAÑAMIENTOS (6 BURBUJAS)
+  // ═══════════════════════════════════════════════════════════════════════
+  const upsellItems = [
+    { id: 14, category_id: 4, name: 'Coca-Cola 400ml', shortName: 'Coca-Cola', price: 4000, image_url: '/imagenes/bebidas/cocacola.webp', type: 'beverage' },
+    { id: 15, category_id: 4, name: 'Bretaña en Vidrio', shortName: 'Bretaña', price: 5000, image_url: '/imagenes/bebidas/bretana-vidrio.png', type: 'beverage' },
+    { id: 17, category_id: 5, name: 'Papas Francesas', shortName: 'Papas', price: 8000, image_url: '', type: 'fries' },
+    { id: 18, category_id: 5, name: 'Papa Nativa', shortName: 'P. Nativa', price: 9000, image_url: '', type: 'fries' },
+    { id: 19, category_id: 5, name: 'Tocineta Crujiente', shortName: 'Tocineta', price: 5000, image_url: '', type: 'meat' },
+    { id: 21, category_id: 5, name: 'Queso Fundido', shortName: 'Queso', price: 5000, image_url: '', type: 'cheese' }
+  ];
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // FUNCIONES DE FORMATO
+  // ═══════════════════════════════════════════════════════════════════════
   function formatCOP(val) {
     return new Intl.NumberFormat('es-CO', {
       style: 'currency',
@@ -91,61 +140,86 @@
     }).format(val || 0);
   }
 
-  // Catálogo de productos sugeridos ("¿Deseas acompañar tu hamburguesa?")
-  const upsellItems = [
-    {
-      id: 14,
-      category_id: 4,
-      name: 'Coca-Cola 400ml',
-      price: 4000,
-      image_url: '/imagenes/bebidas/cocacola.webp'
-    },
-    {
-      id: 15,
-      category_id: 4,
-      name: 'Bretaña en Vidrio',
-      price: 5000,
-      image_url: '/imagenes/bebidas/bretana-vidrio.png'
-    },
-    {
-      id: 17,
-      category_id: 5,
-      name: 'Papas Francesas',
-      price: 8000,
-      image_url: ''
+  function formatTicketTime(dateStr) {
+    try {
+      const d = dateStr ? new Date(dateStr) : new Date();
+      return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+    } catch {
+      return '03:00 PM';
     }
-  ];
-
-  function handleAddUpsell(product) {
-    store.addToCart(product, false, []);
-    recentlyAddedUpsellId = product.id;
-    setTimeout(() => {
-      if (recentlyAddedUpsellId === product.id) {
-        recentlyAddedUpsellId = null;
-      }
-    }, 1200);
   }
 
-  function handleContinueToMode() {
+  function formatTicketDate(dateStr) {
+    try {
+      const d = dateStr ? new Date(dateStr) : new Date();
+      const meses = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const dias = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      return `${meses[d.getMonth()]} ${d.getDate()}, ${dias[d.getDay()]}`;
+    } catch {
+      return 'Sep 14, Sun';
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // NAVEGACIÓN ENTRE PASOS
+  // ═══════════════════════════════════════════════════════════════════════
+  function handleToggleUpsell(item) {
+    const idx = selectedUpsells.findIndex(u => u.id === item.id);
+    if (idx > -1) {
+      selectedUpsells = selectedUpsells.filter(u => u.id !== item.id);
+      highlightedUpsell = selectedUpsells.length > 0 ? selectedUpsells[selectedUpsells.length - 1] : null;
+    } else {
+      selectedUpsells = [...selectedUpsells, item];
+      highlightedUpsell = item;
+    }
+  }
+
+  function handleContinueFromUpsell() {
+    for (const item of selectedUpsells) {
+      store.addToCart(item, false, []);
+    }
+    selectedUpsells = [];
+    highlightedUpsell = null;
+    cartStep = 'review';
+  }
+
+  function handleContinueFromReview() {
     if (store.cart.length === 0) return;
+    if (!store.user) {
+      formError = 'Inicia sesión o regístrate para enviar tu comanda.';
+      store.isAuthModalOpen = true;
+      return;
+    }
+    formError = '';
     cartStep = 'mode';
-    formError = '';
-  }
-
-  function handleSelectMode(mode) {
-    selectedMode = mode;
-    cartStep = 'delivery_form';
-    formError = '';
   }
 
   function handleBackStep() {
     formError = '';
-    if (cartStep === 'ticket') {
-      cartStep = 'cart';
-    } else if (cartStep === 'delivery_form') {
+    if (cartStep === 'delivery_form') {
       cartStep = 'mode';
     } else if (cartStep === 'mode') {
-      cartStep = 'cart';
+      cartStep = 'review';
+    } else if (cartStep === 'review') {
+      cartStep = 'upsell';
+    } else if (cartStep === 'ticket') {
+      cartStep = 'upsell';
+    }
+  }
+
+  async function handleSelectMode(mode) {
+    if (!store.user) {
+      formError = 'Inicia sesión o regístrate para ordenar.';
+      store.isAuthModalOpen = true;
+      return;
+    }
+    selectedMode = mode;
+    formError = '';
+    if (mode === 'in_store') {
+      // Consumo en salón: sin fricción, directo a cocina
+      await handleFinalizeOrder();
+    } else {
+      cartStep = 'delivery_form';
     }
   }
 
@@ -165,16 +239,30 @@
     }
   }
 
+  // ═══════════════════════════════════════════════════════════════════════
+  // FINALIZACIÓN DE ORDEN (PRESERVADO ÍNTEGRO)
+  // ═══════════════════════════════════════════════════════════════════════
   async function handleFinalizeOrder() {
     formError = '';
 
-    if (!customerName.trim()) {
-      formError = 'Por favor ingresa tu nombre para registrar la comanda.';
+    if (!store.user) {
+      formError = 'Debes iniciar sesión o registrarte para realizar tu comanda.';
+      store.isAuthModalOpen = true;
       return;
     }
-    if (!customerPhone.trim()) {
-      formError = 'Por favor ingresa tu número de WhatsApp para notificarte.';
-      return;
+
+    const effectiveCustomerName = (customerName.trim() || store.user?.full_name || 'Comensal Mías');
+    const effectiveCustomerPhone = (customerPhone.trim() || store.user?.phone || '');
+
+    if (selectedMode !== 'in_store') {
+      if (!effectiveCustomerName) {
+        formError = 'Por favor ingresa tu nombre para registrar la comanda.';
+        return;
+      }
+      if (!effectiveCustomerPhone) {
+        formError = 'Por favor ingresa tu número de WhatsApp para notificarte.';
+        return;
+      }
     }
 
     if (selectedMode === 'delivery') {
@@ -182,17 +270,48 @@
         formError = 'Por favor completa la dirección y el barrio de entrega en Duitama.';
         return;
       }
-    } else if (selectedMode === 'in_store') {
-      if (!tableNumber.trim()) {
-        formError = 'Por favor ingresa el número de mesa en el restaurante.';
-        return;
-      }
     }
 
     let code = (selectedMode === 'delivery' ? 'DOM-' : 'ORD-') + Math.floor(1000 + Math.random() * 9000);
     let orderId = (selectedMode === 'delivery' ? 'dom-' : 'ord-') + Date.now();
 
-    const apiItems = store.cart.map(it => ({
+    const itemsSnapshot = [...store.cart];
+    const subtotalSnapshot = store.cartSubtotal;
+    const feeSnapshot = currentDeliveryFee;
+    const totalSnapshot = currentTotal;
+
+    const order = {
+      id: orderId,
+      code,
+      type: selectedMode,
+      modeLabel: selectedMode === 'delivery' ? 'A Domicilio' : selectedMode === 'takeout' ? 'Para Llevar' : 'Consumo en Salón',
+      status: selectedMode === 'delivery' ? 'IN_PREPARATION' : 'PENDING_PAYMENT',
+      customer_name: effectiveCustomerName,
+      customer_phone: effectiveCustomerPhone,
+      delivery_address: selectedMode === 'delivery' ? `${deliveryAddress.trim()}, Barrio ${deliveryNeighborhood.trim()}` : '',
+      table_number: selectedMode === 'in_store' ? (tableNumber.trim() || '1') : '',
+      delivery_notes: selectedMode === 'takeout'
+        ? (`[PARA LLEVAR] ${deliveryNotes.trim()}`).trim()
+        : selectedMode === 'in_store'
+        ? (deliveryNotes.trim() || 'Consumo en Salón')
+        : deliveryNotes.trim(),
+      items: itemsSnapshot,
+      subtotal: subtotalSnapshot,
+      delivery_fee: feeSnapshot,
+      total: totalSnapshot,
+      payment_method: selectedMode === 'in_store' ? 'Pago en Caja' : paymentMethod,
+      cash_change_amount: parseInt(cashAmount, 10) || 0,
+      created_at: new Date().toISOString()
+    };
+
+    // Redirección inmediata a ticket sin bloqueo de red
+    store.addOrder(order);
+    createdOrder = order;
+    store.clearCart();
+    cartStep = 'ticket';
+
+    // Persistencia asíncrona en Backend Anillo 0
+    const apiItems = itemsSnapshot.map(it => ({
       product_id: it.product.id,
       quantity: it.quantity,
       customizations: {
@@ -201,51 +320,27 @@
       }
     }));
 
-    try {
-      const apiRes = await createOrderAPI({
-        order_type: selectedMode === 'delivery' ? 'delivery' : 'in_store',
-        items: apiItems,
-        delivery_name: customerName.trim(),
-        delivery_phone: customerPhone.trim(),
-        delivery_address: selectedMode === 'delivery' ? `${deliveryAddress.trim()}, Barrio ${deliveryNeighborhood.trim()}` : '',
-        delivery_notes: selectedMode === 'takeout'
-          ? (`[PARA LLEVAR] ${deliveryNotes.trim()}`).trim()
-          : deliveryNotes.trim(),
-        payment_method: paymentMethod,
-        cash_change_amount: parseInt(cashAmount, 10) || 0
-      });
-      if (apiRes && apiRes.order) {
-        code = apiRes.order.code;
-        orderId = apiRes.order.id;
+    (async () => {
+      try {
+        const apiRes = await createOrderAPI({
+          order_type: order.type === 'delivery' ? 'delivery' : 'in_store',
+          items: apiItems,
+          delivery_name: order.customer_name,
+          delivery_phone: order.customer_phone,
+          delivery_address: order.delivery_address,
+          delivery_notes: order.delivery_notes,
+          payment_method: order.payment_method,
+          cash_change_amount: order.cash_change_amount
+        });
+        if (apiRes && apiRes.order) {
+          order.code = apiRes.order.code;
+          order.id = apiRes.order.id;
+          createdOrder = { ...order };
+        }
+      } catch (err) {
+        console.warn('[Order API] Guardado local Anillo 0', err);
       }
-    } catch (err) {
-      console.warn('[Order API] Guardado local Anillo 0', err);
-    }
-
-    const order = {
-      id: orderId,
-      code,
-      type: selectedMode,
-      modeLabel: selectedMode === 'delivery' ? 'A Domicilio' : selectedMode === 'takeout' ? 'Para Llevar' : 'Consumo en Salón',
-      status: selectedMode === 'delivery' ? 'IN_PREPARATION' : 'PENDING_PAYMENT',
-      customer_name: customerName.trim(),
-      customer_phone: customerPhone.trim(),
-      delivery_address: selectedMode === 'delivery' ? `${deliveryAddress.trim()}, Barrio ${deliveryNeighborhood.trim()}` : '',
-      table_number: selectedMode === 'in_store' ? tableNumber.trim() : '',
-      delivery_notes: deliveryNotes.trim(),
-      items: [...store.cart],
-      subtotal: store.cartSubtotal,
-      delivery_fee: currentDeliveryFee,
-      total: currentTotal,
-      payment_method: paymentMethod,
-      cash_change_amount: parseInt(cashAmount, 10) || 0,
-      created_at: new Date().toISOString()
-    };
-
-    store.addOrder(order);
-    createdOrder = order;
-    store.clearCart();
-    cartStep = 'ticket';
+    })();
   }
 
   function dispatchWhatsApp() {
@@ -257,9 +352,6 @@
 
     if (createdOrder.delivery_address) {
       msg += `*Dirección:* ${createdOrder.delivery_address}\n`;
-    }
-    if (createdOrder.table_number) {
-      msg += `*Mesa:* ${createdOrder.table_number}\n`;
     }
     if (createdOrder.delivery_notes) {
       msg += `*Notas:* ${createdOrder.delivery_notes}\n`;
@@ -296,377 +388,398 @@
 
   function goToStampsFromTicket() {
     store.isCartOpen = false;
-    store.currentView = 'stamps';
+    store.openStampModal(liveTicketOrder || createdOrder);
   }
 
   function closeOrderModal() {
     store.isCartOpen = false;
   }
+
+  function addMoreProducts() {
+    store.isCartOpen = false;
+    store.currentView = 'menu';
+  }
 </script>
 
 
-<!-- VISTA DE COMANDA Y CHECKOUT A PANTALLA COMPLETA FAT-FINGER -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- FLUJO MULTI-PÁGINA DE COMANDA — ZERO SCROLL                          -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
 {#if store.isCartOpen}
   <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div 
+  <div
     data-lenis-prevent
     onwheel={(e) => e.stopPropagation()}
     ontouchmove={(e) => e.stopPropagation()}
-    class="fixed inset-0 z-50 w-full h-full min-h-[100dvh] bg-char text-bone overflow-y-auto overscroll-contain"
-    style="touch-action: pan-y; -webkit-overflow-scrolling: touch; padding-top: max(1rem, env(safe-area-inset-top, 0px)); padding-bottom: max(5rem, calc(env(safe-area-inset-bottom, 0px) + 3rem)); padding-left: max(1rem, env(safe-area-inset-left, 0px)); padding-right: max(1rem, env(safe-area-inset-right, 0px));"
+    class="fixed inset-0 z-50 {cartStep === 'upsell' ? 'bg-[#000000]' : 'bg-char'} text-bone flex flex-col"
+    style="height: 100dvh; touch-action: pan-y; -webkit-overflow-scrolling: touch; {cartStep === 'upsell' ? 'padding-top: max(0.5rem, calc(env(safe-area-inset-top, 0px) + 0.35rem)); padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px)); padding-left: max(0px, env(safe-area-inset-left, 0px)); padding-right: max(0px, env(safe-area-inset-right, 0px));' : 'padding-top: max(1rem, env(safe-area-inset-top, 0px)); padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px)); padding-left: max(1rem, env(safe-area-inset-left, 0px)); padding-right: max(1rem, env(safe-area-inset-right, 0px));'}"
   >
-    <div data-lenis-prevent class="w-full max-w-lg mx-auto py-2 sm:py-4 flex flex-col space-y-6">
-      
-      <!-- 1. Cabecera Unificada con Botón Volver y Botón Cerrar -->
-      <header class="flex items-center justify-between w-full pb-1 shrink-0">
-        {#if cartStep !== 'cart'}
-          <button 
+    <div data-lenis-prevent class="w-full {cartStep === 'upsell' ? 'max-w-md md:max-w-4xl lg:max-w-5xl' : cartStep === 'mode' ? 'max-w-2xl' : 'max-w-lg'} mx-auto flex-1 flex flex-col min-h-0">
+
+      <!-- ════════════════════════════════════════════════════════════════ -->
+      <!-- CABECERA COMPARTIDA                                            -->
+      <!-- ════════════════════════════════════════════════════════════════ -->
+      <header class="flex items-center justify-between w-full {cartStep === 'upsell' ? 'py-1.5 sm:py-2 px-5 sm:px-6' : 'py-2 sm:py-3'} shrink-0">
+        {#if cartStep === 'upsell'}
+          <!-- Vista vaciada: solo botón de cierre en la misma posición que el corazón de Hamburguesas -->
+          <div class="w-14 h-14 sm:w-16 sm:h-16 shrink-0"></div>
+          <div class="flex-1"></div>
+          <button
             type="button"
-            onclick={handleBackStep}
-            class="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-char-card border border-white/10 flex items-center justify-center text-bone hover:bg-char-card-hover active:scale-90 transition-all cursor-pointer group shrink-0"
-            aria-label="Volver al paso anterior"
+            onclick={closeOrderModal}
+            class="btn-gold-outline w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center text-bone hover:text-[#FF2400] active:scale-95 transition-all cursor-pointer shrink-0"
+            aria-label="Cerrar comanda"
           >
-            <ChevronLeft class="w-6 h-6 sm:w-7 sm:h-7 stroke-[2.2] -translate-x-0.5 group-hover:-translate-x-1 transition-transform" />
+            <X class="w-6 h-6 sm:w-6.5 sm:h-6.5 stroke-[2.2]" />
           </button>
         {:else}
-          <div class="w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center shrink-0">
-            <img 
-              src="/imagenes/marca/isotipo.webp" 
-              alt="Mías" 
-              class="w-7 h-7 object-contain opacity-85"
-            />
-          </div>
-        {/if}
-
-        <div class="text-center flex-1 px-2">
-          <span class="font-mono text-[10px] sm:text-xs uppercase tracking-widest text-[#8E8E93] font-bold block">
-            {#if cartStep === 'cart'}
-              Mías • Comanda Gastronómica
-            {:else if cartStep === 'mode'}
-              Paso 1 de 2 • Modalidad
-            {:else if cartStep === 'delivery_form'}
-              Paso 2 de 2 • Entrega y Pago
-            {:else}
-              Orden Procesada
-            {/if}
-          </span>
-          <h1 class="font-display font-black text-xl sm:text-2xl text-bone tracking-tight leading-tight">
-            {#if cartStep === 'cart'}
-              Tu Comanda
-            {:else if cartStep === 'mode'}
-              ¿Dónde Disfrutas?
-            {:else if cartStep === 'delivery_form'}
-              {selectedMode === 'delivery' ? 'Datos de Domicilio' : selectedMode === 'takeout' ? 'Datos de Retiro' : 'Mesa en Salón'}
-            {:else}
-              ¡Comanda en Marcha!
-            {/if}
-          </h1>
-        </div>
-
-        <button 
-          type="button"
-          onclick={closeOrderModal}
-          class="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-char-card border border-white/10 flex items-center justify-center text-bone hover:text-[#FF2400] active:scale-90 transition-all cursor-pointer shrink-0"
-          aria-label="Cerrar comanda"
-        >
-          <X class="w-6 h-6 stroke-[2.2]" />
-        </button>
-      </header>
-
-      <!-- ========================================================================= -->
-      <!-- FASE 1: LISTADO DE PRODUCTOS Y SELECCIÓN "¿ALGO MÁS?"                     -->
-      <!-- ========================================================================= -->
-      {#if cartStep === 'cart'}
-        {#if store.cart.length === 0}
-          <div class="bg-char-card border border-white/10 rounded-[36px] p-8 text-center space-y-4 my-auto shadow-none">
-            <div class="w-20 h-20 rounded-full bg-char mx-auto flex items-center justify-center text-ash border border-white/10">
-              <ShoppingBag class="w-8 h-8 stroke-[1.8]" />
+          <!-- Izquierda: Logo o Atrás -->
+          {#if cartStep === 'ticket'}
+            <div class="w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center shrink-0">
+              <img src="/imagenes/marca/isotipo.webp" alt="Mías" class="w-7 h-7 object-contain opacity-85" />
             </div>
-            <h2 class="font-display font-extrabold text-2xl text-bone">Tu comanda está vacía</h2>
-            <p class="text-xs sm:text-sm text-ash max-w-xs mx-auto">
-              Explora nuestra carta gastronómica y añade tus hamburguesas favoritas al carbón.
-            </p>
+          {:else}
             <button
               type="button"
-              onclick={() => { closeOrderModal(); store.currentView = 'hamburguesas'; }}
-              class="w-full min-h-[58px] rounded-full bg-[#FF2400] text-white font-display font-extrabold text-base hover:bg-[#E02000] active:scale-[0.97] transition-all cursor-pointer"
+              onclick={handleBackStep}
+              class="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-char-card border border-white/10 flex items-center justify-center text-bone hover:bg-char-card-hover active:scale-90 transition-all cursor-pointer group shrink-0"
+              aria-label="Volver al paso anterior"
             >
-              Explorar Hamburguesas
+              <ChevronLeft class="w-6 h-6 sm:w-7 sm:h-7 stroke-[2.2] -translate-x-0.5 group-hover:-translate-x-1 transition-transform" />
             </button>
+          {/if}
+
+          <!-- Centro: Kicker + Título -->
+          <div class="text-center flex-1 px-2">
+            <span class="font-mono text-[10px] sm:text-xs uppercase tracking-widest text-[#8E8E93] font-bold block">
+              {#if cartStep === 'review'}
+                Mías • Tu Pedido
+              {:else if cartStep === 'mode'}
+                Mías • Modalidad
+              {:else if cartStep === 'delivery_form'}
+                Mías • Entrega
+              {:else}
+                Orden Procesada
+              {/if}
+            </span>
+            <h1 class="font-display font-black text-xl sm:text-2xl text-bone tracking-tight leading-tight">
+              {#if cartStep === 'review'}
+                Confirma tu orden
+              {:else if cartStep === 'mode'}
+                ¿Dónde disfrutas?
+              {:else if cartStep === 'delivery_form'}
+                {selectedMode === 'delivery' ? 'Datos de Domicilio' : 'Datos de Retiro'}
+              {:else}
+                ¡Comanda en Marcha!
+              {/if}
+            </h1>
           </div>
-        {:else}
-          <!-- Lista de Tarjetas Gordas de Productos -->
-          <div class="space-y-3.5">
-            {#each store.cart as item (item.id)}
-              <div class="bg-char-card border border-white/10 rounded-[32px] p-4 sm:p-5 flex items-center gap-3.5 sm:gap-4 shadow-none">
-                <!-- Imagen o Icono del Producto -->
-                <div class="w-20 h-20 sm:w-22 sm:h-22 rounded-2xl bg-char flex items-center justify-center shrink-0 overflow-hidden border border-white/10">
-                  {#if item.product?.image_url}
-                    <img 
-                      src={item.product.image_url} 
-                      alt={item.product?.name} 
-                      class="w-full h-full object-contain"
-                    />
-                  {:else}
-                    <!-- Icono representativo para adicionales y acompañamientos -->
-                    <div class="w-full h-full flex flex-col items-center justify-center text-[#FF2400] p-1 text-center select-none">
-                      {#if item.product?.slug?.includes('papa')}
-                        <Utensils class="w-7 h-7 sm:w-8 sm:h-8 stroke-[2.2]" />
-                        <span class="text-[9px] font-mono font-bold text-bone mt-0.5 uppercase tracking-tighter">Papas</span>
-                      {:else if item.product?.slug?.includes('tocineta') || item.product?.slug?.includes('carne')}
-                        <Flame class="w-7 h-7 sm:w-8 sm:h-8 stroke-[2.2]" />
-                        <span class="text-[9px] font-mono font-bold text-bone mt-0.5 uppercase tracking-tighter">Extra</span>
-                      {:else if item.product?.slug?.includes('queso')}
-                        <Sparkles class="w-7 h-7 sm:w-8 sm:h-8 stroke-[2.2]" />
-                        <span class="text-[9px] font-mono font-bold text-bone mt-0.5 uppercase tracking-tighter">Queso</span>
-                      {:else if item.product?.slug?.includes('combo')}
-                        <ShoppingBag class="w-7 h-7 sm:w-8 sm:h-8 stroke-[2.2]" />
-                        <span class="text-[9px] font-mono font-bold text-bone mt-0.5 uppercase tracking-tighter">Combo</span>
-                      {:else if item.product?.slug?.includes('salsa') || item.product?.slug?.includes('pepinillos')}
-                        <Utensils class="w-7 h-7 sm:w-8 sm:h-8 stroke-[2.2]" />
-                        <span class="text-[9px] font-mono font-bold text-bone mt-0.5 uppercase tracking-tighter">Extra</span>
-                      {:else}
-                        <Plus class="w-7 h-7 sm:w-8 sm:h-8 stroke-[2.5]" />
-                        <span class="text-[9px] font-mono font-bold text-bone mt-0.5 uppercase tracking-tighter">Adicional</span>
-                      {/if}
-                    </div>
-                  {/if}
-                </div>
 
-                <!-- Datos del Producto -->
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-center gap-2 flex-wrap">
-                    {#if item.product?.bread_type}
-                      <span class="px-2 py-0.5 rounded-full bg-char border border-white/10 text-[10px] font-mono font-bold uppercase text-bone">
-                        {item.product.bread_type === 'pretzel' ? 'Pan Pretzel' : 'Pan Brioche'}
-                      </span>
+          <!-- Derecha: Cerrar -->
+          <button
+            type="button"
+            onclick={closeOrderModal}
+            class="btn-gold-outline w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center text-bone hover:text-[#FF2400] active:scale-95 transition-all cursor-pointer shrink-0"
+            aria-label="Cerrar comanda"
+          >
+            <X class="w-6 h-6 sm:w-6.5 sm:h-6.5 stroke-[2.2]" />
+          </button>
+        {/if}
+      </header>
+
+
+      <!-- ════════════════════════════════════════════════════════════════ -->
+      <!-- PASO 1 — UPSELL: ESCENARIO DE PRODUCTOS APILADOS EN PROFUNDIDAD   -->
+      <!-- ════════════════════════════════════════════════════════════════ -->
+      {#if cartStep === 'upsell'}
+        <div class="flex-1 flex flex-col items-center justify-center w-full px-4 relative overflow-hidden">
+          {#if cartUnits.length === 0}
+            <!-- Estado sin productos en comanda -->
+            <div class="text-center py-12 space-y-2 select-none">
+              <p class="font-serif text-lg text-bone/60">Tu orden está vacía</p>
+              <p class="font-sans text-xs text-ash">Agrega productos para personalizarlos</p>
+            </div>
+          {:else}
+            <!-- Escenario interactivo de productos apilados hacia la derecha y en profundidad -->
+            <div 
+              class="relative flex items-center justify-center w-full select-none"
+              style="min-height: 280px; max-height: 380px;"
+            >
+              <!-- Sombra de contacto rasante en el piso -->
+              <div 
+                class="absolute bottom-3 sm:bottom-5 w-52 sm:w-64 h-6 rounded-[100%] bg-black/90 blur-xl pointer-events-none"
+                style="transform: scale({cartUnits.length === 1 ? 1.15 : 1 + Math.min(2.2, (cartUnits.length - 1) * 0.35)});"
+              ></div>
+
+              <!-- Composición: producto principal centrado y protagónico, secundarios a los costados -->
+              {#each cartUnits as unit, i (unit.id)}
+                {@const isHero = i === 0}
+                {@const side = (i % 2 === 1) ? 1 : -1}
+                {@const rank = Math.ceil(i / 2)}
+                {@const stepX = 68}
+                {@const stepY = 10}
+                {@const posX = isHero ? 0 : side * (rank * stepX)}
+                {@const posY = isHero ? 0 : -(rank * stepY)}
+                {@const scale = isHero ? 1.16 : Math.max(0.68, 0.84 - ((rank - 1) * 0.12))}
+                {@const zIndex = isHero ? 40 : 35 - (rank * 8) - (side < 0 ? 1 : 0)}
+                {@const brightness = isHero ? 1.0 : Math.max(0.74, 0.90 - ((rank - 1) * 0.08))}
+
+                <div 
+                  class="absolute flex items-center justify-center transition-all duration-500 ease-out pointer-events-none"
+                  style="
+                    transform: translate3d({posX}px, {posY}px, 0) scale({scale});
+                    z-index: {zIndex};
+                    filter: brightness({brightness}) drop-shadow(0 16px 30px rgba(0,0,0,0.85));
+                  "
+                >
+                  <div class="w-48 h-48 sm:w-56 sm:h-56 md:w-64 md:h-64 flex items-center justify-center">
+                    {#if unit.image_url}
+                      <img 
+                        src={unit.image_url} 
+                        alt={unit.name} 
+                        class="w-full h-full object-contain select-none pointer-events-none"
+                        loading="eager"
+                      />
                     {:else}
-                      <span class="px-2 py-0.5 rounded-full bg-char border border-white/10 text-[10px] font-mono font-bold uppercase text-ash">
-                        {item.product?.category_id === 5 ? 'Adicional' : item.product?.category_id === 4 ? 'Bebida' : 'Acompañamiento'}
-                      </span>
-                    {/if}
-                    {#if item.combo}
-                      <span class="px-2 py-0.5 rounded-full bg-[#FF2400]/20 text-[10px] font-mono font-bold text-[#FF2400]">
-                        + Combo
-                      </span>
+                      <div class="w-36 h-36 rounded-full bg-char-card border border-white/10 flex items-center justify-center text-bone">
+                        <ShoppingBag class="w-12 h-12 text-ash" />
+                      </div>
                     {/if}
                   </div>
-                  <h3 class="font-display font-black text-lg sm:text-xl text-bone truncate mt-1">
-                    {item.product?.name}
-                  </h3>
-                  {#if item.extras && item.extras.length > 0}
-                    <p class="text-[11px] font-mono text-ash truncate">
-                      + {item.extras.map(e => e.name).join(', ')}
-                    </p>
+                </div>
+              {/each}
+            </div>
+          {/if}
+        </div>
+
+
+      <!-- ════════════════════════════════════════════════════════════════ -->
+      <!-- PASO 2 — REVIEW: RESUMEN INTERACTIVO DEL PEDIDO                -->
+      <!-- ════════════════════════════════════════════════════════════════ -->
+      {:else if cartStep === 'review'}
+        <div class="flex-1 flex flex-col min-h-0 py-2">
+          <!-- Subtítulo -->
+          <p class="text-center text-sm text-ash mb-4">
+            ¿Quieres agregar o quitar algo?
+          </p>
+
+          <!-- Lista de ítems (scroll aislado si excede el viewport) -->
+          <div class="flex-1 min-h-0 overflow-y-auto space-y-2 overscroll-contain" style="touch-action: pan-y;">
+            {#each store.cart as item (item.id)}
+              <div class="flex items-center gap-3 p-3 sm:p-3.5 bg-char-card rounded-2xl border border-white/10">
+                <!-- Miniatura -->
+                <div class="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-char flex items-center justify-center shrink-0 overflow-hidden border border-white/10">
+                  {#if item.product?.image_url}
+                    <img src={item.product.image_url} alt={item.product?.name} class="w-full h-full object-contain" />
+                  {:else if item.product?.slug?.includes('papa')}
+                    <Utensils class="w-5 h-5 text-[#FF2400] stroke-[2]" />
+                  {:else if item.product?.slug?.includes('tocineta') || item.product?.slug?.includes('carne')}
+                    <Flame class="w-5 h-5 text-[#FF2400] stroke-[2]" />
+                  {:else if item.product?.slug?.includes('queso')}
+                    <Sparkles class="w-5 h-5 text-[#FF2400] stroke-[2]" />
+                  {:else}
+                    <ShoppingBag class="w-5 h-5 text-ash stroke-[1.8]" />
                   {/if}
-                  <span class="font-display font-extrabold text-base sm:text-lg text-[#FF2400] block mt-0.5">
-                    {formatCOP(item.totalPrice)}
-                  </span>
                 </div>
 
-                <!-- Controles Táctiles Gordos (Touch Targets >= 48px) -->
-                <div class="flex flex-col items-center gap-1.5 shrink-0">
-                  <div class="flex items-center gap-1 bg-char p-1 rounded-full border border-white/10">
-                    <button
-                      type="button"
-                      onclick={() => store.updateQuantity(item.id, -1)}
-                      class="w-10 h-10 rounded-full bg-char-card text-bone flex items-center justify-center hover:bg-char-card-hover active:scale-90 transition-all cursor-pointer"
-                      aria-label="Disminuir cantidad"
-                    >
-                      <Minus class="w-4 h-4 stroke-[2.5]" />
-                    </button>
-                    <span class="w-7 text-center font-mono font-black text-sm text-bone">
-                      {item.quantity}
-                    </span>
-                    <button
-                      type="button"
-                      onclick={() => store.updateQuantity(item.id, 1)}
-                      class="w-10 h-10 rounded-full bg-char-card text-bone flex items-center justify-center hover:bg-char-card-hover active:scale-90 transition-all cursor-pointer"
-                      aria-label="Aumentar cantidad"
-                    >
-                      <Plus class="w-4 h-4 stroke-[2.5]" />
-                    </button>
-                  </div>
+                <!-- Nombre + extras -->
+                <div class="flex-1 min-w-0">
+                  <h3 class="font-display font-bold text-sm sm:text-base text-bone truncate">{item.product?.name}</h3>
+                  {#if item.combo}
+                    <span class="text-[10px] font-mono text-[#FF2400]">+ Combo</span>
+                  {/if}
+                  {#if item.extras && item.extras.length > 0}
+                    <span class="text-[10px] font-mono text-ash block truncate">+ {item.extras.map(e => e.name).join(', ')}</span>
+                  {/if}
+                </div>
+
+                <!-- Precio -->
+                <span class="font-mono text-sm text-[#FF2400] font-bold shrink-0">{formatCOP(item.totalPrice)}</span>
+
+                <!-- Controles ± compactos -->
+                <div class="flex items-center gap-0.5 shrink-0 bg-char rounded-full p-0.5 border border-white/10">
                   <button
                     type="button"
-                    onclick={() => store.removeFromCart(item.id)}
-                    class="text-[11px] font-mono text-ash hover:text-[#FF2400] transition-colors py-0.5 cursor-pointer"
+                    onclick={() => store.updateQuantity(item.id, -1)}
+                    class="w-8 h-8 rounded-full bg-char-card text-bone flex items-center justify-center hover:bg-char-card-hover active:scale-90 transition-all cursor-pointer"
+                    aria-label="Disminuir cantidad"
                   >
-                    Eliminar
+                    <Minus class="w-3.5 h-3.5 stroke-[2.5]" />
+                  </button>
+                  <span class="w-5 text-center font-mono text-xs font-bold text-bone">{item.quantity}</span>
+                  <button
+                    type="button"
+                    onclick={() => store.updateQuantity(item.id, 1)}
+                    class="w-8 h-8 rounded-full bg-char-card text-bone flex items-center justify-center hover:bg-char-card-hover active:scale-90 transition-all cursor-pointer"
+                    aria-label="Aumentar cantidad"
+                  >
+                    <Plus class="w-3.5 h-3.5 stroke-[2.5]" />
                   </button>
                 </div>
               </div>
             {/each}
           </div>
 
-          <!-- Sección ¿Deseas acompañar tu hamburguesa? (Adicionales Rápidos) -->
-          <div class="bg-char-card border border-white/10 rounded-[36px] p-5 sm:p-6 space-y-3.5 shadow-none">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-mono font-bold uppercase tracking-wider text-ash">
-                ¿Deseas acompañar tu orden?
-              </span>
-              <span class="text-[11px] font-mono text-[#FF2400] font-bold">1 toque para añadir</span>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-              {#each upsellItems as item}
-                <button
-                  type="button"
-                  onclick={() => handleAddUpsell(item)}
-                  class="p-3.5 rounded-2xl bg-char border border-white/10 hover:border-[#FF2400]/40 flex items-center justify-between sm:flex-col sm:items-start text-left transition-all active:scale-[0.98] cursor-pointer"
-                >
-                  <div class="min-w-0 pr-2">
-                    <span class="font-display font-extrabold text-sm text-bone block truncate">{item.name}</span>
-                    <span class="font-mono text-xs text-[#FF2400] font-bold block mt-0.5">+{formatCOP(item.price)}</span>
-                  </div>
-                  <div class="w-8 h-8 rounded-full bg-char-card border border-white/10 flex items-center justify-center text-bone shrink-0 sm:mt-2 sm:self-end">
-                    {#if recentlyAddedUpsellId === item.id}
-                      <Check class="w-4 h-4 text-emerald-500 stroke-[3]" />
-                    {:else}
-                      <Plus class="w-4 h-4 stroke-[2.5]" />
-                    {/if}
-                  </div>
-                </button>
-              {/each}
-            </div>
-          </div>
-
-          <!-- Total de Comanda y Botón Fat-Finger CTA -->
-          <div class="bg-char-card border border-white/10 rounded-[36px] p-6 space-y-4 shadow-none">
-            <div class="flex items-center justify-between">
-              <div>
-                <span class="text-xs font-mono text-ash uppercase tracking-wider block">Subtotal de platos</span>
-                <span class="font-display font-extrabold text-2xl sm:text-3xl text-bone leading-tight">
-                  {formatCOP(store.cartSubtotal)}
-                </span>
-              </div>
-              <span class="text-xs font-mono font-bold text-[#8E8E93] bg-[#EDE8DC] px-3 py-1.5 rounded-full">
+          <!-- Subtotal -->
+          <div class="shrink-0 pt-4">
+            <div class="flex items-center justify-between px-1 mb-1">
+              <span class="text-xs font-mono text-ash uppercase tracking-wider">Subtotal</span>
+              <span class="font-mono text-xs font-bold text-[#8E8E93] bg-[#EDE8DC] px-3 py-1 rounded-full">
                 {store.cartCount} {store.cartCount === 1 ? 'producto' : 'productos'}
               </span>
             </div>
-
-            <button
-              type="button"
-              onclick={handleContinueToMode}
-              class="w-full min-h-[64px] rounded-full bg-[#FF2400] hover:bg-[#E02000] active:scale-[0.97] text-white font-display font-extrabold text-lg sm:text-xl tracking-tight transition-all flex items-center justify-center gap-2 cursor-pointer shadow-none"
-            >
-              <span>Continuar con el Pedido</span>
-              <ArrowRight class="w-5 h-5 stroke-[2.5]" />
-            </button>
+            <span class="font-display font-extrabold text-2xl sm:text-3xl text-bone block px-1">
+              {formatCOP(store.cartSubtotal)}
+            </span>
           </div>
-        {/if}
+        </div>
 
-      <!-- ========================================================================= -->
-      <!-- FASE 2: SELECCIÓN DE MODALIDAD (TARJETAS GORDAS TÁCTILES)                  -->
-      <!-- ========================================================================= -->
+        <!-- CTA Review -->
+        <div class="shrink-0 space-y-2 pt-2 pb-2">
+          {#if !store.user}
+            <div class="p-3 rounded-2xl bg-char border border-amber-500/20 flex items-center gap-3">
+              <User class="w-4 h-4 text-amber-400 shrink-0" />
+              <span class="text-xs text-ash flex-1">Inicia sesión para continuar con tu pedido</span>
+            </div>
+          {/if}
+
+          {#if formError}
+            <div class="p-3 rounded-2xl bg-red-950/60 border border-red-800/40 text-xs font-bold text-red-400 text-center">
+              {formError}
+            </div>
+          {/if}
+
+          <button
+            type="button"
+            onclick={handleContinueFromReview}
+            class="w-full min-h-[62px] rounded-full bg-[#FF2400] hover:bg-[#E02000] active:scale-[0.97] text-white font-display font-extrabold text-base sm:text-lg tracking-tight transition-all flex items-center justify-center gap-2.5 cursor-pointer"
+          >
+            {#if !store.user}
+              <LogIn class="w-5 h-5 stroke-[2.5]" />
+              <span>Identifícate para Continuar</span>
+            {:else}
+              <span>Confirmar Pedido</span>
+              <ArrowRight class="w-5 h-5 stroke-[2.5]" />
+            {/if}
+          </button>
+
+          <button
+            type="button"
+            onclick={addMoreProducts}
+            class="w-full py-2 text-xs font-mono text-ash hover:text-bone transition-colors cursor-pointer text-center"
+          >
+            Agregar más productos
+          </button>
+        </div>
+
+
+      <!-- ════════════════════════════════════════════════════════════════ -->
+      <!-- PASO 3 — MODALIDAD: ¿DÓNDE DISFRUTAS?                         -->
+      <!-- En salón: auto-finaliza sin solicitar datos                    -->
+      <!-- ════════════════════════════════════════════════════════════════ -->
       {:else if cartStep === 'mode'}
-        <div class="space-y-4">
-          <!-- Opción 1: A Domicilio -->
-          <button
-            type="button"
-            onclick={() => handleSelectMode('delivery')}
-            class="w-full text-left rounded-[32px] border-2 p-5 sm:p-6 transition-all active:scale-[0.985] cursor-pointer flex items-center gap-4.5 {selectedMode === 'delivery' ? 'border-[#FF2400] bg-char' : 'border-white/10 hover:border-white/20 bg-char-card'}"
-          >
-            <div class="w-14 h-14 rounded-2xl bg-[#FF2400] text-white flex items-center justify-center shrink-0">
-              <Bike class="w-7 h-7 stroke-[2.2]" />
+        <div class="flex-1 flex flex-col justify-center gap-3.5 py-2 sm:py-4">
+          {#if formError}
+            <div class="p-3.5 rounded-2xl bg-red-950/60 border border-red-800/40 text-xs font-bold text-red-400 text-center mb-1">
+              {formError}
             </div>
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center justify-between">
-                <h2 class="font-display font-black text-xl text-bone">A Domicilio</h2>
-                <span class="px-2.5 py-1 rounded-full bg-[#FF2400]/10 border border-[#FF2400]/20 text-xs font-mono font-bold text-[#FF2400]">
-                  + $6.000
-                </span>
-              </div>
-              <p class="text-xs text-ash mt-1 leading-relaxed">
-                Directo a tu puerta en Duitama, empacado hermético con sello de calor.
-              </p>
-            </div>
-          </button>
+          {/if}
 
-          <!-- Opción 2: Para Llevar -->
-          <button
-            type="button"
-            onclick={() => handleSelectMode('takeout')}
-            class="w-full text-left rounded-[32px] border-2 p-5 sm:p-6 transition-all active:scale-[0.985] cursor-pointer flex items-center gap-4.5 {selectedMode === 'takeout' ? 'border-[#FF2400] bg-char' : 'border-white/10 hover:border-white/20 bg-char-card'}"
-          >
-            <div class="w-14 h-14 rounded-2xl bg-char-card border border-white/10 text-white flex items-center justify-center shrink-0">
-              <ShoppingBag class="w-7 h-7 stroke-[2.2]" />
-            </div>
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center justify-between">
-                <h2 class="font-display font-black text-xl text-bone">Para Llevar (Take Away)</h2>
-                <span class="px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-mono font-bold text-ash">
-                  Sin recargo
-                </span>
-              </div>
-              <p class="text-xs text-ash mt-1 leading-relaxed">
-                Empacado para retirar en barra sin hacer filas.
-              </p>
-            </div>
-          </button>
-
-          <!-- Opción 3: Consumo en Salón -->
+          <!-- Opción 1: Consumo en Salón (auto-finaliza) -->
           <button
             type="button"
             onclick={() => handleSelectMode('in_store')}
-            class="w-full text-left rounded-[32px] border-2 p-5 sm:p-6 transition-all active:scale-[0.985] cursor-pointer flex items-center gap-4.5 {selectedMode === 'in_store' ? 'border-[#FF2400] bg-char' : 'border-white/10 hover:border-white/20 bg-char-card'}"
+            class="w-full text-left rounded-[28px] border-2 p-5 sm:p-6 transition-all active:scale-[0.985] cursor-pointer flex items-center gap-4 group border-white/10 hover:border-white/25 bg-char-card"
           >
-            <div class="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 text-bone flex items-center justify-center shrink-0">
-              <UtensilsCrossed class="w-7 h-7 stroke-[2.2]" />
+            <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-[#FF2400] text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <UtensilsCrossed class="w-7 h-7 sm:w-8 sm:h-8 stroke-[2.2]" />
             </div>
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center justify-between">
-                <h2 class="font-display font-black text-xl text-bone">Consumo en el Salón</h2>
-                <span class="px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-mono font-bold text-ash">
-                  En mesa
-                </span>
-              </div>
-              <p class="text-xs text-ash mt-1 leading-relaxed">
-                Disfruta la experiencia en nuestro punto físico, te lo llevamos a la mesa.
+            <div class="flex-1 min-w-0 overflow-hidden">
+              <h2 class="font-display font-black text-lg sm:text-2xl text-bone truncate">Consumo en el Salón</h2>
+              <span class="inline-block mt-1 px-2.5 py-0.5 rounded-full bg-emerald-950/60 border border-emerald-500/40 text-[10px] sm:text-xs font-mono font-bold text-emerald-300">
+                ⚡ 1 Toque • A la Mesa
+              </span>
+              <p class="text-xs sm:text-sm text-ash mt-1.5 leading-relaxed line-clamp-2">
+                Envío directo a cocina. Disfruta en nuestro punto y la cuenta queda lista para pagar en caja.
+              </p>
+            </div>
+          </button>
+
+          <!-- Opción 2: A Domicilio -->
+          <button
+            type="button"
+            onclick={() => handleSelectMode('delivery')}
+            class="w-full text-left rounded-[28px] border-2 p-5 sm:p-6 transition-all active:scale-[0.985] cursor-pointer flex items-center gap-4 group border-white/10 hover:border-white/25 bg-char-card"
+          >
+            <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-char-card border border-white/10 text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <Bike class="w-7 h-7 sm:w-8 sm:h-8 stroke-[2.2] text-[#FF2400]" />
+            </div>
+            <div class="flex-1 min-w-0 overflow-hidden">
+              <h2 class="font-display font-black text-lg sm:text-2xl text-bone truncate">A Domicilio</h2>
+              <span class="inline-block mt-1 px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-[10px] sm:text-xs font-mono font-bold text-ash">
+                Duitama
+              </span>
+              <p class="text-xs sm:text-sm text-ash mt-1.5 leading-relaxed line-clamp-2">
+                Empacado hermético con sello de calor directo a tu dirección.
+              </p>
+            </div>
+          </button>
+
+          <!-- Opción 3: Para Llevar -->
+          <button
+            type="button"
+            onclick={() => handleSelectMode('takeout')}
+            class="w-full text-left rounded-[28px] border-2 p-5 sm:p-6 transition-all active:scale-[0.985] cursor-pointer flex items-center gap-4 group border-white/10 hover:border-white/25 bg-char-card"
+          >
+            <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-char-card border border-white/10 text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <ShoppingBag class="w-7 h-7 sm:w-8 sm:h-8 stroke-[2.2] text-[#FF2400]" />
+            </div>
+            <div class="flex-1 min-w-0 overflow-hidden">
+              <h2 class="font-display font-black text-lg sm:text-2xl text-bone truncate">Para Llevar</h2>
+              <span class="inline-block mt-1 px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-[10px] sm:text-xs font-mono font-bold text-ash">
+                Punto Físico
+              </span>
+              <p class="text-xs sm:text-sm text-ash mt-1.5 leading-relaxed line-clamp-2">
+                Pasa a retirar en barra listo para llevar sin hacer filas.
               </p>
             </div>
           </button>
         </div>
 
-      <!-- ========================================================================= -->
-      <!-- FASE 3: DATOS DE ENTREGA Y PAGO (FAT-FINGER DESIGN DE ALTA CONVERSIÓN)     -->
-      <!-- ========================================================================= -->
+
+      <!-- ════════════════════════════════════════════════════════════════ -->
+      <!-- PASO 4 — DATOS Y PAGO (SOLO DELIVERY / TAKEOUT)               -->
+      <!-- ════════════════════════════════════════════════════════════════ -->
       {:else if cartStep === 'delivery_form'}
-        <div class="space-y-4">
-          
+        <div class="flex-1 min-h-0 overflow-y-auto overscroll-contain space-y-4 py-2" style="touch-action: pan-y;">
+
           <!-- SECCIÓN 1: ¿A QUIÉN ENTREGAMOS? -->
-          <div class="bg-char-card border border-white/10 rounded-[34px] p-5 sm:p-6 space-y-3.5 shadow-none">
+          <div class="bg-char-card border border-white/10 rounded-[34px] p-5 sm:p-6 space-y-3.5">
             <div class="flex items-center gap-2">
               <User class="w-5 h-5 text-[#FF2400]" />
               <h2 class="font-display font-extrabold text-lg text-bone">
                 ¿A quién entregamos?
               </h2>
             </div>
-
             <div class="space-y-2.5">
-              <div class="relative">
-                <input 
-                  type="text" 
-                  bind:value={customerName}
-                  placeholder="Nombre completo"
-                  class="w-full min-h-[58px] rounded-2xl px-5 bg-char border border-white/10 text-bone placeholder:text-ash/60 text-base font-sans focus:outline-none focus:border-[#FF2400] transition-colors"
-                />
-              </div>
-
-              <div class="relative">
-                <input 
-                  type="tel" 
-                  bind:value={customerPhone}
-                  placeholder="Número de WhatsApp (ej. 321 252 0881)"
-                  class="w-full min-h-[58px] rounded-2xl px-5 bg-char border border-white/10 text-bone placeholder:text-ash/60 text-base font-sans focus:outline-none focus:border-[#FF2400] transition-colors"
-                />
-              </div>
+              <input
+                type="text"
+                bind:value={customerName}
+                placeholder="Nombre completo"
+                class="w-full min-h-[58px] rounded-2xl px-5 bg-char border border-white/10 text-bone placeholder:text-ash/60 text-base font-sans focus:outline-none focus:border-[#FF2400] transition-colors"
+              />
+              <input
+                type="tel"
+                bind:value={customerPhone}
+                placeholder="Número de WhatsApp (ej. 321 252 0881)"
+                class="w-full min-h-[58px] rounded-2xl px-5 bg-char border border-white/10 text-bone placeholder:text-ash/60 text-base font-sans focus:outline-none focus:border-[#FF2400] transition-colors"
+              />
             </div>
           </div>
 
-          <!-- SECCIÓN 2: LUGAR DE ENTREGA O MESA -->
+          <!-- SECCIÓN 2: DIRECCIÓN (SOLO DELIVERY) O NOTAS (TAKEOUT) -->
           {#if selectedMode === 'delivery'}
-            <div class="bg-char-card border border-white/10 rounded-[34px] p-5 sm:p-6 space-y-3.5 shadow-none">
+            <div class="bg-char-card border border-white/10 rounded-[34px] p-5 sm:p-6 space-y-3.5">
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
                   <MapPin class="w-5 h-5 text-[#FF2400]" />
@@ -676,30 +789,26 @@
                 </div>
                 <span class="text-xs font-mono font-bold text-[#FF2400]">Domicilio Oficial</span>
               </div>
-
               <div class="space-y-2.5">
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   bind:value={deliveryAddress}
                   placeholder="Dirección exacta (ej. Carrera 16 # 14-32)"
                   class="w-full min-h-[58px] rounded-2xl px-5 bg-char border border-white/10 text-bone placeholder:text-ash/60 text-base font-sans focus:outline-none focus:border-[#FF2400] transition-colors"
                 />
-
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   bind:value={deliveryNeighborhood}
-                  placeholder="Barrio o sector (ej. Centro, El Recreo, Sugamuxi)"
+                  placeholder="Barrio o sector (ej. Centro, El Recreo)"
                   class="w-full min-h-[58px] rounded-2xl px-5 bg-char border border-white/10 text-bone placeholder:text-ash/60 text-base font-sans focus:outline-none focus:border-[#FF2400] transition-colors"
                 />
-
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   bind:value={deliveryNotes}
-                  placeholder="Indicaciones para el repartidor (ej. Casa blanca, timbre 201)"
+                  placeholder="Indicaciones para el repartidor"
                   class="w-full min-h-[54px] rounded-2xl px-5 bg-char border border-white/10 text-bone placeholder:text-ash/60 text-sm font-sans focus:outline-none focus:border-[#FF2400] transition-colors"
                 />
-
-                <!-- Chips Rápidos para Notas de Entrega -->
+                <!-- Chips Rápidos -->
                 <div class="flex flex-wrap gap-1.5 pt-1">
                   {#each ['🔔 Tocar timbre', '🏢 Dejar en portería', '🛵 Llamar al llegar'] as chip}
                     <button
@@ -713,30 +822,29 @@
                 </div>
               </div>
             </div>
-          {:else if selectedMode === 'in_store'}
-            <div class="bg-char-card border border-white/10 rounded-[34px] p-5 sm:p-6 space-y-3 shadow-none">
+          {:else if selectedMode === 'takeout'}
+            <div class="bg-char-card border border-white/10 rounded-[34px] p-5 sm:p-6 space-y-3">
               <div class="flex items-center gap-2">
-                <UtensilsCrossed class="w-5 h-5 text-[#FF2400]" />
-                <h2 class="font-display font-extrabold text-lg text-bone">Número de Mesa</h2>
+                <ShoppingBag class="w-5 h-5 text-[#FF2400]" />
+                <h2 class="font-display font-extrabold text-lg text-bone">Notas de Retiro</h2>
               </div>
-              <input 
-                type="text" 
-                bind:value={tableNumber}
-                placeholder="Número de mesa (ej. 4)"
-                class="w-full min-h-[58px] rounded-2xl px-5 bg-char border border-white/10 text-bone placeholder:text-ash/60 text-base font-sans focus:outline-none focus:border-[#FF2400] transition-colors"
+              <input
+                type="text"
+                bind:value={deliveryNotes}
+                placeholder="Indicaciones adicionales (opcional)"
+                class="w-full min-h-[54px] rounded-2xl px-5 bg-char border border-white/10 text-bone placeholder:text-ash/60 text-sm font-sans focus:outline-none focus:border-[#FF2400] transition-colors"
               />
             </div>
           {/if}
 
-          <!-- SECCIÓN 3: MÉTODO DE PAGO (TARJETAS GORDAS) -->
-          <div class="bg-char-card border border-white/10 rounded-[34px] p-5 sm:p-6 space-y-3.5 shadow-none">
+          <!-- SECCIÓN 3: MÉTODO DE PAGO -->
+          <div class="bg-char-card border border-white/10 rounded-[34px] p-5 sm:p-6 space-y-3.5">
             <div class="flex items-center justify-between">
               <h2 class="font-display font-extrabold text-lg text-bone">Método de Pago</h2>
               <span class="text-xs font-mono font-bold text-ash">{paymentMethod}</span>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-              <!-- Efectivo -->
               <button
                 type="button"
                 onclick={() => paymentMethod = 'Efectivo'}
@@ -748,8 +856,6 @@
                   <span class="text-[11px] text-ash">Contraentrega</span>
                 </div>
               </button>
-
-              <!-- Nequi / Daviplata -->
               <button
                 type="button"
                 onclick={() => paymentMethod = 'Nequi / Daviplata'}
@@ -761,8 +867,6 @@
                   <span class="text-[11px] text-ash">Transferencia</span>
                 </div>
               </button>
-
-              <!-- Datáfono -->
               <button
                 type="button"
                 onclick={() => paymentMethod = 'Datáfono contraentrega'}
@@ -776,38 +880,18 @@
               </button>
             </div>
 
-            <!-- Detalles según método de pago seleccionado -->
             {#if paymentMethod === 'Efectivo'}
               <div class="p-4 rounded-2xl bg-char border border-white/5 space-y-2.5">
                 <span class="text-xs font-mono font-bold text-bone block">
                   ¿Con cuánto cancelas? (Para llevar tu cambio exacto)
                 </span>
                 <div class="grid grid-cols-3 gap-2">
-                  <button
-                    type="button"
-                    onclick={() => selectQuickCash(50000)}
-                    class="py-2.5 rounded-xl bg-char-card border border-white/10 text-xs font-bold font-mono text-bone hover:border-[#FF2400] cursor-pointer transition-colors"
-                  >
-                    $50.000
-                  </button>
-                  <button
-                    type="button"
-                    onclick={() => selectQuickCash(100000)}
-                    class="py-2.5 rounded-xl bg-char-card border border-white/10 text-xs font-bold font-mono text-bone hover:border-[#FF2400] cursor-pointer transition-colors"
-                  >
-                    $100.000
-                  </button>
-                  <button
-                    type="button"
-                    onclick={() => selectQuickCash('exact')}
-                    class="py-2.5 rounded-xl bg-char-card border border-white/10 text-xs font-bold font-mono text-bone hover:border-[#FF2400] cursor-pointer transition-colors"
-                  >
-                    Exacto
-                  </button>
+                  <button type="button" onclick={() => selectQuickCash(50000)} class="py-2.5 rounded-xl bg-char-card border border-white/10 text-xs font-bold font-mono text-bone hover:border-[#FF2400] cursor-pointer transition-colors">$50.000</button>
+                  <button type="button" onclick={() => selectQuickCash(100000)} class="py-2.5 rounded-xl bg-char-card border border-white/10 text-xs font-bold font-mono text-bone hover:border-[#FF2400] cursor-pointer transition-colors">$100.000</button>
+                  <button type="button" onclick={() => selectQuickCash('exact')} class="py-2.5 rounded-xl bg-char-card border border-white/10 text-xs font-bold font-mono text-bone hover:border-[#FF2400] cursor-pointer transition-colors">Exacto</button>
                 </div>
-
                 <div class="flex items-center gap-2 pt-1">
-                  <input 
+                  <input
                     type="number"
                     bind:value={cashAmount}
                     placeholder="Otro valor en efectivo..."
@@ -838,8 +922,8 @@
             {/if}
           </div>
 
-          <!-- SECCIÓN 4: RESUMEN Y BOTÓN FAT-FINGER FINALIZAR -->
-          <div class="bg-char-card border border-white/10 rounded-[34px] p-6 space-y-4 shadow-none">
+          <!-- SECCIÓN 4: RESUMEN Y BOTÓN FINALIZAR -->
+          <div class="bg-char-card border border-white/10 rounded-[34px] p-6 space-y-4">
             <div class="space-y-2 text-sm">
               <div class="flex justify-between text-ash">
                 <span>Subtotal de platos:</span>
@@ -868,7 +952,7 @@
             <button
               type="button"
               onclick={handleFinalizeOrder}
-              class="w-full min-h-[64px] rounded-full bg-[#FF2400] hover:bg-[#E02000] active:scale-[0.97] text-white font-display font-extrabold text-lg sm:text-xl tracking-tight transition-all flex items-center justify-center gap-2 cursor-pointer shadow-none"
+              class="w-full min-h-[64px] rounded-full bg-[#FF2400] hover:bg-[#E02000] active:scale-[0.97] text-white font-display font-extrabold text-lg sm:text-xl tracking-tight transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
               <span>Confirmar y Finalizar Pedido</span>
               <Check class="w-5 h-5 stroke-[2.5]" />
@@ -876,116 +960,182 @@
           </div>
         </div>
 
-      <!-- ========================================================================= -->
-      <!-- FASE 4: COMANDA CONFIRMADA (TICKET Y ACCIONES INMEDIATAS)                  -->
-      <!-- ========================================================================= -->
+
+      <!-- ════════════════════════════════════════════════════════════════ -->
+      <!-- PASO 5 — TICKET: FACTURA DIGITAL BOARDING PASS                 -->
+      <!-- ════════════════════════════════════════════════════════════════ -->
       {:else if cartStep === 'ticket' && (liveTicketOrder || createdOrder)}
         {@const ord = liveTicketOrder || createdOrder}
-        <div class="bg-char-card border border-white/10 rounded-[38px] p-6 sm:p-8 space-y-6 shadow-none text-center">
-          
-          <!-- Encabezado de Éxito con Estado en Vivo -->
-          <div class="space-y-2">
-            <div class="w-16 h-16 rounded-full {ord.status === 'PAID' ? 'bg-emerald-600' : 'bg-[#FF2400]'} text-white mx-auto flex items-center justify-center shadow-xs transition-colors duration-500">
-              <Check class="w-8 h-8 stroke-[3]" />
+        {@const itemCount = (ord.items || []).reduce((s, it) => s + (it.quantity || 1), 0)}
+        <div class="flex-1 flex flex-col items-center py-2 min-h-0 overflow-y-auto overscroll-contain" style="touch-action: pan-y;">
+          <div class="flex-1 flex items-center justify-center w-full">
+            <!-- Boarding Pass Card -->
+            <div class="w-full max-w-sm mx-auto rounded-[28px] bg-white text-[#1C1C1E] overflow-visible relative" style="box-shadow: 0 8px 40px rgba(0,0,0,0.35);">
+              <!-- Top Section -->
+              <div class="px-6 pt-6 pb-4">
+                <div class="flex items-center justify-between mb-5">
+                  <span class="font-mono text-[11px] font-bold text-[#8E8E93] tracking-wide uppercase">
+                    {ord.code || 'ORD-0000'}
+                  </span>
+                  <span class="font-mono text-[11px] font-bold text-[#8E8E93] tracking-wide uppercase">
+                    MÍAS BURGERS
+                  </span>
+                </div>
+
+                <!-- Route: Origin → Destination -->
+                <div class="flex items-start justify-between mb-1">
+                  <div class="text-left">
+                    <span class="font-display font-black text-[42px] leading-none tracking-tight text-[#1C1C1E] block">
+                      {#if ord.type === 'in_store'}SLN{:else if ord.type === 'delivery'}DMC{:else}TKA{/if}
+                    </span>
+                    <span class="font-mono text-[11px] text-[#8E8E93] mt-0.5 block">
+                      {#if ord.type === 'in_store'}En el Salón{:else if ord.type === 'delivery'}Domicilio, Duitama{:else}Para Llevar{/if}
+                    </span>
+                  </div>
+                  <div class="flex-1 flex items-center justify-center pt-3 px-4">
+                    <div class="w-full flex items-center gap-1.5">
+                      <div class="h-px flex-1 bg-[#D1D1D6]"></div>
+                      <div class="w-2 h-2 rounded-full border-2 border-[#D1D1D6]"></div>
+                      <div class="h-px flex-1 bg-[#D1D1D6]"></div>
+                    </div>
+                  </div>
+                  <div class="text-right">
+                    <span class="font-display font-black text-[42px] leading-none tracking-tight text-[#1C1C1E] block">MÍA</span>
+                    <span class="font-mono text-[11px] text-[#8E8E93] mt-0.5 block">Cocina Mías</span>
+                  </div>
+                </div>
+
+                <!-- Metadata Grid -->
+                <div class="grid grid-cols-3 gap-x-3 mt-5 pt-4 border-t border-[#E5E5EA]">
+                  <div>
+                    <span class="font-mono text-[10px] text-[#8E8E93] uppercase tracking-wider block">Hora registro</span>
+                    <span class="font-display font-extrabold text-sm text-[#1C1C1E] block mt-0.5">{formatTicketTime(ord.created_at)}</span>
+                  </div>
+                  <div>
+                    <span class="font-mono text-[10px] text-[#8E8E93] uppercase tracking-wider block">Modalidad</span>
+                    <span class="font-display font-extrabold text-sm text-[#1C1C1E] block mt-0.5">{ord.modeLabel || 'Salón'}</span>
+                  </div>
+                  <div class="text-right">
+                    <span class="font-mono text-[10px] text-[#8E8E93] uppercase tracking-wider block">Total</span>
+                    <span class="font-display font-extrabold text-sm text-[#1C1C1E] block mt-0.5">{formatCOP(ord.total)}</span>
+                  </div>
+                </div>
+
+                <!-- Date + Status -->
+                <div class="flex items-center justify-between mt-4 pt-3 border-t border-[#E5E5EA]">
+                  <div>
+                    <span class="font-mono text-[10px] text-[#8E8E93] uppercase tracking-wider block">Fecha</span>
+                    <span class="font-display font-extrabold text-sm text-[#1C1C1E] block mt-0.5">{formatTicketDate(ord.created_at)}</span>
+                  </div>
+                  <div class="text-right">
+                    <span class="font-mono text-[10px] text-[#8E8E93] uppercase tracking-wider block">Estado</span>
+                    <span class="font-display font-extrabold text-sm block mt-0.5 {
+                      ord.status === 'PAID' ? 'text-emerald-600' :
+                      ord.status === 'IN_PREPARATION' ? 'text-amber-600' :
+                      ord.status === 'ON_THE_WAY' ? 'text-blue-600' :
+                      ord.status === 'DELIVERED' ? 'text-purple-600' :
+                      'text-orange-600'
+                    }">
+                      {#if ord.status === 'PAID'}Cobrado{:else if ord.status === 'IN_PREPARATION'}Al Fuego{:else if ord.status === 'ON_THE_WAY'}En Camino{:else if ord.status === 'DELIVERED'}Entregado{:else}Pendiente{/if}
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Comensal -->
+                <div class="mt-4 pt-3 border-t border-[#E5E5EA]">
+                  <span class="font-mono text-[10px] text-[#8E8E93] uppercase tracking-wider block">Comensal</span>
+                  <span class="font-display font-black text-xl text-[#1C1C1E] block mt-0.5 truncate">
+                    {ord.customer_name || 'Comensal'}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Perforated Tear Line -->
+              <div class="relative h-8 flex items-center">
+                <div class="absolute -left-3.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-char z-10"></div>
+                <div class="absolute -right-3.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-char z-10"></div>
+                <div class="w-full border-t-2 border-dashed border-[#D1D1D6] mx-6"></div>
+              </div>
+
+              <!-- Bottom Section: Barcode -->
+              <div class="px-6 pb-6 pt-2">
+                <div class="flex items-end justify-center gap-px h-14 mb-2" aria-hidden="true">
+                  {#each Array(42) as _, i}
+                    {@const w = (i % 3 === 0) ? 3 : (i % 5 === 0) ? 1.5 : 2}
+                    {@const h = (i % 7 === 0) ? 75 : (i % 4 === 0) ? 90 : 100}
+                    <div
+                      class="bg-[#1C1C1E] rounded-[0.5px]"
+                      style="width: {w}px; height: {h}%; min-height: 10px;"
+                    ></div>
+                  {/each}
+                </div>
+                <p class="text-center font-mono text-[11px] text-[#8E8E93] tracking-[0.3em] mb-5">
+                  {(ord.code || 'ORD-0000').replace('-', ' ')}
+                </p>
+                <div class="grid grid-cols-3 gap-3">
+                  <div class="bg-[#F2F2F7] rounded-xl p-3 text-center">
+                    <span class="font-mono text-[9px] text-[#8E8E93] uppercase tracking-wider block">
+                      {#if ord.type === 'delivery'}Barrio{:else}Salón{/if}
+                    </span>
+                    <span class="font-display font-black text-2xl text-[#1C1C1E] block mt-1">
+                      {#if ord.type === 'delivery'}{(ord.delivery_address || '').split('Barrio')[1]?.trim()?.charAt(0) || 'D'}{:else}1{/if}
+                    </span>
+                  </div>
+                  <div class="bg-[#F2F2F7] rounded-xl p-3 text-center">
+                    <span class="font-mono text-[9px] text-[#8E8E93] uppercase tracking-wider block">
+                      {#if ord.type === 'in_store'}Modalidad{:else if ord.type === 'delivery'}Zona{:else}Turno{/if}
+                    </span>
+                    <span class="font-display font-black text-2xl text-[#1C1C1E] block mt-1">
+                      {#if ord.type === 'in_store'}Local{:else if ord.type === 'delivery'}{(ord.delivery_address || 'D').charAt(0)}{:else}—{/if}
+                    </span>
+                  </div>
+                  <div class="bg-[#F2F2F7] rounded-xl p-3 text-center">
+                    <span class="font-mono text-[9px] text-[#8E8E93] uppercase tracking-wider block">Platos</span>
+                    <span class="font-display font-black text-2xl text-[#1C1C1E] block mt-1">{itemCount}</span>
+                  </div>
+                </div>
+              </div>
             </div>
-            <span class="font-mono text-xs uppercase font-bold tracking-widest text-[#FF2400] block">
-              Comanda #{ord.code}
-            </span>
-            <h2 class="font-display font-black text-2xl sm:text-3xl text-bone">
-              {#if ord.status === 'PAID'}
-                ¡Comanda Cobrada y Aprobada!
-              {:else if ord.status === 'IN_PREPARATION'}
-                ¡Tu comanda está al fuego!
-              {:else if ord.status === 'ON_THE_WAY'}
-                ¡Tu comanda va en camino!
-              {:else if ord.status === 'DELIVERED'}
-                ¡Pedido Entregado!
-              {:else}
-                ¡Tu comanda está registrada!
-              {/if}
-            </h2>
-            <p class="text-xs sm:text-sm text-ash max-w-sm mx-auto">
-              {#if ord.status === 'PAID'}
-                La caja ha confirmado tu pago satisfactoriamente. Tu orden se está procesando.
-              {:else}
-                Para despachar de inmediato al fuego y coordinar la entrega, envía tu comanda por WhatsApp oficial.
-              {/if}
-            </p>
           </div>
 
-          <!-- Resumen del Ticket Térmico con Estado en Vivo -->
-          <div class="p-5 rounded-3xl bg-char border border-white/10 text-left space-y-3 font-mono text-xs">
-            <div class="flex justify-between items-center border-b border-white/10 pb-2">
-              <span class="text-ash">Estado en Vivo:</span>
-              <span class="font-mono font-bold text-[11px] uppercase px-2.5 py-1 rounded-full {
-                ord.status === 'PAID' ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-700/30' :
-                ord.status === 'IN_PREPARATION' ? 'bg-amber-950/60 text-amber-400 border border-amber-700/30' :
-                ord.status === 'ON_THE_WAY' ? 'bg-blue-950/60 text-blue-400 border border-blue-700/30' :
-                ord.status === 'DELIVERED' ? 'bg-purple-950/60 text-purple-400 border border-purple-700/30' :
-                'bg-orange-950/60 text-orange-400 border border-orange-700/30 animate-pulse'
-              }">
-                {#if ord.status === 'PAID'}
-                  ✓ Pago Aprobado en Caja
-                {:else if ord.status === 'IN_PREPARATION'}
-                  🔥 En Preparación al Fuego
-                {:else if ord.status === 'ON_THE_WAY'}
-                  🛵 En Camino al Domicilio
-                {:else if ord.status === 'DELIVERED'}
-                  ✨ Pedido Entregado
-                {:else}
-                  ⏳ Pendiente de Cobro en Caja
-                {/if}
-              </span>
-            </div>
-            <div class="flex justify-between border-b border-white/10 pb-2">
-              <span class="text-ash">Modalidad:</span>
-              <span class="font-bold text-bone">{ord.modeLabel || ord.type}</span>
-            </div>
-            <div class="flex justify-between border-b border-white/10 pb-2">
-              <span class="text-ash">Cliente:</span>
-              <span class="font-bold text-bone">{ord.customer_name || ord.deliveryName}</span>
-            </div>
-            {#if ord.delivery_address || ord.deliveryAddress}
-              <div class="flex justify-between border-b border-white/10 pb-2">
-                <span class="text-ash">Dirección:</span>
-                <span class="font-bold text-bone text-right">{ord.delivery_address || ord.deliveryAddress}</span>
+          <!-- Action Buttons -->
+          <div class="w-full max-w-sm mx-auto mt-6 space-y-3 shrink-0">
+            {#if ord.type === 'in_store'}
+              <div class="w-full min-h-[64px] rounded-full bg-amber-500/20 border-2 border-amber-500/40 text-amber-300 font-display font-extrabold text-base sm:text-lg tracking-tight flex items-center justify-center gap-2.5 select-none">
+                <Clock class="w-5 h-5 animate-pulse text-amber-400" />
+                <span>A la espera del cobro</span>
               </div>
+            {:else}
+              <button
+                type="button"
+                onclick={dispatchWhatsApp}
+                class="w-full min-h-[64px] rounded-full bg-[#FF2400] hover:bg-[#E02000] active:scale-[0.97] text-white font-display font-extrabold text-base sm:text-lg tracking-tight transition-all flex items-center justify-center gap-2.5 cursor-pointer"
+              >
+                <Send class="w-5 h-5" />
+                <span>Enviar Pedido por WhatsApp</span>
+              </button>
             {/if}
-            {#if ord.table_number || ord.tableNumber}
-              <div class="flex justify-between border-b border-white/10 pb-2">
-                <span class="text-ash">Mesa:</span>
-                <span class="font-bold text-bone">#{ord.table_number || ord.tableNumber}</span>
-              </div>
-            {/if}
-            <div class="flex justify-between pt-1">
-              <span class="font-display font-extrabold text-sm text-bone">Total Comanda:</span>
-              <span class="font-display font-black text-base text-[#FF2400]">{formatCOP(ord.total)}</span>
-            </div>
-          </div>
 
-          <!-- Botones Fat-Finger de Alta Conversión -->
-          <div class="space-y-3 pt-2">
-            <!-- Botón 1: Enviar por WhatsApp -->
+            {#if store.orderHasBurgers(liveTicketOrder || createdOrder)}
+              <button
+                type="button"
+                onclick={goToStampsFromTicket}
+                class="w-full min-h-[58px] rounded-full bg-char hover:bg-char-card text-bone border border-white/10 font-display font-extrabold text-sm sm:text-base tracking-tight transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Award class="w-5 h-5 text-[#FF2400]" />
+                <span>Solicitar Sellos en mi Cartilla</span>
+              </button>
+            {/if}
+
             <button
               type="button"
-              onclick={dispatchWhatsApp}
-              class="w-full min-h-[64px] rounded-full bg-[#FF2400] hover:bg-[#E02000] active:scale-[0.97] text-white font-display font-extrabold text-base sm:text-lg tracking-tight transition-all flex items-center justify-center gap-2.5 cursor-pointer shadow-none"
+              onclick={() => { closeOrderModal(); store.currentView = 'orders'; }}
+              class="w-full min-h-[54px] rounded-full bg-char-card hover:bg-white/10 text-bone border border-white/15 font-display font-extrabold text-sm tracking-tight transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
-              <Send class="w-5 h-5" />
-              <span>Enviar Pedido por WhatsApp</span>
+              <Receipt class="w-4 h-4 text-amber-400" />
+              <span>Ver el Estado de Mis Pedidos</span>
             </button>
 
-            <!-- Botón 2: Solicitar Sellos para la Cartilla -->
-            <button
-              type="button"
-              onclick={goToStampsFromTicket}
-              class="w-full min-h-[58px] rounded-full bg-char hover:bg-char-card text-bone border border-white/10 font-display font-extrabold text-sm sm:text-base tracking-tight transition-all flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <Award class="w-5 h-5 text-[#FF2400]" />
-              <span>Solicitar Sellos en mi Cartilla</span>
-            </button>
-
-            <!-- Botón 3: Volver a la Carta -->
             <button
               type="button"
               onclick={() => { closeOrderModal(); store.currentView = 'menu'; }}
