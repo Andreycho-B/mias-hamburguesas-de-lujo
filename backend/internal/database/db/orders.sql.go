@@ -11,6 +11,23 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const assignOrderToUser = `-- name: AssignOrderToUser :exec
+UPDATE orders
+SET user_id = $1,
+    updated_at = NOW()
+WHERE id = $2 AND user_id IS NULL
+`
+
+type AssignOrderToUserParams struct {
+	UserID pgtype.UUID `json:"user_id"`
+	ID     pgtype.UUID `json:"id"`
+}
+
+func (q *Queries) AssignOrderToUser(ctx context.Context, arg AssignOrderToUserParams) error {
+	_, err := q.db.Exec(ctx, assignOrderToUser, arg.UserID, arg.ID)
+	return err
+}
+
 const countBurgersInOrder = `-- name: CountBurgersInOrder :one
 SELECT COALESCE(SUM(oi.quantity), 0)::INT as total_burgers
 FROM order_items oi
@@ -241,8 +258,15 @@ func (q *Queries) GetOrderItems(ctx context.Context, orderID pgtype.UUID) ([]Get
 
 const listActiveDeliveryOrders = `-- name: ListActiveDeliveryOrders :many
 SELECT id, code, user_id, order_type, status, subtotal, delivery_fee, discount_amount, total_amount, delivery_name, delivery_phone, delivery_address, delivery_notes, payment_method, cash_change_amount, created_at, updated_at FROM orders
-WHERE order_type = 'delivery' AND status IN ('IN_PREPARATION', 'ON_THE_WAY')
-ORDER BY created_at ASC
+WHERE order_type = 'delivery'
+ORDER BY
+    CASE
+        WHEN status = 'IN_PREPARATION' THEN 0
+        WHEN status = 'ON_THE_WAY' THEN 1
+        ELSE 2
+    END,
+    created_at DESC
+LIMIT 50
 `
 
 func (q *Queries) ListActiveDeliveryOrders(ctx context.Context) ([]Order, error) {
@@ -336,8 +360,11 @@ func (q *Queries) ListOrdersByUserID(ctx context.Context, arg ListOrdersByUserID
 
 const listPendingInStoreOrders = `-- name: ListPendingInStoreOrders :many
 SELECT id, code, user_id, order_type, status, subtotal, delivery_fee, discount_amount, total_amount, delivery_name, delivery_phone, delivery_address, delivery_notes, payment_method, cash_change_amount, created_at, updated_at FROM orders
-WHERE order_type = 'in_store' AND status = 'PENDING_PAYMENT'
-ORDER BY created_at ASC
+WHERE order_type != 'delivery'
+ORDER BY
+    CASE WHEN status = 'PENDING_PAYMENT' THEN 0 ELSE 1 END,
+    created_at DESC
+LIMIT 50
 `
 
 func (q *Queries) ListPendingInStoreOrders(ctx context.Context) ([]Order, error) {

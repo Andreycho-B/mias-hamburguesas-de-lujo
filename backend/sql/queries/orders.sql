@@ -36,6 +36,12 @@ SET status = $2,
 WHERE id = $1
 RETURNING *;
 
+-- name: AssignOrderToUser :exec
+UPDATE orders
+SET user_id = $1,
+    updated_at = NOW()
+WHERE id = $2 AND user_id IS NULL;
+
 -- name: ListOrdersByUserID :many
 SELECT * FROM orders
 WHERE user_id = $1
@@ -44,13 +50,23 @@ LIMIT $2 OFFSET $3;
 
 -- name: ListPendingInStoreOrders :many
 SELECT * FROM orders
-WHERE order_type = 'in_store' AND status = 'PENDING_PAYMENT'
-ORDER BY created_at ASC;
+WHERE order_type != 'delivery'
+ORDER BY
+    CASE WHEN status = 'PENDING_PAYMENT' THEN 0 ELSE 1 END,
+    created_at DESC
+LIMIT 50;
 
 -- name: ListActiveDeliveryOrders :many
 SELECT * FROM orders
-WHERE order_type = 'delivery' AND status IN ('IN_PREPARATION', 'ON_THE_WAY')
-ORDER BY created_at ASC;
+WHERE order_type = 'delivery'
+ORDER BY
+    CASE
+        WHEN status = 'IN_PREPARATION' THEN 0
+        WHEN status = 'ON_THE_WAY' THEN 1
+        ELSE 2
+    END,
+    created_at DESC
+LIMIT 50;
 
 -- name: ListRecentOrdersForStaff :many
 SELECT * FROM orders

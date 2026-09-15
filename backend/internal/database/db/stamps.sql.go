@@ -182,6 +182,26 @@ func (q *Queries) GetStampRequestByID(ctx context.Context, id pgtype.UUID) (GetS
 	return i, err
 }
 
+const getStampStatusByOrderID = `-- name: GetStampStatusByOrderID :one
+SELECT status, receipt_number
+FROM stamp_requests
+WHERE order_id = $1
+ORDER BY created_at DESC
+LIMIT 1
+`
+
+type GetStampStatusByOrderIDRow struct {
+	Status        string `json:"status"`
+	ReceiptNumber string `json:"receipt_number"`
+}
+
+func (q *Queries) GetStampStatusByOrderID(ctx context.Context, orderID pgtype.UUID) (GetStampStatusByOrderIDRow, error) {
+	row := q.db.QueryRow(ctx, getStampStatusByOrderID, orderID)
+	var i GetStampStatusByOrderIDRow
+	err := row.Scan(&i.Status, &i.ReceiptNumber)
+	return i, err
+}
+
 const getUserStampBalance = `-- name: GetUserStampBalance :one
 SELECT COALESCE(SUM(amount), 0)::INT as active_stamps
 FROM stamp_ledger
@@ -193,6 +213,65 @@ func (q *Queries) GetUserStampBalance(ctx context.Context, userID pgtype.UUID) (
 	var active_stamps int32
 	err := row.Scan(&active_stamps)
 	return active_stamps, err
+}
+
+const listAllStampRequestsForStaff = `-- name: ListAllStampRequestsForStaff :many
+SELECT sr.id, sr.order_id, sr.user_id, sr.receipt_number, sr.burgers_count, sr.status, sr.reviewed_by, sr.reviewed_at, sr.created_at, o.code as order_code, o.total_amount, u.full_name as customer_name
+FROM stamp_requests sr
+JOIN orders o ON sr.order_id = o.id
+JOIN users u ON sr.user_id = u.id
+ORDER BY
+    CASE WHEN sr.status = 'PENDING' THEN 0 ELSE 1 END,
+    sr.created_at DESC
+LIMIT 50
+`
+
+type ListAllStampRequestsForStaffRow struct {
+	ID            pgtype.UUID        `json:"id"`
+	OrderID       pgtype.UUID        `json:"order_id"`
+	UserID        pgtype.UUID        `json:"user_id"`
+	ReceiptNumber string             `json:"receipt_number"`
+	BurgersCount  int32              `json:"burgers_count"`
+	Status        string             `json:"status"`
+	ReviewedBy    pgtype.UUID        `json:"reviewed_by"`
+	ReviewedAt    pgtype.Timestamptz `json:"reviewed_at"`
+	CreatedAt     pgtype.Timestamptz `json:"created_at"`
+	OrderCode     string             `json:"order_code"`
+	TotalAmount   int32              `json:"total_amount"`
+	CustomerName  string             `json:"customer_name"`
+}
+
+func (q *Queries) ListAllStampRequestsForStaff(ctx context.Context) ([]ListAllStampRequestsForStaffRow, error) {
+	rows, err := q.db.Query(ctx, listAllStampRequestsForStaff)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListAllStampRequestsForStaffRow
+	for rows.Next() {
+		var i ListAllStampRequestsForStaffRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.OrderID,
+			&i.UserID,
+			&i.ReceiptNumber,
+			&i.BurgersCount,
+			&i.Status,
+			&i.ReviewedBy,
+			&i.ReviewedAt,
+			&i.CreatedAt,
+			&i.OrderCode,
+			&i.TotalAmount,
+			&i.CustomerName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listPendingRedemptions = `-- name: ListPendingRedemptions :many

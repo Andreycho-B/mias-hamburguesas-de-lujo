@@ -6,6 +6,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"mias-backend/internal/database/db"
 	"mias-backend/internal/middleware"
 	"mias-backend/internal/service"
@@ -14,12 +15,14 @@ import (
 type StampHandler struct {
 	stampService *service.StampService
 	queries      db.Querier
+	pool         *pgxpool.Pool
 }
 
-func NewStampHandler(stampService *service.StampService, queries db.Querier) *StampHandler {
+func NewStampHandler(stampService *service.StampService, queries db.Querier, pool *pgxpool.Pool) *StampHandler {
 	return &StampHandler{
 		stampService: stampService,
 		queries:      queries,
+		pool:         pool,
 	}
 }
 
@@ -56,10 +59,14 @@ func (h *StampHandler) RequestStamp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	orderID, err := uuid.Parse(req.OrderID)
-	if err != nil {
-		http.Error(w, `{"error":"ID de orden inválido"}`, http.StatusBadRequest)
-		return
+	var orderID uuid.UUID
+	if req.OrderID != "" {
+		parsed, err := uuid.Parse(req.OrderID)
+		if err != nil {
+			http.Error(w, `{"error":"ID de orden inválido"}`, http.StatusBadRequest)
+			return
+		}
+		orderID = parsed
 	}
 
 	stampReq, err := h.stampService.RequestStamp(r.Context(), userID, orderID, req.ReceiptNumber)
@@ -74,7 +81,7 @@ func (h *StampHandler) RequestStamp(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *StampHandler) ListPendingStaff(w http.ResponseWriter, r *http.Request) {
-	requests, err := h.queries.ListPendingStampRequests(r.Context())
+	requests, err := h.queries.ListAllStampRequestsForStaff(r.Context())
 	if err != nil {
 		http.Error(w, `{"error":"Error al cargar solicitudes de sellos"}`, http.StatusInternalServerError)
 		return
@@ -107,7 +114,7 @@ func (h *StampHandler) ReviewStaff(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.stampService.ReviewStampRequest(r.Context(), reviewerID, reqID, req.Approve); err != nil {
-		http.Error(w, `{"error":"Error al procesar solicitud"}`, http.StatusInternalServerError)
+		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusBadRequest)
 		return
 	}
 
@@ -158,7 +165,7 @@ func (h *StampHandler) ApproveRedemption(w http.ResponseWriter, r *http.Request)
 	}
 
 	if err := h.stampService.ApproveRedemption(r.Context(), reviewerID, redemptionID); err != nil {
-		http.Error(w, `{"error":"Error al aprobar redención"}`, http.StatusInternalServerError)
+		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusBadRequest)
 		return
 	}
 

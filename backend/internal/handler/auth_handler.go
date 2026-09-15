@@ -50,6 +50,73 @@ func (h *AuthHandler) StaffLogin(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(resp)
 }
 
+func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
+	var req service.LoginRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error":"Cuerpo de petición inválido"}`, http.StatusBadRequest)
+		return
+	}
+
+	resp, err := h.authService.Login(r.Context(), req)
+	if err != nil {
+		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusUnauthorized)
+		return
+	}
+
+	isTLS := r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https"
+	sameSite := http.SameSiteLaxMode
+	if isTLS {
+		sameSite = http.SameSiteNoneMode
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "mias_refresh_token",
+		Value:    resp.Tokens.RefreshToken,
+		Path:     "/api/v1/auth/refresh",
+		MaxAge:   7 * 24 * 3600,
+		HttpOnly: true,
+		Secure:   isTLS,
+		SameSite: sameSite,
+	})
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}
+
+func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
+	var req service.RegisterRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error":"Cuerpo de petición inválido"}`, http.StatusBadRequest)
+		return
+	}
+
+	resp, err := h.authService.Register(r.Context(), req)
+	if err != nil {
+		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusBadRequest)
+		return
+	}
+
+	isTLS := r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https"
+	sameSite := http.SameSiteLaxMode
+	if isTLS {
+		sameSite = http.SameSiteNoneMode
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "mias_refresh_token",
+		Value:    resp.Tokens.RefreshToken,
+		Path:     "/api/v1/auth/refresh",
+		MaxAge:   7 * 24 * 3600,
+		HttpOnly: true,
+		Secure:   isTLS,
+		SameSite: sameSite,
+	})
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(resp)
+}
+
 func (h *AuthHandler) OAuthLogin(w http.ResponseWriter, r *http.Request) {
 	var req service.OAuthLoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -88,12 +155,13 @@ func (h *AuthHandler) RefreshSession(w http.ResponseWriter, r *http.Request) {
 	if cookie, err := r.Cookie("mias_refresh_token"); err == nil && cookie.Value != "" {
 		tokenVal = cookie.Value
 	}
-	if tokenVal == "" {
+	if tokenVal == "" && r.Body != nil {
 		var bodyReq struct {
 			RefreshToken string `json:"refresh_token"`
 		}
-		_ = json.NewDecoder(r.Body).Decode(&bodyReq)
-		tokenVal = bodyReq.RefreshToken
+		if err := json.NewDecoder(r.Body).Decode(&bodyReq); err == nil {
+			tokenVal = bodyReq.RefreshToken
+		}
 	}
 
 	if tokenVal == "" {
