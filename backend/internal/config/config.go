@@ -6,13 +6,23 @@ import (
 )
 
 type Config struct {
-	Port         string
-	DatabaseURL  string
-	JWTSecret    string
-	FrontendURL  string
+	Port           string
+	DatabaseURL    string
+	JWTSecret      string
+	FrontendURL    string
 	GoogleClientID string
 	VAPIDPublic    string
 	VAPIDPrivate   string
+
+	// Variables de producción
+	EnvMode    string // "development" | "production"
+	DBMaxConns int    // Máximo de conexiones simultáneas al pool PostgreSQL
+	CorsOrigin string // Origen permitido explícito para CORS en producción
+}
+
+// IsProduction indica si el servidor opera en modo producción.
+func (c *Config) IsProduction() bool {
+	return c.EnvMode == "production"
 }
 
 func Load() *Config {
@@ -24,6 +34,10 @@ func Load() *Config {
 	vapidPub := getEnv("VAPID_PUBLIC_KEY", "")
 	vapidPriv := getEnv("VAPID_PRIVATE_KEY", "")
 
+	envMode := getEnv("ENV_MODE", "development")
+	dbMaxConns := getEnvInt("DB_MAX_CONNS", 25)
+	corsOrigin := getEnv("CORS_ALLOWED_ORIGIN", "")
+
 	return &Config{
 		Port:           port,
 		DatabaseURL:    dbURL,
@@ -32,6 +46,9 @@ func Load() *Config {
 		GoogleClientID: googleClientID,
 		VAPIDPublic:    vapidPub,
 		VAPIDPrivate:   vapidPriv,
+		EnvMode:        envMode,
+		DBMaxConns:     dbMaxConns,
+		CorsOrigin:     corsOrigin,
 	}
 }
 
@@ -50,3 +67,4 @@ func getEnvInt(key string, defaultVal int) int {
 	}
 	return defaultVal
 }
+

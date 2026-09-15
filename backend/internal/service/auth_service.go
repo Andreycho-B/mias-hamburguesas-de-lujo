@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -43,6 +44,19 @@ func NewAuthService(queries db.Querier, jwtSecret string, googleClientID ...stri
 type StaffLoginRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
+}
+
+type LoginRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type RegisterRequest struct {
+	Email      string `json:"email"`
+	Password   string `json:"password"`
+	FullName   string `json:"full_name"`
+	Phone      string `json:"phone,omitempty"`
+	HabeasData bool   `json:"habeas_data_accepted"`
 }
 
 type OAuthLoginRequest struct {
@@ -96,6 +110,111 @@ func (s *AuthService) LoginStaff(ctx context.Context, req StaffLoginRequest) (*A
 	userID := uuidutil.FromPG(user.ID)
 
 	tokens, err := pkgjwt.GenerateTokenPair(userID, user.Role, s.jwtSecret)
+	if err != nil {
+		return nil, err
+	}
+
+	return &AuthResponse{
+		Tokens: tokens,
+		User: UserDTO{
+			ID:        userID,
+			Email:     user.Email,
+			FullName:  user.FullName,
+			AvatarURL: user.AvatarUrl.String,
+			Phone:     user.Phone.String,
+			Role:      user.Role,
+			CreatedAt: user.CreatedAt.Time,
+		},
+	}, nil
+}
+
+// Login autentica a usuarios (clientes o personal) con correo y contraseña cifrada Argon2id
+func (s *AuthService) Login(ctx context.Context, req LoginRequest) (*AuthResponse, error) {
+	if s.queries == nil {
+		return nil, errors.New("servicio de base de datos no disponible")
+	}
+
+	cleanEmail := strings.TrimSpace(strings.ToLower(req.Email))
+	cleanPassword := strings.TrimSpace(req.Password)
+	if cleanEmail == "" || cleanPassword == "" {
+		return nil, ErrInvalidPassword
+	}
+
+	user, err := s.queries.GetUserByEmail(ctx, cleanEmail)
+	if err != nil {
+		return nil, ErrInvalidPassword
+	}
+
+	if !user.PasswordHash.Valid || user.PasswordHash.String == "" {
+		return nil, errors.New("esta cuenta no tiene contraseña configurada. Ingresa con Google")
+	}
+
+	match, err := crypto.VerifyPassword(cleanPassword, user.PasswordHash.String)
+	if err != nil || !match {
+		return nil, ErrInvalidPassword
+	}
+
+	userID := uuidutil.FromPG(user.ID)
+	tokens, err := pkgjwt.GenerateTokenPair(userID, user.Role, s.jwtSecret)
+	if err != nil {
+		return nil, err
+	}
+
+	return &AuthResponse{
+		Tokens: tokens,
+		User: UserDTO{
+			ID:        userID,
+			Email:     user.Email,
+			FullName:  user.FullName,
+			AvatarURL: user.AvatarUrl.String,
+			Phone:     user.Phone.String,
+			Role:      user.Role,
+			CreatedAt: user.CreatedAt.Time,
+		},
+	}, nil
+}
+
+// Register crea una nueva cuenta de cliente con validación y cifrado de contraseña Argon2id
+func (s *AuthService) Register(ctx context.Context, req RegisterRequest) (*AuthResponse, error) {
+	if s.queries == nil {
+		return nil, errors.New("servicio de base de datos no disponible")
+	}
+
+	cleanEmail := strings.TrimSpace(strings.ToLower(req.Email))
+	cleanName := strings.TrimSpace(req.FullName)
+	cleanPassword := strings.TrimSpace(req.Password)
+
+	if cleanEmail == "" || cleanPassword == "" || cleanName == "" {
+		return nil, errors.New("todos los campos son obligatorios")
+	}
+
+	if len(cleanPassword) < 6 {
+		return nil, errors.New("la contraseña debe tener al menos 6 caracteres")
+	}
+
+	if _, err := s.queries.GetUserByEmail(ctx, cleanEmail); err == nil {
+		return nil, errors.New("este correo ya se encuentra registrado. Inicia sesión")
+	}
+
+	hash, err := crypto.HashPassword(cleanPassword)
+	if err != nil {
+		return nil, fmt.Errorf("error procesando contraseña: %w", err)
+	}
+
+	phoneVal := pgtype.Text{String: strings.TrimSpace(req.Phone), Valid: strings.TrimSpace(req.Phone) != ""}
+	user, err := s.queries.CreateStaffUser(ctx, db.CreateStaffUserParams{
+		Email:        cleanEmail,
+		FullName:     cleanName,
+		Phone:        phoneVal,
+		Role:         "customer",
+		PasswordHash: pgtype.Text{String: hash, Valid: true},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error al registrar usuario: %w", err)
+	}
+
+	userID := uuidutil.FromPG(user.ID)
+	tokens, err := pkgjwt.GenerateTokenPair(userID, "customer", s.jwtSecret)
 	if err != nil {
 		return nil, err
 	}

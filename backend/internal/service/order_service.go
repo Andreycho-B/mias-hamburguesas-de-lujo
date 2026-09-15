@@ -47,6 +47,7 @@ type CreateOrderRequest struct {
 	DeliveryPhone    string             `json:"delivery_phone,omitempty"`
 	DeliveryAddress  string             `json:"delivery_address,omitempty"`
 	DeliveryNotes    string             `json:"delivery_notes,omitempty"`
+	DeliveryFee      *int32             `json:"delivery_fee,omitempty"`
 	PaymentMethod    string             `json:"payment_method,omitempty"`
 	CashChangeAmount int32              `json:"cash_change_amount,omitempty"`
 }
@@ -78,7 +79,11 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID *uuid.UUID, req C
 	initialStatus := "PENDING_PAYMENT"
 
 	if req.OrderType == "delivery" {
-		deliveryFee = 6000 // Tarifa base de domicilio acordada en la especificación
+		if req.DeliveryFee != nil {
+			deliveryFee = *req.DeliveryFee
+		} else {
+			deliveryFee = 6000 // Tarifa base oficial de domicilio
+		}
 		initialStatus = "IN_PREPARATION"
 	}
 

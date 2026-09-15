@@ -12,6 +12,7 @@ import (
 
 type Querier interface {
 	AddStampLedgerEntry(ctx context.Context, arg AddStampLedgerEntryParams) (StampLedger, error)
+	AssignOrderToUser(ctx context.Context, arg AssignOrderToUserParams) error
 	CountBurgersInOrder(ctx context.Context, orderID pgtype.UUID) (int32, error)
 	CountUsers(ctx context.Context) (int64, error)
 	CreateAuditLog(ctx context.Context, arg CreateAuditLogParams) (AdminAuditLog, error)
@@ -34,6 +35,7 @@ type Querier interface {
 	GetProductBySlug(ctx context.Context, slug string) (GetProductBySlugRow, error)
 	GetSalesMetrics(ctx context.Context) (GetSalesMetricsRow, error)
 	GetStampRequestByID(ctx context.Context, id pgtype.UUID) (GetStampRequestByIDRow, error)
+	GetStampStatusByOrderID(ctx context.Context, orderID pgtype.UUID) (GetStampStatusByOrderIDRow, error)
 	GetTopSellingProducts(ctx context.Context, limit int32) ([]GetTopSellingProductsRow, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id pgtype.UUID) (User, error)
@@ -43,6 +45,7 @@ type Querier interface {
 	ListActiveDeliveryOrders(ctx context.Context) ([]Order, error)
 	ListActiveProducts(ctx context.Context) ([]ListActiveProductsRow, error)
 	ListAllCategories(ctx context.Context) ([]Category, error)
+	ListAllStampRequestsForStaff(ctx context.Context) ([]ListAllStampRequestsForStaffRow, error)
 	ListAuditLogs(ctx context.Context, arg ListAuditLogsParams) ([]ListAuditLogsRow, error)
 	ListOrdersByUserID(ctx context.Context, arg ListOrdersByUserIDParams) ([]Order, error)
 	ListPendingInStoreOrders(ctx context.Context) ([]Order, error)

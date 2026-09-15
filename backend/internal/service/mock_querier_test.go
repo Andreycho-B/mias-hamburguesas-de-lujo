@@ -10,6 +10,7 @@ import (
 // BaseMockQuerier implementa db.Querier con valores por defecto para pruebas unitarias sin Postgres
 type BaseMockQuerier struct {
 	AddStampLedgerEntryFunc        func(ctx context.Context, arg db.AddStampLedgerEntryParams) (db.StampLedger, error)
+	AssignOrderToUserFunc          func(ctx context.Context, arg db.AssignOrderToUserParams) error
 	CountBurgersInOrderFunc        func(ctx context.Context, orderID pgtype.UUID) (int32, error)
 	CountUsersFunc                 func(ctx context.Context) (int64, error)
 	CreateAuditLogFunc             func(ctx context.Context, arg db.CreateAuditLogParams) (db.AdminAuditLog, error)
@@ -32,6 +33,7 @@ type BaseMockQuerier struct {
 	GetProductBySlugFunc           func(ctx context.Context, slug string) (db.GetProductBySlugRow, error)
 	GetSalesMetricsFunc            func(ctx context.Context) (db.GetSalesMetricsRow, error)
 	GetStampRequestByIDFunc        func(ctx context.Context, id pgtype.UUID) (db.GetStampRequestByIDRow, error)
+	GetStampStatusByOrderIDFunc    func(ctx context.Context, orderID pgtype.UUID) (db.GetStampStatusByOrderIDRow, error)
 	GetTopSellingProductsFunc      func(ctx context.Context, limit int32) ([]db.GetTopSellingProductsRow, error)
 	GetUserByEmailFunc             func(ctx context.Context, email string) (db.User, error)
 	GetUserByIDFunc                func(ctx context.Context, id pgtype.UUID) (db.User, error)
@@ -41,6 +43,7 @@ type BaseMockQuerier struct {
 	ListActiveDeliveryOrdersFunc   func(ctx context.Context) ([]db.Order, error)
 	ListActiveProductsFunc         func(ctx context.Context) ([]db.ListActiveProductsRow, error)
 	ListAllCategoriesFunc          func(ctx context.Context) ([]db.Category, error)
+	ListAllStampRequestsForStaffFunc func(ctx context.Context) ([]db.ListAllStampRequestsForStaffRow, error)
 	ListAuditLogsFunc              func(ctx context.Context, arg db.ListAuditLogsParams) ([]db.ListAuditLogsRow, error)
 	ListOrdersByUserIDFunc         func(ctx context.Context, arg db.ListOrdersByUserIDParams) ([]db.Order, error)
 	ListPendingInStoreOrdersFunc   func(ctx context.Context) ([]db.Order, error)
@@ -393,6 +396,27 @@ func (m *BaseMockQuerier) UpdateUserLastOrder(ctx context.Context, id pgtype.UUI
 		return m.UpdateUserLastOrderFunc(ctx, id)
 	}
 	return nil
+}
+
+func (m *BaseMockQuerier) AssignOrderToUser(ctx context.Context, arg db.AssignOrderToUserParams) error {
+	if m.AssignOrderToUserFunc != nil {
+		return m.AssignOrderToUserFunc(ctx, arg)
+	}
+	return nil
+}
+
+func (m *BaseMockQuerier) GetStampStatusByOrderID(ctx context.Context, orderID pgtype.UUID) (db.GetStampStatusByOrderIDRow, error) {
+	if m.GetStampStatusByOrderIDFunc != nil {
+		return m.GetStampStatusByOrderIDFunc(ctx, orderID)
+	}
+	return db.GetStampStatusByOrderIDRow{}, nil
+}
+
+func (m *BaseMockQuerier) ListAllStampRequestsForStaff(ctx context.Context) ([]db.ListAllStampRequestsForStaffRow, error) {
+	if m.ListAllStampRequestsForStaffFunc != nil {
+		return m.ListAllStampRequestsForStaffFunc(ctx)
+	}
+	return nil, nil
 }
 
 var _ db.Querier = (*BaseMockQuerier)(nil)

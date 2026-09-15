@@ -46,10 +46,12 @@ func main() {
 
 	var pool *pgxpool.Pool
 	if poolConfig != nil {
-		poolConfig.MaxConns = 25
+		poolConfig.MaxConns = int32(cfg.DBMaxConns)
 		poolConfig.MinConns = 5
 		poolConfig.MaxConnLifetime = 1 * time.Hour
 		poolConfig.MaxConnIdleTime = 30 * time.Minute
+
+		slog.Info("Pool PostgreSQL configurado", slog.Int("max_conns", cfg.DBMaxConns))
 
 		pool, err = pgxpool.NewWithConfig(ctx, poolConfig)
 		if err != nil {
@@ -75,8 +77,8 @@ func main() {
 	// 5. Inicializar Handlers HTTP
 	authHandler := handler.NewAuthHandler(authService)
 	catalogHandler := handler.NewCatalogHandler(catalogService)
-	orderHandler := handler.NewOrderHandler(orderService, queries)
-	stampHandler := handler.NewStampHandler(stampService, queries)
+	orderHandler := handler.NewOrderHandler(orderService, queries, pool)
+	stampHandler := handler.NewStampHandler(stampService, queries, pool)
 	adminHandler := handler.NewAdminHandler(queries)
 	sseHandler := handler.NewSSEHandler(sseHub)
 
@@ -89,26 +91,35 @@ func main() {
 	r.Use(chimiddleware.Recoverer)
 	r.Use(middleware.StructuredLogger)
 
-	// CORS de Grado Bancario con soporte de red local, Cloudflare Pages y dominio configurado
+	// CORS — En producción solo acepta el origen configurado; en desarrollo permite orígenes locales
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins: []string{
 			cfg.FrontendURL,
-			"http://localhost:5173",
-			"http://localhost:4173",
 		},
 		AllowOriginFunc: func(r *http.Request, origin string) bool {
 			if origin == "" {
 				return true
 			}
+			// Origen configurado explícitamente siempre permitido
+			if origin == cfg.FrontendURL {
+				return true
+			}
+			if cfg.CorsOrigin != "" && origin == cfg.CorsOrigin {
+				return true
+			}
+			// En producción: bloquear todo lo demás
+			if cfg.IsProduction() {
+				return false
+			}
+			// En desarrollo: permitir orígenes locales y Cloudflare Pages preview
 			if strings.HasSuffix(origin, ".pages.dev") ||
 				strings.HasPrefix(origin, "http://localhost:") ||
 				strings.HasPrefix(origin, "http://127.0.0.1:") ||
 				strings.HasPrefix(origin, "http://192.168.") ||
-				strings.HasPrefix(origin, "http://10.") ||
-				origin == cfg.FrontendURL {
+				strings.HasPrefix(origin, "http://10.") {
 				return true
 			}
-			return true
+			return false
 		},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "Idempotency-Key"},
@@ -144,6 +155,8 @@ func main() {
 
 		// Autenticación
 		api.Route("/auth", func(auth chi.Router) {
+			auth.Post("/login", authHandler.Login)
+			auth.Post("/register", authHandler.Register)
 			auth.Post("/staff-login", authHandler.StaffLogin)
 			auth.Post("/oauth", authHandler.OAuthLogin)
 			auth.Post("/refresh", authHandler.RefreshSession)
@@ -153,7 +166,8 @@ func main() {
 
 		// Pedidos y Comandas
 		api.Route("/orders", func(orders chi.Router) {
-			orders.Post("/", orderHandler.CreateOrder)
+			orders.With(middleware.RequireAuth).Post("/", orderHandler.CreateOrder)
+			orders.Get("/my-orders", orderHandler.ListMyOrders)
 			orders.Get("/{code}", orderHandler.GetOrderByCode)
 
 			// Sub-rutas exclusivas de Personal (Caja / Meseros)

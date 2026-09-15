@@ -81,3 +81,20 @@ RETURNING *;
 UPDATE stamp_requests
 SET status = 'EXPIRED'
 WHERE status = 'PENDING' AND created_at < NOW() - INTERVAL '60 minutes';
+
+-- name: GetStampStatusByOrderID :one
+SELECT status, receipt_number
+FROM stamp_requests
+WHERE order_id = $1
+ORDER BY created_at DESC
+LIMIT 1;
+
+-- name: ListAllStampRequestsForStaff :many
+SELECT sr.*, o.code as order_code, o.total_amount, u.full_name as customer_name
+FROM stamp_requests sr
+JOIN orders o ON sr.order_id = o.id
+JOIN users u ON sr.user_id = u.id
+ORDER BY
+    CASE WHEN sr.status = 'PENDING' THEN 0 ELSE 1 END,
+    sr.created_at DESC
+LIMIT 50;

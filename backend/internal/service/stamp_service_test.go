@@ -128,6 +128,69 @@ func TestStampService_RequestStamp_Rules(t *testing.T) {
 			t.Fatalf("se esperaba ErrOrderExpired, obtenido: %v", err)
 		}
 	})
+
+	t.Run("Rechaza solicitud si el usuario ya alcanzó el tope de 10 sellos (regla de congelación)", func(t *testing.T) {
+		mock := &BaseMockQuerier{
+			GetOrderByIDFunc: func(ctx context.Context, id pgtype.UUID) (db.Order, error) {
+				return db.Order{
+					Status:    "PAID",
+					CreatedAt: pgtype.Timestamptz{Time: time.Now(), Valid: true},
+				}, nil
+			},
+			GetUserStampBalanceFunc: func(ctx context.Context, userID pgtype.UUID) (int32, error) {
+				return 10, nil
+			},
+		}
+
+		svc := NewStampService(nil, mock, nil)
+		_, err := svc.RequestStamp(context.Background(), testUserID, testOrderID, "00129")
+		if !errors.Is(err, ErrStampLimitReached) {
+			t.Fatalf("se esperaba ErrStampLimitReached, obtenido: %v", err)
+		}
+	})
+}
+
+func TestStampService_ReviewStampRequest_Security(t *testing.T) {
+	staffUserID := uuid.New()
+	customerUserID := uuid.New()
+	reqID := uuid.New()
+
+	t.Run("Prohíbe auto-aprobación de solicitudes por parte del mismo empleado", func(t *testing.T) {
+		mock := &BaseMockQuerier{
+			GetStampRequestByIDFunc: func(ctx context.Context, id pgtype.UUID) (db.GetStampRequestByIDRow, error) {
+				return db.GetStampRequestByIDRow{
+					ID:     id,
+					UserID: pgtype.UUID{Bytes: staffUserID, Valid: true},
+					Status: "PENDING",
+				}, nil
+			},
+		}
+
+		// En este caso staffUserID intenta aprobar su propia solicitud
+		svc := NewStampService(nil, mock, nil)
+		err := svc.ReviewStampRequest(context.Background(), staffUserID, reqID, true)
+		if !errors.Is(err, ErrSelfApproval) {
+			t.Fatalf("se esperaba ErrSelfApproval, obtenido: %v", err)
+		}
+	})
+
+	t.Run("Rechaza revisión si la solicitud ya no está PENDING", func(t *testing.T) {
+		mock := &BaseMockQuerier{
+			GetStampRequestByIDFunc: func(ctx context.Context, id pgtype.UUID) (db.GetStampRequestByIDRow, error) {
+				return db.GetStampRequestByIDRow{
+					ID:     id,
+					UserID: pgtype.UUID{Bytes: customerUserID, Valid: true},
+					Status: "APPROVED",
+				}, nil
+			},
+		}
+
+		svc := NewStampService(nil, mock, nil)
+		err := svc.ReviewStampRequest(context.Background(), staffUserID, reqID, true)
+		if !errors.Is(err, ErrRequestNotPending) {
+			t.Fatalf("se esperaba ErrRequestNotPending, obtenido: %v", err)
+		}
+	})
 }
 
 func TestStampService_RequestRedemption(t *testing.T) {
