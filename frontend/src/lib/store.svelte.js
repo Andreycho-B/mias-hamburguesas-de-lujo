@@ -1,5 +1,5 @@
 // Store reactivo con Runes de Svelte 5 (Anillo 0: Datos locales con sincronización)
-import { API_BASE, getCatalogAPI, getStampBalanceAPI, getOrderByCodeAPI } from './api.js';
+import { API_BASE, getCatalogAPI, getStampBalanceAPI, getOrderByCodeAPI, getMyOrdersAPI } from './api.js';
 
 const SEED_CATEGORIES = [
   { id: 1, slug: 'hamburguesas', name: 'Hamburguesas', sort_order: 1 },
@@ -305,6 +305,8 @@ class AppStore {
   isAuthModalOpen = $state(false);
   currentView = $state('menu'); // 'menu', 'stamps', 'history', 'staff'
   staffRole = $state(null); // 'waiter', 'cashier', 'admin'
+  isReceiptModalOpen = $state(false);
+  selectedOrderForStamp = $state(null);
 
   cartCount = $derived(
     this.cart.reduce((sum, item) => sum + item.quantity, 0)
@@ -338,11 +340,16 @@ class AppStore {
       if (savedOrders) this.activeOrders = JSON.parse(savedOrders);
 
       const savedStamps = localStorage.getItem('mias_stamps');
-      if (savedStamps) this.stampBalance = parseInt(savedStamps, 10);
+      if (savedStamps && this.user) {
+        this.stampBalance = parseInt(savedStamps, 10);
+      } else {
+        this.stampBalance = 0;
+      }
     } catch {}
 
     // Sincronizar dinámicamente con PostgreSQL manteniendo Anillo 0 como respaldo
     this.refreshCatalog();
+    this.refreshUserOrders();
     if (this.user) {
       this.refreshStampBalance();
     }
@@ -367,6 +374,56 @@ class AppStore {
       const res = await getStampBalanceAPI();
       if (res && typeof res.active_stamps === 'number') {
         this.setStampBalance(res.active_stamps);
+      }
+    } catch {}
+  }
+
+  async refreshUserOrders() {
+    try {
+      const localCodes = (!this.user) ? this.activeOrders.map((o) => o.code).filter(Boolean) : [];
+      const phone = this.user?.phone || '';
+      const serverOrders = await getMyOrdersAPI(localCodes, phone);
+      if (serverOrders && Array.isArray(serverOrders)) {
+        const mapped = serverOrders.map((item) => {
+          const o = item.order;
+          const existing = this.activeOrders.find((loc) => loc.code === o.code || loc.id === o.id);
+          return {
+            id: o.id,
+            code: o.code,
+            type: o.order_type,
+            modeLabel: existing?.modeLabel || (o.order_type === 'delivery' ? 'A Domicilio' : o.order_type === 'takeout' ? 'Para Llevar' : 'Consumo en Salón'),
+            status: o.status,
+            customer_name: o.delivery_name || existing?.customer_name || this.user?.full_name || '',
+            customer_phone: o.delivery_phone || existing?.customer_phone || this.user?.phone || '',
+            delivery_address: o.delivery_address || existing?.delivery_address || '',
+            table_number: existing?.table_number || '',
+            total: o.total_amount,
+            subtotal: o.subtotal,
+            delivery_fee: o.delivery_fee,
+            items: (existing?.items && existing.items.length > 0) ? existing.items : (item.items || []),
+            stamp_status: item.stamp_status || existing?.stamp_status || '',
+            receipt_number: item.receipt_number || existing?.receipt_number || '',
+            created_at: o.created_at || existing?.created_at
+          };
+        });
+
+        let finalOrders = mapped;
+        if (!this.user) {
+          const merged = [...mapped];
+          for (const loc of this.activeOrders) {
+            if (!merged.some((m) => m.code === loc.code || (m.id && m.id === loc.id))) {
+              merged.push(loc);
+            }
+          }
+          finalOrders = merged;
+        }
+
+        finalOrders.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+
+        this.activeOrders = finalOrders;
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('mias_orders', JSON.stringify(this.activeOrders));
+        }
       }
     } catch {}
   }
@@ -429,7 +486,17 @@ class AppStore {
   }
 
   setUser(user) {
+    const isDifferentUser = !this.user || (user && this.user.id !== user.id);
     this.user = user;
+    if (isDifferentUser) {
+      this.activeOrders = [];
+      this.stampBalance = 0;
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('mias_orders');
+        localStorage.removeItem('mias_stamps');
+      }
+    }
+
     if (user && ['waiter', 'cashier', 'admin'].includes(user.role)) {
       this.staffRole = user.role;
       this.currentView = 'staff';
@@ -440,10 +507,15 @@ class AppStore {
       }
     }
     if (typeof window !== 'undefined') {
-      localStorage.setItem('mias_user', JSON.stringify(user));
+      if (user) {
+        localStorage.setItem('mias_user', JSON.stringify(user));
+      } else {
+        localStorage.removeItem('mias_user');
+      }
     }
     if (user) {
       this.refreshStampBalance();
+      this.refreshUserOrders();
     }
   }
 
@@ -454,10 +526,16 @@ class AppStore {
     this.isSidebarOpen = false;
     this.isCartOpen = false;
     this.isAuthModalOpen = false;
+    this.stampBalance = 0;
+    this.activeOrders = [];
+    this.selectedOrderForStamp = null;
+    this.isReceiptModalOpen = false;
     if (typeof window !== 'undefined') {
       localStorage.removeItem('mias_user');
       localStorage.removeItem('mias_access_token');
       localStorage.removeItem('mias_refresh_token');
+      localStorage.removeItem('mias_stamps');
+      localStorage.removeItem('mias_orders');
     }
   }
 
@@ -491,34 +569,60 @@ class AppStore {
         } catch {}
       });
 
-      es.addEventListener('stamp_request_reviewed', () => {
-        this.refreshStampBalance();
+      es.addEventListener('stamp_request_reviewed', (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          const payload = data.data || data;
+          if (payload?.order_code) {
+            this.updateOrderStampStatus(payload.order_code, payload.status);
+          }
+          if (payload?.order_id) {
+            this.updateOrderStampStatus(payload.order_id, payload.status);
+          }
+          if (typeof payload?.new_balance === 'number') {
+            this.setStampBalance(payload.new_balance);
+          } else {
+            this.refreshStampBalance();
+          }
+        } catch {
+          this.refreshStampBalance();
+        }
+        this.refreshUserOrders();
       });
     } catch (err) {
       console.warn('[Store] SSE no iniciado', err);
     }
 
-    // Polling resiliente cada 3.5 segundos para sincronizar el estado de órdenes activas del cliente
+    // Polling resiliente cada 2 segundos para sincronizar el estado de órdenes activas del cliente
     setInterval(async () => {
       if (this.staffRole || ['waiter', 'cashier', 'admin'].includes(this.user?.role)) return;
 
-      const pendingOrders = this.activeOrders.filter(o => 
-        o.status !== 'PAID' && o.status !== 'DELIVERED' && o.status !== 'CANCELLED'
+      const pendingOrders = this.activeOrders.filter((o) => 
+        (o.status !== 'PAID' && o.status !== 'DELIVERED' && o.status !== 'CANCELLED') || 
+        !o.stamp_status || 
+        o.stamp_status === 'PENDING'
       );
 
       for (const ord of pendingOrders) {
         if (!ord.code) continue;
         try {
           const res = await getOrderByCodeAPI(ord.code);
-          if (res && res.order && res.order.status && res.order.status !== ord.status) {
-            this.updateOrderStatus(ord.code, res.order.status);
-            if (res.order.status === 'PAID') {
-              this.refreshStampBalance();
+          if (res && res.order && res.order.status) {
+            const hasStatusChange = res.order.status !== ord.status || (res.order.id && res.order.id !== ord.id);
+            const serverStampStatus = res.stamp_status || '';
+            const currentStampStatus = ord.stamp_status || '';
+            const hasStampChange = serverStampStatus !== currentStampStatus;
+
+            if (hasStatusChange || hasStampChange) {
+              this.updateOrderStatus(ord.code, res.order.status, res.order.id, serverStampStatus);
+              if (serverStampStatus === 'APPROVED' || res.order.status === 'PAID') {
+                this.refreshStampBalance();
+              }
             }
           }
         } catch {}
       }
-    }, 3500);
+    }, 2000);
   }
 
   addOrder(order) {
@@ -528,13 +632,57 @@ class AppStore {
     }
   }
 
-  updateOrderStatus(orderCode, newStatus) {
-    const ord = this.activeOrders.find((o) => o.code === orderCode);
-    if (ord) {
-      ord.status = newStatus;
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('mias_orders', JSON.stringify(this.activeOrders));
+  updateOrderStatus(orderCode, newStatus, realId = null, stampStatus = null) {
+    let changed = false;
+    this.activeOrders = this.activeOrders.map((o) => {
+      if (o.code === orderCode) {
+        changed = true;
+        return {
+          ...o,
+          status: newStatus,
+          id: (realId && !realId.startsWith('ord-') && !realId.startsWith('dom-')) ? realId : o.id,
+          stamp_status: stampStatus !== null ? stampStatus : o.stamp_status
+        };
       }
+      return o;
+    });
+
+    if (this.selectedOrderForStamp && this.selectedOrderForStamp.code === orderCode) {
+      this.selectedOrderForStamp = {
+        ...this.selectedOrderForStamp,
+        status: newStatus,
+        id: (realId && !realId.startsWith('ord-') && !realId.startsWith('dom-')) ? realId : this.selectedOrderForStamp.id,
+        stamp_status: stampStatus !== null ? stampStatus : this.selectedOrderForStamp.stamp_status
+      };
+    }
+
+    if (changed && typeof window !== 'undefined') {
+      localStorage.setItem('mias_orders', JSON.stringify(this.activeOrders));
+    }
+  }
+
+  updateOrderStampStatus(orderIdOrCode, stampStatus) {
+    let changed = false;
+    this.activeOrders = this.activeOrders.map((o) => {
+      if (o.id === orderIdOrCode || o.code === orderIdOrCode) {
+        changed = true;
+        return {
+          ...o,
+          stamp_status: stampStatus
+        };
+      }
+      return o;
+    });
+
+    if (this.selectedOrderForStamp && (this.selectedOrderForStamp.id === orderIdOrCode || this.selectedOrderForStamp.code === orderIdOrCode)) {
+      this.selectedOrderForStamp = {
+        ...this.selectedOrderForStamp,
+        stamp_status: stampStatus
+      };
+    }
+
+    if (changed && typeof window !== 'undefined') {
+      localStorage.setItem('mias_orders', JSON.stringify(this.activeOrders));
     }
   }
 
@@ -555,6 +703,47 @@ class AppStore {
 
   closeSidebar() {
     this.isSidebarOpen = false;
+  }
+
+  openStampModal(order = null) {
+    if (order) {
+      this.selectedOrderForStamp = order;
+    } else if (!this.selectedOrderForStamp && this.activeOrders.length > 0) {
+      this.selectedOrderForStamp = this.activeOrders[0];
+    }
+    this.isReceiptModalOpen = true;
+    this.currentView = 'stamps';
+  }
+
+  closeStampModal() {
+    this.isReceiptModalOpen = false;
+  }
+
+  orderHasBurgers(ord) {
+    if (!ord) return false;
+
+    if (Array.isArray(ord.items) && ord.items.length > 0) {
+      return ord.items.some((it) => {
+        // Validación canónica por ID de categoría en DB
+        if (it.product?.category_id === 1 || it.category_id === 1) return true;
+        const cat = (it.product?.category || it.category_slug || it.category || '').toLowerCase();
+        if (cat === 'hamburguesas' || cat === 'hamburguesa') return true;
+
+        // Búsqueda en el catálogo reactivo si el item solo tiene product_id
+        const prodId = it.product?.id || it.product_id;
+        if (prodId) {
+          const p = this.products.find((prod) => prod.id === prodId);
+          if (p && p.category_id === 1) return true;
+        }
+
+        const bread = (it.product?.bread_type || it.bread_type || '').toLowerCase();
+        if (bread === 'pretzel') return true;
+
+        return false;
+      });
+    }
+
+    return false;
   }
 }
 

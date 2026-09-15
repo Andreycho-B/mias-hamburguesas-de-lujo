@@ -108,7 +108,7 @@
         {#each categoryProducts as item (item.id)}
           {@const isAdded = addedItemId === item.id}
           {@const isFeatured = featuredSlug ? item.slug === featuredSlug : (item.is_chef_choice || item.is_bestseller)}
-          <div class="bg-char-card rounded-[28px] sm:rounded-[34px] border {isFeatured ? 'border-[#FF2400]/40 shadow-sm' : 'border-white/10 shadow-2xs'} p-5 flex flex-col justify-between transition-all select-none hover:border-white/20">
+          <div class="{isFeatured ? 'gold-border-card shadow-md' : 'bg-char-card border border-white/10 shadow-2xs'} rounded-[28px] sm:rounded-[34px] p-5 flex flex-col justify-between transition-all select-none hover:border-white/20">
             <div class="min-w-0 pr-1">
               <div class="flex items-center gap-1.5 mb-1">
                 <span class="text-[10px] sm:text-xs font-mono font-bold uppercase tracking-wider {isFeatured ? 'text-[#FF2400]' : 'text-ash'}">
@@ -156,7 +156,7 @@
         {#each categoryProducts as item (item.id)}
           {@const isAdded = addedItemId === item.id}
           {@const isFeatured = featuredSlug ? item.slug === featuredSlug : (item.is_chef_choice || item.is_bestseller)}
-          <div class="bg-char-card rounded-[30px] sm:rounded-[36px] border {isFeatured ? 'border-[#FF2400]/40 shadow-sm' : 'border-white/10 shadow-2xs'} p-5 sm:p-6 transition-all hover:border-white/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4 select-none relative">
+          <div class="{isFeatured ? 'gold-border-card shadow-md' : 'bg-char-card border border-white/10 shadow-2xs'} rounded-[30px] sm:rounded-[36px] p-5 sm:p-6 transition-all hover:border-white/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4 select-none relative">
             <!-- Contenido Descriptivo -->
             <div class="flex-1 min-w-0 pr-0 sm:pr-4">
               <div class="flex items-center gap-2 mb-1">

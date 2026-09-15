@@ -72,35 +72,11 @@
 
   let printedOrder = $state(null);
 
-  // Muestras operativas en memoria sincronizadas con la API y store de pedidos
-  let inStoreOrders = $state([
-    { id: '1', code: 'ORD-A101', customer: 'Andrés Gómez', total: 38000, status: 'PENDING_PAYMENT', items: '2x Dorada, 1x Combo Papas', time: '18:42' },
-    { id: '2', code: 'ORD-A102', customer: 'Valentina Ruiz', total: 23000, status: 'PAID', items: '1x Criolla Artesanal', time: '18:45' }
-  ]);
-
-  let deliveryOrders = $state([
-    { 
-      id: '3', 
-      code: 'DOM-B201', 
-      customer: 'Felipe Santos', 
-      phone: '3109876543', 
-      address: 'Cra 27 # 45-12, Apto 501', 
-      neighborhood: 'El Sol',
-      total: 51000, 
-      status: 'IN_PREPARATION', 
-      time: '18:50', 
-      payment: 'Efectivo (Paga con $100.000)' 
-    }
-  ]);
-
-  let stampRequests = $state([
-    { id: '4', receiptNumber: '00124', customer: 'Carlos Mendoza', orderCode: 'ORD-A098', burgersCount: 2, total: 46000, time: '18:40' },
-    { id: '5', receiptNumber: '00125', customer: 'Lucía Morales', orderCode: 'ORD-A099', burgersCount: 1, total: 28000, time: '18:48' }
-  ]);
-
-  let redemptions = $state([
-    { id: '6', customer: 'Marcos Peña', stampsCount: 10, targetItem: 'Hamburguesa Original Gratis ($17.000)', time: '18:52' }
-  ]);
+  // Listas operativas reactivas sincronizadas con la API de PostgreSQL y store local
+  let inStoreOrders = $state([]);
+  let deliveryOrders = $state([]);
+  let stampRequests = $state([]);
+  let redemptions = $state([]);
 
   // Formulario manual de mesero para otorgar sellos en mesa
   let manualTicket = $state('');
@@ -112,46 +88,6 @@
   let isInitialLoad = true;
 
   async function syncStaffData() {
-    // Sincronizar órdenes locales creadas en la sesión actual desde store.activeOrders
-    if (store.activeOrders && store.activeOrders.length > 0) {
-      for (const ord of store.activeOrders) {
-        if (ord.type === 'delivery') {
-          const existing = deliveryOrders.find(d => d.code === ord.code);
-          if (!existing) {
-            deliveryOrders.unshift({
-              id: ord.id || 'dom-' + ord.code,
-              code: ord.code,
-              customer: ord.deliveryName || ord.customer_name || 'Cliente Domicilio',
-              phone: ord.deliveryPhone || ord.customer_phone || '3212520881',
-              address: ord.deliveryAddress || ord.delivery_address || 'Dirección registrada',
-              neighborhood: ord.neighborhood || 'Duitama',
-              total: ord.total,
-              status: ord.status || 'IN_PREPARATION',
-              time: new Date(ord.createdAt || ord.created_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-              payment: ord.paymentMethod || ord.payment_method || 'Efectivo'
-            });
-          } else if (ord.status && existing.status !== ord.status) {
-            existing.status = ord.status;
-          }
-        } else {
-          const existing = inStoreOrders.find(o => o.code === ord.code);
-          if (!existing) {
-            inStoreOrders.unshift({
-              id: ord.id || 'ord-' + ord.code,
-              code: ord.code,
-              customer: ord.deliveryName || ord.customer_name || (ord.table_number ? `Mesa #${ord.table_number}` : 'Comensal Salón'),
-              total: ord.total,
-              status: ord.status || 'PENDING_PAYMENT',
-              items: ord.items ? ord.items.map(i => `${i.quantity}x ${i.product?.name || 'Producto'}`).join(', ') : 'Consumo en Salón',
-              time: new Date(ord.createdAt || ord.created_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-            });
-          } else if (ord.status && existing.status !== ord.status) {
-            existing.status = ord.status;
-          }
-        }
-      }
-    }
-
     try {
       const [orders, deliveries, stamps, redems] = await Promise.all([
         getStaffPendingInStoreOrdersAPI(),
@@ -163,7 +99,7 @@
       let hasNewOrders = false;
 
       if (orders && Array.isArray(orders)) {
-        const mappedOrders = orders.map(o => ({
+        inStoreOrders = orders.map(o => ({
           id: o.id,
           code: o.code,
           customer: o.delivery_name || 'Comensal Salón',
@@ -173,18 +109,16 @@
           time: new Date(o.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }));
 
-        for (const o of mappedOrders) {
+        for (const o of inStoreOrders) {
           if (!knownOrderCodes.has(o.code)) {
             knownOrderCodes.add(o.code);
             if (!isInitialLoad) hasNewOrders = true;
           }
         }
-
-        inStoreOrders = mappedOrders;
       }
 
       if (deliveries && Array.isArray(deliveries)) {
-        const mappedDeliveries = deliveries.map(d => ({
+        deliveryOrders = deliveries.map(d => ({
           id: d.id,
           code: d.code,
           customer: d.delivery_name || 'Cliente Domicilio',
@@ -197,14 +131,12 @@
           payment: d.payment_method || 'Efectivo'
         }));
 
-        for (const d of mappedDeliveries) {
+        for (const d of deliveryOrders) {
           if (!knownOrderCodes.has(d.code)) {
             knownOrderCodes.add(d.code);
             if (!isInitialLoad) hasNewOrders = true;
           }
         }
-
-        deliveryOrders = mappedDeliveries;
       }
 
       if (stamps && Array.isArray(stamps)) {
@@ -214,6 +146,7 @@
           customer: s.customer_name || 'Comensal Mías',
           orderCode: s.order_code || 'ORD',
           burgersCount: s.burgers_count,
+          status: s.status,
           total: s.total_amount || 0,
           time: new Date(s.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }));
@@ -518,7 +451,7 @@
   }
 
   async function handleApproveStamp(req) {
-    stampRequests = stampRequests.filter(r => r.id !== req.id);
+    req.status = 'APPROVED';
     playChime();
     if (req.id && req.id.length > 5 && !req.id.startsWith('req-')) {
       try {
@@ -527,10 +460,11 @@
         console.warn('[Staff] Error aprobando sello en API', err);
       }
     }
+    syncStaffData();
   }
 
   async function handleRejectStamp(req) {
-    stampRequests = stampRequests.filter(r => r.id !== req.id);
+    req.status = 'REJECTED';
     if (req.id && req.id.length > 5 && !req.id.startsWith('req-')) {
       try {
         await reviewStaffStampAPI(req.id, false);
@@ -538,6 +472,7 @@
         console.warn('[Staff] Error rechazando sello en API', err);
       }
     }
+    syncStaffData();
   }
 
   async function handleApproveRedemption(red) {
@@ -1150,9 +1085,25 @@
                       >
                         Despachar a Domiciliario
                       </button>
+                    {:else if dom.status === 'ON_THE_WAY'}
+                      <button
+                        type="button"
+                        onclick={async () => {
+                          try {
+                            await updateDeliveryStatusAPI(dom.id, 'DELIVERED');
+                            syncStaffData();
+                          } catch (e) {
+                            console.warn(e);
+                          }
+                        }}
+                        class="min-h-[48px] px-5 rounded-full bg-sky-950/60 text-sky-300 hover:bg-sky-900/60 border border-sky-500/30 text-xs font-mono font-bold flex items-center gap-1 cursor-pointer"
+                        title="Marcar como entregado con éxito"
+                      >
+                        🛵 EN RUTA • [Marcar Entregado]
+                      </button>
                     {:else}
-                      <span class="min-h-[48px] px-5 rounded-full bg-sky-950/60 text-sky-300 border border-sky-500/30 text-xs font-mono font-bold flex items-center">
-                        🛵 EN RUTA AL CLIENTE
+                      <span class="min-h-[48px] px-5 rounded-full bg-emerald-950/60 text-emerald-300 border border-emerald-500/30 text-xs font-mono font-bold flex items-center">
+                        ✓ DOMICILIO ENTREGADO
                       </span>
                     {/if}
                   </div>
@@ -1193,18 +1144,32 @@
                       <p class="text-xs text-ash">Orden #{req.orderCode} • Total ${req.total.toLocaleString('es-CO')}</p>
                     </div>
 
-                    <div class="flex items-center gap-2 pt-1">
-                      <button
-                        type="button"
-                        onclick={() => handleRejectStamp(req)}
-                        class="flex-1 min-h-[48px] rounded-full bg-char-card border border-white/10 text-[#FF2400] hover:bg-white/5 font-display font-bold text-xs"
-                      >Rechazar</button>
-                      <button
-                        type="button"
-                        onclick={() => handleApproveStamp(req)}
-                        class="flex-1 min-h-[48px] rounded-full bg-[#FF2400] hover:bg-[#E02000] text-white font-display font-extrabold text-xs"
-                      >✓ Otorgar {req.burgersCount} Sellos</button>
-                    </div>
+                    {#if req.status === 'PENDING'}
+                      <div class="flex items-center gap-2 pt-1">
+                        <button
+                          type="button"
+                          onclick={() => handleRejectStamp(req)}
+                          class="flex-1 min-h-[48px] rounded-full bg-char-card border border-white/10 text-[#FF2400] hover:bg-white/5 font-display font-bold text-xs cursor-pointer"
+                        >Rechazar</button>
+                        <button
+                          type="button"
+                          onclick={() => handleApproveStamp(req)}
+                          class="flex-1 min-h-[48px] rounded-full bg-[#FF2400] hover:bg-[#E02000] text-white font-display font-extrabold text-xs active:scale-[0.98] transition-all cursor-pointer"
+                        >✓ Otorgar {req.burgersCount} Sellos</button>
+                      </div>
+                    {:else if req.status === 'APPROVED'}
+                      <div class="pt-1">
+                        <span class="w-full min-h-[44px] rounded-full bg-emerald-950/60 text-emerald-300 border border-emerald-500/30 text-xs font-mono font-bold flex items-center justify-center">
+                          ✓ {req.burgersCount} SELLOS OTORGADOS
+                        </span>
+                      </div>
+                    {:else}
+                      <div class="pt-1">
+                        <span class="w-full min-h-[44px] rounded-full bg-red-950/60 text-red-300 border border-red-500/30 text-xs font-mono font-bold flex items-center justify-center">
+                          ✕ SOLICITUD RECHAZADA
+                        </span>
+                      </div>
+                    {/if}
                   </div>
                 {/each}
               </div>

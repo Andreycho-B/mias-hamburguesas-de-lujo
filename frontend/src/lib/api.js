@@ -1,12 +1,17 @@
 function resolveApiBase() {
-  let url = import.meta.env.VITE_API_URL;
-  if (!url) {
-    if (typeof window !== 'undefined' && window.location.hostname) {
-      if (window.location.hostname.endsWith('.pages.dev')) {
-        return '/api/v1';
-      }
+  if (typeof window !== 'undefined' && window.location.hostname) {
+    if (window.location.hostname.endsWith('.pages.dev')) {
+      return '/api/v1';
+    }
+    // Si se accede desde un celular en la red Wi-Fi local (ej. 192.168.x.x),
+    // apuntar al backend Go en esa misma IP de la máquina host.
+    if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
       return `http://${window.location.hostname}:8080/api/v1`;
     }
+  }
+
+  let url = import.meta.env.VITE_API_URL;
+  if (!url) {
     return 'http://localhost:8080/api/v1';
   }
 
@@ -107,7 +112,45 @@ export async function getCatalogAPI() {
 }
 
 /**
- * Autentica personal con Argon2id y JWT
+ * Autentica cualquier usuario (cliente o personal) con correo y contraseña
+ */
+export async function loginAPI(email, password) {
+  const res = await fetch(`${API_BASE}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password })
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Credenciales incorrectas');
+  }
+  return data;
+}
+
+/**
+ * Registra un nuevo cliente con correo, contraseña y nombre
+ */
+export async function registerAPI({ email, password, full_name, phone = '' }) {
+  const res = await fetch(`${API_BASE}/auth/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email,
+      password,
+      full_name,
+      phone,
+      habeas_data_accepted: true
+    })
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Error al registrar usuario');
+  }
+  return data;
+}
+
+/**
+ * Autentica personal con Argon2id y JWT (específico)
  */
 export async function staffLoginAPI(email, password) {
   const res = await fetch(`${API_BASE}/auth/staff-login`, {
@@ -172,6 +215,27 @@ export async function getOrderByCodeAPI(code) {
   try {
     const res = await fetchWithAuth(`${API_BASE}/orders/${code}`);
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    return null;
+  }
+}
+
+/**
+ * Consulta el historial completo de comandas del comensal autenticado o por códigos/teléfono desde PostgreSQL
+ */
+export async function getMyOrdersAPI(codes = [], phone = '') {
+  try {
+    const params = new URLSearchParams();
+    if (codes && codes.length > 0) {
+      params.append('codes', codes.join(','));
+    }
+    if (phone) {
+      params.append('phone', phone);
+    }
+    const query = params.toString() ? `?${params.toString()}` : '';
+    const res = await fetchWithAuth(`${API_BASE}/orders/my-orders${query}`);
+    if (!res.ok) return null;
     return await res.json();
   } catch (err) {
     return null;

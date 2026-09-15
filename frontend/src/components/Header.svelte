@@ -1,17 +1,28 @@
 <script>
   import { store } from '../lib/store.svelte.js';
-  import { User, Award, BookOpen, Utensils, Shield, ChevronLeft } from 'lucide-svelte';
+  import { User, Award, BookOpen, Utensils, Shield, ChevronLeft, Receipt } from 'lucide-svelte';
 
-  // Validar horario en tiempo real: Sábado a Jueves de 3:00 PM a 9:30 PM (Viernes cerrado)
+  const activeStatuses = ['PENDING', 'CONFIRMED', 'PREPARING', 'IN_DELIVERY', 'READY'];
+  let activeOrdersCount = $derived(
+    store.activeOrders?.filter((o) => activeStatuses.includes(o.status)).length || 0
+  );
+
+  // Validar horario en tiempo real: Lunes a Viernes 3:00 PM a 9:00 PM, Sábados y Domingos 3:00 PM a 10:00 PM
+  let isWeekend = $derived.by(() => {
+    const day = new Date().getDay();
+    return day === 0 || day === 6; // 0 = Domingo, 6 = Sábado
+  });
+
   let isOpen = $derived.by(() => {
     const now = new Date();
-    if (now.getDay() === 5) return false; // Viernes cerrado
+    const day = now.getDay();
+    const weekend = day === 0 || day === 6;
     const hour = now.getHours();
     const minute = now.getMinutes();
     const totalMinutes = hour * 60 + minute;
 
     const openMinutes = 15 * 60; // 3:00 PM
-    const closeMinutes = 21 * 60 + 30; // 9:30 PM
+    const closeMinutes = weekend ? 22 * 60 : 21 * 60; // 10:00 PM en fin de semana, 9:00 PM entre semana
 
     return totalMinutes >= openMinutes && totalMinutes <= closeMinutes;
   });
@@ -23,22 +34,26 @@
     <button 
       type="button"
       onclick={() => store.currentView = 'menu'} 
-      class="flex items-center gap-3 text-left group focus:outline-none cursor-pointer"
+      class="flex items-center gap-3 cursor-pointer group"
     >
       <img 
         src="/imagenes/marca/logo_en_blanco.webp" 
         alt="Mías Hamburguesas de Lujo" 
-        class="h-8 sm:h-9 object-contain group-hover:opacity-80 transition-opacity"
+        class="h-9 w-auto object-contain transition-transform group-hover:scale-105"
       />
+      <div class="hidden md:flex flex-col border-l border-white/10 pl-3">
+        <span class="font-serif text-sm font-bold text-bone tracking-wide">Mías Hamburguesas de Lujo</span>
+        <span class="font-mono text-[10px] text-ash uppercase tracking-wider">Alta Gastronomía</span>
+      </div>
     </button>
 
-    <!-- Indicador de Horario en Vivo -->
-    <div class="hidden md:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-char-card border border-white/10 text-xs font-mono">
-      <span class="w-2 h-2 rounded-full {isOpen ? 'bg-emerald-500 animate-pulse' : 'bg-[#FF2400]'}"></span>
+    <!-- Estado del Local en Tiempo Real -->
+    <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-char-card border border-white/10 text-xs font-mono">
+      <span class="w-2 h-2 rounded-full {isOpen ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}"></span>
       {#if isOpen}
-        <span class="text-bone font-medium">Abierto hoy hasta 9:30 PM</span>
+        <span class="text-bone/90">Abierto hoy hasta {isWeekend ? '10:00 PM' : '9:00 PM'}</span>
       {:else}
-        <span class="text-[#8E8E93]">Cerrado ahora · Abrimos 3:00 PM (Vie. cerrado)</span>
+        <span class="text-[#8E8E93]">Cerrado · Servicio de 3:00 PM a {isWeekend ? '10:00 PM' : '9:00 PM'}</span>
       {/if}
     </div>
 
@@ -53,6 +68,24 @@
       >
         <span class="hidden sm:inline">Menú</span>
         <Utensils class="w-4 h-4 sm:hidden inline" />
+      </button>
+
+      <!-- Mis Pedidos -->
+      <button 
+        type="button"
+        onclick={() => store.currentView = 'orders'}
+        class="relative px-3 py-2 rounded-full text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer {store.currentView === 'orders' ? 'text-white bg-[#FF2400]' : 'text-bone/80 hover:text-bone'}"
+        title="Mis Pedidos y Comandas"
+      >
+        <div class="flex items-center gap-1.5">
+          <Receipt class="w-4 h-4" />
+          <span class="hidden sm:inline">Pedidos</span>
+          {#if activeOrdersCount > 0}
+            <span class="{store.currentView === 'orders' ? 'bg-white text-[#FF2400]' : 'bg-[#FF2400] text-white'} text-[10px] font-black px-1.5 py-0.2 rounded-full animate-pulse">
+              {activeOrdersCount}
+            </span>
+          {/if}
+        </div>
       </button>
 
       <!-- Mis Sellos -->
