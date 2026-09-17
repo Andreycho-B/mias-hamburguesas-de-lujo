@@ -92,22 +92,19 @@
   style="padding-top: max(1.25rem, calc(env(safe-area-inset-top, 0px) + 0.85rem)); padding-left: max(1.25rem, env(safe-area-inset-left, 0px)); padding-right: max(1.25rem, env(safe-area-inset-right, 0px));"
 >
   
-  <!-- RETÍCULA SUPERIOR: LOGO CENTRAL "MÍAS" EN BLANCO Y BADGE DE PERFIL / SELLOS -->
-  <header class="relative grid grid-cols-[1fr_auto_1fr] items-center pb-6 md:pb-10 pt-1 md:pt-4">
+  <!-- RETÍCULA SUPERIOR: LOGO EN ESQUINA IZQUIERDA Y BOTÓN DE PERFIL / SELLOS A LA DERECHA -->
+  <header class="relative flex items-center justify-between pb-6 md:pb-10 pt-1 md:pt-4">
     
-    <!-- Espacio izquierdo equilibrado sin isotipo para centrado simétrico del logotipo -->
-    <div class="flex items-center justify-start"></div>
-
-    <!-- Logo Central "Mías" en Blanco Noble para fondo carbón -->
-    <div class="flex items-center justify-center px-2 z-10">
+    <!-- Logo "Mías" en Esquina Superior Izquierda (Alineación final a la izquierda) -->
+    <div class="flex items-center justify-start z-10 -ml-8 sm:-ml-9 md:-ml-10">
       <img 
         src="/imagenes/marca/logo_en_blanco.webp" 
         alt="Mías Hamburguesas de Lujo" 
-        class="h-14 sm:h-16 md:h-20 lg:h-24 w-auto max-w-[195px] sm:max-w-[220px] md:max-w-[280px] lg:max-w-[320px] object-contain select-none pointer-events-none transition-all"
+        class="h-[86px] sm:h-[98px] md:h-[105px] w-auto object-contain select-none pointer-events-none transition-all"
       />
     </div>
 
-    <!-- Badge Derecho: Contador de Sellos y Avatar de Usuario (Estilo mate sutil) -->
+    <!-- Badge Derecho: Contador de Sellos y Avatar de Usuario -->
     <div class="flex items-center justify-end z-20">
       <button
         type="button"
@@ -162,6 +159,7 @@
         {/if}
       </div>
     </button>
+    </div>
   </header>
 
   <!-- BLOQUE DE SALUDO PRINCIPAL: ADAPTABLE A ESCRITORIO -->
@@ -483,29 +481,31 @@
 </section>
 
 <!-- ═══════════════════════════════════════════════════════════════════════ -->
-<!-- BOTÓN FLOTANTE "MIS PEDIDOS" EN PANTALLA HOME                        -->
+<!-- BOTÓN FLOTANTE "MIS PEDIDOS" EN PANTALLA HOME (ESTÁNDAR FRIENDLY FINGER) -->
 <!-- ═══════════════════════════════════════════════════════════════════════ -->
 <div 
-  class="fixed bottom-5 inset-x-4 max-w-sm mx-auto z-40 pointer-events-auto select-none"
+  class="fixed bottom-4 sm:bottom-6 inset-x-0 pointer-events-none z-40 select-none flex justify-center px-5 sm:px-8 md:px-10 lg:px-12"
   style="padding-bottom: max(0px, env(safe-area-inset-bottom, 0px));"
 >
+  <div class="w-full max-w-md md:max-w-4xl pointer-events-auto">
   <button
     type="button"
     onclick={() => store.currentView = 'orders'}
-    class="w-full min-h-[62px] sm:min-h-[66px] rounded-full bg-char-card/95 backdrop-blur-md border hairline-dark hover:border-gold/30 p-2.5 pl-4 pr-5 flex items-center justify-between shadow-lux active:scale-[0.98] transition-all cursor-pointer group"
+    class="category-pill gold-border-card w-full min-h-[76px] sm:min-h-[82px] md:min-h-[88px] rounded-full px-3.5 sm:px-4 md:px-5 py-3.5 sm:py-4 flex items-center justify-between shadow-lux active:scale-[0.985] transition-all cursor-pointer group text-left"
+    style="touch-action: pan-y; -webkit-tap-highlight-color: transparent;"
     aria-label="Ver el estado de mis pedidos"
   >
-    <div class="flex items-center gap-3.5 min-w-0">
+    <div class="flex items-center gap-4 sm:gap-5 min-w-0 flex-1 pr-3">
       {#if latestActiveOrder}
         <!-- Pedido activo: Horno y estado editorial -->
-        <div class="w-11 h-11 rounded-full bg-ember/15 border border-ember/30 flex items-center justify-center text-ember-light shrink-0">
-          <Flame class="w-5 h-5" />
+        <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-ember/15 border border-ember/30 flex items-center justify-center text-ember-light shrink-0">
+          <Flame class="w-7 h-7 sm:w-8 sm:h-8" />
         </div>
         <div class="text-left min-w-0">
-          <span class="font-mono text-[11px] font-bold text-gold tracking-wide block leading-tight">
+          <span class="font-mono text-xs sm:text-sm font-bold text-gold tracking-wide block leading-tight">
             Comanda #{latestActiveOrder.code || 'ORD'}
           </span>
-          <span class="font-sans font-bold text-sm text-bone truncate block mt-0.5">
+          <span class="font-display font-extrabold text-xl sm:text-2xl text-bone truncate block mt-0.5">
             {#if latestActiveOrder.status === 'PREPARING'}
               En el horno al carbón
             {:else if latestActiveOrder.status === 'IN_DELIVERY'}
@@ -519,41 +519,56 @@
         </div>
       {:else}
         <!-- Sin pedido activo: Acceso al historial -->
-        <div class="w-11 h-11 rounded-full bg-gold/10 border border-gold/20 flex items-center justify-center text-gold shrink-0">
-          <Receipt class="w-5 h-5 stroke-[2]" />
+        <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gold/10 border border-gold/20 flex items-center justify-center text-gold shrink-0">
+          <Receipt class="w-7 h-7 stroke-[2]" />
         </div>
         <div class="text-left min-w-0">
-          <span class="font-sans font-bold text-sm sm:text-base text-bone block leading-tight">
+          <span class="font-display font-extrabold text-xl sm:text-2xl text-bone tracking-tight block truncate group-hover:translate-x-0.5 transition-transform">
             Historial de Pedidos
           </span>
-          <span class="font-sans text-xs text-ash truncate block mt-0.5">
-            {hasAnyOrders ? 'Revisa tus comandas y pagos' : 'Consulta el estado de tu pedido'}
+          <span class="font-display text-xs sm:text-sm text-ash block truncate font-normal mt-0.5">
+            {hasAnyOrders ? 'Revisa tus comandas y compras anteriores' : 'Consulta tus pedidos realizados'}
           </span>
         </div>
       {/if}
     </div>
 
-    <div class="flex items-center gap-1.5 shrink-0">
+    <!-- Círculo de Acción Táctil Idéntico a Categorías -->
+    <div class="flex items-center shrink-0">
       {#if latestActiveOrder}
-        <span class="text-xs font-sans font-bold text-white bg-ember hover:bg-ember-light px-3.5 py-1.5 rounded-full transition-colors">
+        <span class="text-xs sm:text-sm font-mono font-bold text-white bg-ember hover:bg-ember-light px-5 sm:px-6 py-3 rounded-full transition-colors shadow-sm">
           Ver estado
         </span>
       {:else}
-        <div class="w-9 h-9 rounded-full bg-char border hairline-dark flex items-center justify-center text-ash group-hover:text-bone group-hover:border-gold/30 group-hover:translate-x-0.5 transition-all">
-          <ArrowRight class="w-4 h-4 stroke-[2]" />
+        <div class="category-arrow-circle w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center shrink-0">
+          <span class="category-arrow-wrapper inline-flex items-center justify-center">
+            <svg 
+              viewBox="0 0 24 24" 
+              class="w-6 h-6 overflow-visible stroke-[2.2]" 
+              fill="none" 
+              stroke="currentColor" 
+              stroke-linecap="round" 
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <line x1="5.5" y1="12" x2="16" y2="12" class="morphic-stem" />
+              <path d="M 11.5 7 L 16.5 12 L 11.5 17" class="morphic-chevron" />
+            </svg>
+          </span>
         </div>
       {/if}
     </div>
   </button>
+  </div>
 </div>
 
 <style>
-  /* MICRO-INTERACCIÓN: CHEVRON MÓRFICO A FLECHA CON BORDE DORADO BISELADO */
+  /* MICRO-INTERACCIÓN: CHEVRON MÓRFICO A FLECHA CON BORDE DORADO BISELADO (Zero-Overhead GPU) */
   .category-arrow-circle {
     background: 
       linear-gradient(var(--arrow-circle-bg, #161619), var(--arrow-circle-bg, #161619)) padding-box,
       conic-gradient(
-        from var(--gold-angle),
+        from 135deg,
         #7A5212 0deg,
         #C99E47 45deg,
         #FFFDF0 90deg,
@@ -565,11 +580,9 @@
         #7A5212 360deg
       ) border-box;
     border: 1.5px solid transparent !important;
-    animation: gold-sheen-rotate 9s linear infinite;
     transform: translateZ(0);
     -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
-    will-change: transform;
     transition: transform 0.28s cubic-bezier(0.34, 1.4, 0.64, 1), 
                 box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1),
                 color 0.24s ease;

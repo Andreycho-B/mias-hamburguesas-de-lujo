@@ -130,6 +130,52 @@ func TestOrderService_CreateOrder(t *testing.T) {
 		}
 	})
 
+	t.Run("Calcula comanda para llevar sin recargo y conserva su modalidad", func(t *testing.T) {
+		mock := &BaseMockQuerier{
+			GetProductByIDFunc: func(ctx context.Context, id int32) (db.Product, error) {
+				return db.Product{ID: 1, Name: "Original", Price: 17000}, nil
+			},
+			CreateOrderFunc: func(ctx context.Context, arg db.CreateOrderParams) (db.Order, error) {
+				if arg.OrderType != "takeout" {
+					t.Fatalf("se esperaba order_type takeout, obtenido %s", arg.OrderType)
+				}
+				if arg.DeliveryFee != 0 {
+					t.Fatalf("se esperaba deliveryFee 0 para llevar, obtenido %d", arg.DeliveryFee)
+				}
+				if arg.TotalAmount != 17000 {
+					t.Fatalf("se esperaba total 17000, obtenido %d", arg.TotalAmount)
+				}
+				return db.Order{
+					ID:          pgtype.UUID{Valid: true},
+					Code:        arg.Code,
+					OrderType:   arg.OrderType,
+					TotalAmount: arg.TotalAmount,
+				}, nil
+			},
+			CreateOrderItemFunc: func(ctx context.Context, arg db.CreateOrderItemParams) (db.OrderItem, error) {
+				return db.OrderItem{}, nil
+			},
+			GetOrderItemsFunc: func(ctx context.Context, orderID pgtype.UUID) ([]db.GetOrderItemsRow, error) {
+				return []db.GetOrderItemsRow{}, nil
+			},
+		}
+
+		svc := NewOrderService(nil, mock, nil)
+
+		resp, err := svc.CreateOrder(context.Background(), nil, CreateOrderRequest{
+			OrderType: "takeout",
+			Items: []OrderItemRequest{
+				{ProductID: 1, Quantity: 1},
+			},
+		})
+		if err != nil {
+			t.Fatalf("error inesperado creando orden para llevar: %v", err)
+		}
+		if resp.Order.OrderType != "takeout" {
+			t.Fatalf("modalidad inesperada: %s", resp.Order.OrderType)
+		}
+	})
+
 	t.Run("Calcula correctamente comanda con combo y extras", func(t *testing.T) {
 		mock := &BaseMockQuerier{
 			GetProductByIDFunc: func(ctx context.Context, id int32) (db.Product, error) {
