@@ -6,15 +6,25 @@ import { fileURLToPath } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
-// Garantiza compatibilidad automática con Cloudflare Pages replicando dist en out
+// Garantiza compatibilidad automática con Cloudflare Pages replicando dist en todas las posibles rutas esperadas
 function syncOutputToOutPlugin() {
   return {
     name: 'sync-output-to-out',
     closeBundle() {
       const distDir = path.resolve(__dirname, 'dist')
-      const outDir = path.resolve(__dirname, 'out')
+      const targets = [
+        path.resolve(__dirname, 'out'),
+        path.resolve(__dirname, '../out'),
+        path.resolve(__dirname, '../dist'),
+      ]
       if (fs.existsSync(distDir)) {
-        fs.cpSync(distDir, outDir, { recursive: true })
+        for (const target of targets) {
+          try {
+            fs.cpSync(distDir, target, { recursive: true })
+          } catch {
+            // Silencioso ante restricciones de entorno
+          }
+        }
       }
     }
   }
