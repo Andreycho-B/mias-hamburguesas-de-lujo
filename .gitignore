@@ -16,6 +16,7 @@ vendor/
 
 # Compilados y Builds
 dist/
+out/
 build/
 bin/
 *.exe
