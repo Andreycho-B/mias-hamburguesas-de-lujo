@@ -862,6 +862,7 @@ import { onDestroy } from 'svelte';
   <div
     data-lenis-prevent
     role="dialog"
+    tabindex="-1"
     aria-modal="true"
     aria-label="Comanda actual"
     onwheel={(e) => e.stopPropagation()}
@@ -1119,6 +1120,7 @@ import { onDestroy } from 'svelte';
 
             <!-- PARTE INFERIOR: RULETA DE CÍRCULOS EN MEDIA LUNA (Touch & Gesture Physics) -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
             <div
               role="group"
               aria-label="Ruleta de productos sugeridos"
