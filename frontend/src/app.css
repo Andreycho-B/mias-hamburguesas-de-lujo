@@ -53,20 +53,7 @@
 /* Inspirado en joyería física: biseles a 135°, brillo marfil y micro-sombra */
 /* ========================================================================= */
 
-@property --gold-angle {
-  syntax: '<angle>';
-  inherits: false;
-  initial-value: 0deg;
-}
 
-@keyframes gold-sheen-rotate {
-  0% {
-    --gold-angle: 0deg;
-  }
-  100% {
-    --gold-angle: 360deg;
-  }
-}
 
 @keyframes gold-ambient-pulse {
   0%, 100% {
@@ -83,12 +70,12 @@
   }
 }
 
-/* Tarjetas y Contenedores con Borde Dorado Biselado y Refracción Líquida (Optimizado 120 FPS) */
+/* Tarjetas y Contenedores con Borde Dorado Biselado y Refracción Líquida (Zero-Overhead GPU) */
 .gold-border-card {
   background: 
     linear-gradient(var(--gold-card-bg, #161619), var(--gold-card-bg, #161619)) padding-box,
     conic-gradient(
-      from var(--gold-angle),
+      from 135deg,
       #7A5212 0deg,
       #C99E47 45deg,
       #FFFDF0 90deg,
@@ -104,28 +91,25 @@
     0 2px 8px rgba(0, 0, 0, 0.45),
     0 8px 24px -6px rgba(197, 160, 89, 0.20),
     inset 0 1px 1px rgba(255, 245, 207, 0.16);
-  animation: gold-sheen-rotate 9s linear infinite;
   transform: translateZ(0);
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
-  will-change: transform;
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .gold-border-card:hover {
-  animation-duration: 4.5s;
   box-shadow: 
     0 6px 20px rgba(0, 0, 0, 0.55),
     0 16px 40px -4px rgba(201, 158, 71, 0.38),
     inset 0 1px 1px rgba(255, 245, 207, 0.35);
 }
 
-/* Botón de Contorno con Borde Dorado Biselado y Refracción Líquida (Optimizado 120 FPS) */
+/* Botón de Contorno con Borde Dorado Biselado y Refracción Líquida (Zero-Overhead GPU) */
 .btn-gold-outline {
   background: 
     linear-gradient(#161619, #161619) padding-box,
     conic-gradient(
-      from var(--gold-angle),
+      from 135deg,
       #7A5212 0deg,
       #C99E47 45deg,
       #FFFDF0 90deg,
@@ -142,16 +126,13 @@
     0 2px 6px rgba(0, 0, 0, 0.35),
     0 8px 24px -4px rgba(197, 160, 89, 0.20),
     inset 0 1px 1px rgba(255, 245, 207, 0.14);
-  animation: gold-sheen-rotate 9s linear infinite;
   transform: translateZ(0);
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
-  will-change: transform;
   transition: transform 0.20s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), color 0.2s ease;
 }
 
 .btn-gold-outline:hover {
-  animation-duration: 4s;
   color: #FFF5CF;
   box-shadow: 
     0 4px 14px rgba(0, 0, 0, 0.5),
@@ -159,12 +140,12 @@
     inset 0 1px 1px rgba(255, 245, 207, 0.32);
 }
 
-/* Botón de Acción Rojo con Borde Dorado Biselado y Refracción Líquida (Optimizado 120 FPS) */
+/* Botón de Acción Rojo con Borde Dorado Biselado y Refracción Líquida (Zero-Overhead GPU) */
 .btn-gold-red {
   background: 
     linear-gradient(#FF2400, #FF2400) padding-box,
     conic-gradient(
-      from var(--gold-angle),
+      from 135deg,
       #7A5212 0deg,
       #C99E47 45deg,
       #FFFDF0 90deg,
@@ -181,11 +162,9 @@
     0 2px 8px rgba(0, 0, 0, 0.35),
     0 8px 24px -4px rgba(255, 36, 0, 0.35),
     inset 0 1px 1px rgba(255, 245, 207, 0.35);
-  animation: gold-sheen-rotate 9s linear infinite;
   transform: translateZ(0);
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
-  will-change: transform;
   transition: transform 0.20s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -193,7 +172,7 @@
   background: 
     linear-gradient(#E02000, #E02000) padding-box,
     conic-gradient(
-      from var(--gold-angle),
+      from 135deg,
       #7A5212 0deg,
       #C99E47 45deg,
       #FFFDF0 90deg,
@@ -204,7 +183,6 @@
       #8A601A 310deg,
       #7A5212 360deg
     ) border-box;
-  animation-duration: 4s;
   box-shadow: 
     0 4px 16px rgba(0, 0, 0, 0.45),
     0 14px 36px -4px rgba(255, 36, 0, 0.45),
@@ -280,21 +258,10 @@
     #F5D78E 86%,
     #FFFDF0 100%
   );
-  background-size: 200% auto;
+  background-size: 100% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-
-  animation: gold-text-sheen 7s ease-in-out infinite alternate;
-}
-
-@keyframes gold-text-sheen {
-  0% {
-    background-position: 0% 50%;
-  }
-  100% {
-    background-position: 100% 50%;
-  }
 }
 
 /* Estilos de Impresión Térmica ESC/POS (80mm / 58mm) */
@@ -321,4 +288,39 @@
   .no-print {
     display: none !important;
   }
+}
+
+/* Indicador de gesto deslizar hacia arriba en la ruleta de productos */
+@keyframes swipeUpPulse {
+  0% {
+    transform: translateY(3px);
+    opacity: 0.2;
+  }
+  50% {
+    transform: translateY(-6px);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-13px);
+    opacity: 0;
+  }
+}
+
+.animate-swipe-up-glow {
+  animation: swipeUpPulse 1.35s cubic-bezier(0.2, 0.8, 0.4, 1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-swipe-up-glow {
+    animation: none;
+  }
+}
+
+/* Ocultar barra de scroll nativa manteniendo la capacidad de scroll táctil */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

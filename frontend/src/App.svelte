@@ -40,25 +40,31 @@
     }
   }
 
-  // Inicializar Lenis Smooth Scroll y bloquear zoom/pellizco permitiendo solo deslizamiento vertical
+  // Inicializar Lenis Smooth Scroll solo en Desktop (preservando scroll nativo por GPU en iPhone)
   onMount(() => {
-    const lenis = new Lenis({
-      duration: 1.2,
-      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-      smoothWheel: true,
-      prevent: (node) => node.closest?.('[data-lenis-prevent]') !== null
-    });
+    const isTouchDevice = typeof window !== 'undefined' && 
+      (('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || window.matchMedia('(pointer: coarse)').matches);
 
-    function raf(time) {
-      lenis.raf(time);
-      requestAnimationFrame(raf);
+    let lenis = null;
+    let rafId = null;
+
+    // En pantallas táctiles móviles (iPhone), el scroll nativo de Safari corre 100% por hardware a 120 FPS
+    // sin loops de JavaScript en reposo, lo que mantiene el procesador frío y ahorra batería.
+    if (!isTouchDevice) {
+      lenis = new Lenis({
+        duration: 1.2,
+        easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+        smoothWheel: true,
+        prevent: (node) => node.closest?.('[data-lenis-prevent]') !== null
+      });
+
+      function raf(time) {
+        lenis.raf(time);
+        rafId = requestAnimationFrame(raf);
+      }
+      rafId = requestAnimationFrame(raf);
+      window.__lenis = lenis;
     }
-    requestAnimationFrame(raf);
-
-    // Bloquear gestos multitáctiles de pellizco (zoom)
-    const preventGesture = (e) => e.preventDefault();
-    window.addEventListener('gesturestart', preventGesture, { passive: false });
-    window.addEventListener('gesturechange', preventGesture, { passive: false });
 
     // Bloquear zoom con touchpad / Ctrl + rueda en desktop (el scroll vertical libre)
     const preventCtrlWheel = (e) => {
@@ -74,17 +80,16 @@
     };
     window.addEventListener('keydown', preventZoomKeys);
 
-    if (typeof window !== 'undefined') {
-      window.__lenis = lenis;
-    }
-
     return () => {
-      lenis.destroy();
+      if (lenis) {
+        lenis.destroy();
+      }
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+      }
       if (typeof window !== 'undefined') {
         delete window.__lenis;
       }
-      window.removeEventListener('gesturestart', preventGesture);
-      window.removeEventListener('gesturechange', preventGesture);
       window.removeEventListener('wheel', preventCtrlWheel);
       window.removeEventListener('keydown', preventZoomKeys);
     };

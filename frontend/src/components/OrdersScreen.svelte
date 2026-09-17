@@ -1,7 +1,6 @@
 <script>
   import { onMount } from 'svelte';
   import { store } from '../lib/store.svelte.js';
-  import { getOrderByCodeAPI, getMyOrdersAPI } from '../lib/api.js';
   import {
     ChevronLeft,
     Clock,
@@ -9,23 +8,19 @@
     Bike,
     Check,
     RotateCcw,
-    Search,
     RefreshCw,
     ShoppingBag,
     Utensils,
     AlertCircle,
     CheckCircle2,
     CreditCard,
-    Award
+    Award,
+    LogIn
   } from 'lucide-svelte';
 
   let { onBack = () => store.currentView = 'menu' } = $props();
 
   let isRefreshing = $state(false);
-  let showSearchInput = $state(false);
-  let searchQuery = $state('');
-  let isSearching = $state(false);
-  let searchError = $state('');
 
   // Historial unificado cronológico (más recientes primero)
   let allOrders = $derived(
@@ -64,62 +59,7 @@
     store.isCartOpen = true;
   }
 
-  async function handleSearch() {
-    const q = searchQuery.trim();
-    if (!q) return;
 
-    isSearching = true;
-    searchError = '';
-
-    try {
-      const cleanCode = q.replace('#', '').toUpperCase();
-      const res = await getOrderByCodeAPI(cleanCode);
-
-      if (res && res.order) {
-        const o = res.order;
-        const mapped = {
-          id: o.id,
-          code: o.code,
-          type: o.order_type,
-          modeLabel: o.order_type === 'delivery' ? 'A Domicilio' : o.order_type === 'takeout' ? 'Para Llevar' : 'En el Local',
-          status: o.status,
-          customer_name: o.delivery_name || '',
-          customer_phone: o.delivery_phone || '',
-          delivery_address: o.delivery_address || '',
-          table_number: '',
-          total: o.total_amount,
-          items: res.items || [],
-          created_at: o.created_at
-        };
-
-        const exists = store.activeOrders.some((item) => item.code === mapped.code);
-        if (!exists) {
-          store.activeOrders = [mapped, ...store.activeOrders];
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('mias_orders', JSON.stringify(store.activeOrders));
-          }
-        }
-
-        searchQuery = '';
-        showSearchInput = false;
-        return;
-      }
-
-      const phoneRes = await getMyOrdersAPI([], q);
-      if (phoneRes && phoneRes.length > 0) {
-        await store.refreshUserOrders();
-        searchQuery = '';
-        showSearchInput = false;
-        return;
-      }
-
-      searchError = 'No encontramos ningún pedido con ese código o teléfono.';
-    } catch {
-      searchError = 'Error de conexión. Intenta nuevamente.';
-    } finally {
-      isSearching = false;
-    }
-  }
 
   function formatCOP(val) {
     return new Intl.NumberFormat('es-CO', {
@@ -254,29 +194,46 @@
   <!-- LISTA CONTINUA DE COMANDAS (ESTÁNDAR APPLE CARDS 42px / 48px)          -->
   <!-- ═══════════════════════════════════════════════════════════════════════ -->
   {#if allOrders.length === 0}
-    <!-- ESTADO VACÍO EDITORIAL -->
-    <div class="py-16 px-6 text-center rounded-card sm:rounded-card-lg bg-char-card border hairline-dark flex flex-col items-center justify-center space-y-4 shadow-lux">
-      <div class="w-16 h-16 rounded-full bg-gold/10 border border-gold/30 flex items-center justify-center text-gold">
-        <ShoppingBag class="w-8 h-8 stroke-[1.8]" />
+    <!-- ESTADO VACÍO EDITORIAL PREMIUM -->
+    <div class="py-16 px-6 sm:px-10 text-center rounded-card sm:rounded-card-lg bg-char-card border hairline-dark flex flex-col items-center justify-center space-y-5 shadow-lux">
+      <div class="w-16 h-16 sm:w-18 sm:h-18 rounded-full bg-gold/10 border border-gold/30 flex items-center justify-center text-gold">
+        <ShoppingBag class="w-8 h-8 sm:w-9 sm:h-9 stroke-[1.8]" />
       </div>
 
-      <div class="space-y-1 max-w-xs">
-        <h2 class="font-serif text-2xl text-bone font-normal">
-          Sin pedidos registrados
+      <div class="space-y-1.5 max-w-sm">
+        <h2 class="font-serif text-2xl sm:text-3xl text-bone font-normal">
+          Aún no tienes pedidos registrados
         </h2>
         <p class="font-sans text-xs sm:text-sm text-ash leading-relaxed">
-          Tus comandas en el restaurante o a domicilio se registrarán automáticamente aquí.
+          {#if store.user}
+            Realiza tu primer pedido de alta gastronomía para rastrear la preparación de tu comanda y acumular sellos en tu cartilla.
+          {:else}
+            Inicia sesión con tu cuenta para ver tus pedidos anteriores, o explora la carta para realizar tu primera orden.
+          {/if}
         </p>
       </div>
 
-      <button
-        type="button"
-        onclick={onBack}
-        class="w-full min-h-[56px] rounded-full bg-ember hover:bg-ember-light active:scale-[0.98] text-white font-sans font-bold text-base tracking-wide transition-all flex items-center justify-center gap-2.5 cursor-pointer shadow-lux mt-2"
-      >
-        <Utensils class="w-4 h-4 stroke-[2]" />
-        <span>Ver Carta y Ordenar</span>
-      </button>
+      <div class="w-full max-w-xs space-y-3 pt-2">
+        <button
+          type="button"
+          onclick={onBack}
+          class="w-full min-h-[56px] sm:min-h-[58px] rounded-full bg-ember hover:bg-ember-light active:scale-[0.98] text-white font-sans font-bold text-base tracking-wide transition-all flex items-center justify-center gap-2.5 cursor-pointer shadow-lux"
+        >
+          <Utensils class="w-4 h-4 stroke-[2]" />
+          <span>Ver Carta y Ordenar</span>
+        </button>
+
+        {#if !store.user}
+          <button
+            type="button"
+            onclick={() => store.isAuthModalOpen = true}
+            class="w-full min-h-[50px] rounded-full bg-char-card hover:bg-white/5 border hairline-dark text-bone font-sans font-medium text-xs sm:text-sm active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <LogIn class="w-4 h-4 text-gold" />
+            <span>Iniciar Sesión / Identificarme</span>
+          </button>
+        {/if}
+      </div>
     </div>
   {:else}
     <!-- LISTADO DE TARJETAS APPLE CARD -->
@@ -418,47 +375,5 @@
       {/each}
     </div>
   {/if}
-
-  <!-- ═══════════════════════════════════════════════════════════════════════ -->
-  <!-- BUSCADOR DISCRETO                                                       -->
-  <!-- ═══════════════════════════════════════════════════════════════════════ -->
-  <div class="mt-8 text-center pt-4 border-t hairline-dark">
-    {#if !showSearchInput}
-      <button
-        type="button"
-        onclick={() => showSearchInput = true}
-        class="min-h-[46px] px-5 py-2 rounded-full bg-char-card border hairline-dark text-xs font-sans text-ash hover:text-bone hover:border-white/20 transition-all inline-flex items-center gap-2 cursor-pointer active:scale-95"
-      >
-        <Search class="w-3.5 h-3.5" />
-        <span>¿No ves una comanda previa? Buscar por código</span>
-      </button>
-    {:else}
-      <div class="p-5 sm:p-6 rounded-card sm:rounded-card-lg bg-char-card border hairline-dark text-left space-y-3 shadow-lux">
-        <span class="text-xs font-sans font-medium text-bone block">
-          Ingresa el código (#ORD-...) o tu teléfono:
-        </span>
-        <div class="flex flex-col sm:flex-row gap-2.5">
-          <input
-            type="text"
-            bind:value={searchQuery}
-            onkeydown={(e) => e.key === 'Enter' && handleSearch()}
-            placeholder="Ej: ORD-A102 o 3212520881"
-            class="flex-1 min-h-[50px] px-4 bg-char border hairline-dark rounded-full text-sm font-mono text-bone focus:outline-none focus:border-gold transition-colors"
-          />
-          <button
-            type="button"
-            onclick={handleSearch}
-            disabled={isSearching || !searchQuery.trim()}
-            class="min-h-[50px] px-6 rounded-full bg-ember hover:bg-ember-light active:scale-95 text-white font-sans font-bold text-sm tracking-wide shrink-0 cursor-pointer disabled:opacity-40 transition-all"
-          >
-            {isSearching ? 'Buscando...' : 'Buscar'}
-          </button>
-        </div>
-        {#if searchError}
-          <p class="text-xs font-sans text-ember-light">{searchError}</p>
-        {/if}
-      </div>
-    {/if}
-  </div>
 
 </div>

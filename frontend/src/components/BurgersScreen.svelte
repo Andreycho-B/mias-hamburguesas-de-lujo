@@ -373,7 +373,7 @@
       }
       return;
     }
-    if (showIngredients || showOrder) return;
+    if (showIngredients || store.isCartOpen) return;
     if (e.key === 'ArrowLeft') prevBurger();
     if (e.key === 'ArrowRight') nextBurger();
   }

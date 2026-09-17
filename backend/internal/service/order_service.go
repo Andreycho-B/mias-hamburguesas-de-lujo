@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	ErrInvalidOrderType = errors.New("tipo de orden inválido (debe ser in_store o delivery)")
+	ErrInvalidOrderType = errors.New("tipo de orden inválido (debe ser in_store, delivery o takeout)")
 	ErrOrderNotFound    = errors.New("orden no encontrada")
 	ErrEmptyOrder       = errors.New("la orden no puede estar vacía")
 )
@@ -41,7 +41,7 @@ type OrderItemRequest struct {
 }
 
 type CreateOrderRequest struct {
-	OrderType        string             `json:"order_type"` // "in_store" o "delivery"
+	OrderType        string             `json:"order_type"` // "in_store", "delivery" o "takeout"
 	Items            []OrderItemRequest `json:"items"`
 	DeliveryName     string             `json:"delivery_name,omitempty"`
 	DeliveryPhone    string             `json:"delivery_phone,omitempty"`
@@ -71,7 +71,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID *uuid.UUID, req C
 	if len(req.Items) == 0 {
 		return nil, ErrEmptyOrder
 	}
-	if req.OrderType != "in_store" && req.OrderType != "delivery" {
+	if req.OrderType != "in_store" && req.OrderType != "delivery" && req.OrderType != "takeout" {
 		return nil, ErrInvalidOrderType
 	}
 
