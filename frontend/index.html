@@ -114,5 +114,22 @@
         });
       }
     </script>
+    <script>
+      // Telemetria First-Party: activa proxy nativo si el navegador (Brave/Adblock) bloquea la baliza de Cloudflare
+      window.addEventListener('load', function() {
+        setTimeout(function() {
+          if (!window.__cfBeacon || window.__cfBeacon.load !== 'single') {
+            var s = document.createElement('script');
+            s.defer = true;
+            s.src = '/js/vitals.js';
+            s.setAttribute('data-cf-beacon', JSON.stringify({
+              token: 'de300475e8c143f1a61ed2a6fd5761a9',
+              send: { to: '/api/vitals' }
+            }));
+            document.body.appendChild(s);
+          }
+        }, 500);
+      });
+    </script>
   </body>
 </html>
