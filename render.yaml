@@ -1,0 +1,33 @@
+services:
+  - type: web
+    name: mias-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    region: oregon
+    healthCheckPath: /healthz
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: ENV_MODE
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: mias-db
+          property: connectionString
+      - key: FRONTEND_URL
+        value: https://mias-hamburguesas-de-lujo.pages.dev
+      - key: CORS_ALLOWED_ORIGIN
+        value: https://mias-hamburguesas-de-lujo.pages.dev
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DB_MAX_CONNS
+        value: 20
+
+databases:
+  - name: mias-db
+    databaseName: mias_db
+    user: mias_user
+    plan: free
+    region: oregon

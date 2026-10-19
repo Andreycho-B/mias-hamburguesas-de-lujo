@@ -14,10 +14,12 @@ WORKDIR /build
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Compilar binario estático con CGO deshabilitado
+# Compilar binarios estáticos con CGO deshabilitado
 COPY . .
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
-    go build -ldflags="-s -w" -trimpath -o /mias-api ./cmd/api
+    go build -ldflags="-s -w" -trimpath -o /mias-api ./cmd/api && \
+    CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+    go build -ldflags="-s -w" -trimpath -o /mias-migrate ./cmd/migrate
 
 # ── Etapa 2: Imagen de Producción ───────────────────────────
 FROM alpine:3.22
@@ -28,7 +30,11 @@ RUN apk add --no-cache ca-certificates tzdata \
 WORKDIR /app
 
 COPY --from=builder /mias-api .
+COPY --from=builder /mias-migrate .
 COPY --from=builder /build/migrations ./migrations
+COPY docker-entrypoint.sh ./docker-entrypoint.sh
+
+RUN chmod +x ./docker-entrypoint.sh && chown -R mias:mias /app
 
 # Ejecutar como usuario no-root
 USER mias
@@ -38,4 +44,4 @@ EXPOSE 8080
 HEALTHCHECK --interval=15s --timeout=3s --retries=3 \
     CMD wget -qO- http://localhost:8080/healthz || exit 1
 
-ENTRYPOINT ["./mias-api"]
+ENTRYPOINT ["./docker-entrypoint.sh"]

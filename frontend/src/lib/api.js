@@ -1,4 +1,15 @@
 function resolveApiBase() {
+  let url = import.meta.env.VITE_API_URL;
+  if (url) {
+    if (!url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('/')) {
+      url = `https://${url}`;
+    }
+    if (!url.endsWith('/api/v1')) {
+      url = url.replace(/\/+$/, '') + '/api/v1';
+    }
+    return url;
+  }
+
   if (typeof window !== 'undefined' && window.location.hostname) {
     if (window.location.hostname.endsWith('.pages.dev')) {
       return '/api/v1';
@@ -10,19 +21,7 @@ function resolveApiBase() {
     }
   }
 
-  let url = import.meta.env.VITE_API_URL;
-  if (!url) {
-    return 'http://localhost:8080/api/v1';
-  }
-
-  if (!url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('/')) {
-    url = `https://${url}`;
-  }
-
-  if (!url.endsWith('/api/v1')) {
-    url = url.replace(/\/+$/, '') + '/api/v1';
-  }
-  return url;
+  return 'http://localhost:8080/api/v1';
 }
 
 export const API_BASE = resolveApiBase();
