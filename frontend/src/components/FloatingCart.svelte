@@ -59,7 +59,7 @@ import { onDestroy } from 'svelte';
   let cashAmount = $state('');
   let formError = $state('');
 
-  const deliveryFee = 0;
+  const deliveryFee = 6000;
   let createdOrder = $state(null);
   let isCopied = $state(false);
 
@@ -630,8 +630,8 @@ import { onDestroy } from 'svelte';
       }
     }
 
-    let code = (selectedMode === 'delivery' ? 'DOM-' : 'ORD-') + Math.floor(1000 + Math.random() * 9000);
-    let orderId = (selectedMode === 'delivery' ? 'dom-' : 'ord-') + Date.now();
+    let code = (selectedMode === 'delivery' ? 'DOM-' : selectedMode === 'takeout' ? 'TKA-' : 'ORD-') + Math.floor(1000 + Math.random() * 9000);
+    let orderId = (selectedMode === 'delivery' ? 'dom-' : selectedMode === 'takeout' ? 'tka-' : 'ord-') + Date.now();
 
     const itemsSnapshot = [...store.cart];
     const subtotalSnapshot = store.cartSubtotal;
@@ -688,6 +688,7 @@ import { onDestroy } from 'svelte';
           delivery_address: order.delivery_address,
           delivery_notes: order.delivery_notes,
           payment_method: order.payment_method,
+          delivery_fee: feeSnapshot,
           cash_change_amount: order.cash_change_amount
         });
         if (apiRes && apiRes.order) {
@@ -703,7 +704,7 @@ import { onDestroy } from 'svelte';
 
   function dispatchWhatsApp() {
     if (!createdOrder) return;
-    let msg = `🍔 *NUEVA COMANDA — MÍAS HAMBURGUESAS* 🍔\n` +
+    let msg = `*NUEVA COMANDA — MÍAS HAMBURGUESAS*\n` +
       `*Orden:* #${createdOrder.code}\n` +
       `*Modalidad:* ${createdOrder.modeLabel}\n` +
       `*Cliente:* ${createdOrder.customer_name}` + (createdOrder.customer_phone ? ` (${createdOrder.customer_phone})` : '') + `\n`;
@@ -1405,7 +1406,7 @@ import { onDestroy } from 'svelte';
             <div class="flex-1 min-w-0 overflow-hidden">
               <h2 class="font-display font-black text-lg sm:text-2xl text-bone truncate">Consumo en el Salón</h2>
               <span class="inline-block mt-1 px-2.5 py-0.5 rounded-full bg-emerald-950/60 border border-emerald-500/40 text-[10px] sm:text-xs font-mono font-bold text-emerald-300">
-                ⚡ 1 Toque • A la Mesa
+                1 Toque • A la Mesa
               </span>
               <p class="text-xs sm:text-sm text-ash mt-1.5 leading-relaxed line-clamp-2">
                 Envío directo a cocina. Disfruta en nuestro punto y la cuenta queda lista para pagar en caja.
@@ -1518,7 +1519,7 @@ import { onDestroy } from 'svelte';
                 />
                 <!-- Chips Rápidos -->
                 <div class="flex flex-wrap gap-1.5 pt-1">
-                  {#each ['🔔 Tocar timbre', '🏢 Dejar en portería', '🛵 Llamar al llegar'] as chip}
+                  {#each ['Tocar timbre', 'Dejar en portería', 'Llamar al llegar'] as chip}
                     <button
                       type="button"
                       onclick={() => toggleQuickNote(chip)}

@@ -42,7 +42,8 @@
     Users,
     Clock,
     Flame,
-    Star
+    Star,
+    MapPin
   } from 'lucide-svelte';
 
   // Rol efectivo del usuario actual
@@ -941,7 +942,7 @@
                       </h4>
                     </div>
                     <span class="font-mono text-xs font-bold px-3 py-1 rounded-full {ord.status === 'PAID' ? 'bg-emerald-950/60 text-emerald-300 border border-emerald-500/30' : 'bg-amber-950/60 text-amber-300 border border-amber-500/30'}">
-                      {ord.status === 'PAID' ? '✓ PAGADO EN CAJA' : '⏳ PENDIENTE DE PAGO'}
+                      {ord.status === 'PAID' ? '✓ PAGADO EN CAJA' : 'PENDIENTE DE PAGO'}
                     </span>
                   </div>
 
@@ -1051,8 +1052,9 @@
                       </span>
                     </div>
 
-                    <p class="text-xs sm:text-sm text-bone/90 font-medium pt-1">
-                      📍 {dom.address}
+                    <p class="text-xs sm:text-sm text-bone/90 font-medium pt-1 flex items-center gap-1.5">
+                      <MapPin class="w-3.5 h-3.5 text-[#FF2400] shrink-0" />
+                      <span>{dom.address}</span>
                     </p>
 
                     <div class="flex items-center gap-3 pt-1 flex-wrap">
@@ -1096,10 +1098,11 @@
                             console.warn(e);
                           }
                         }}
-                        class="min-h-[48px] px-5 rounded-full bg-sky-950/60 text-sky-300 hover:bg-sky-900/60 border border-sky-500/30 text-xs font-mono font-bold flex items-center gap-1 cursor-pointer"
+                        class="min-h-[48px] px-5 rounded-full bg-sky-950/60 text-sky-300 hover:bg-sky-900/60 border border-sky-500/30 text-xs font-mono font-bold flex items-center gap-1.5 cursor-pointer"
                         title="Marcar como entregado con éxito"
                       >
-                        🛵 EN RUTA • [Marcar Entregado]
+                        <Bike class="w-3.5 h-3.5 text-sky-300 shrink-0" />
+                        <span>EN RUTA • [Marcar Entregado]</span>
                       </button>
                     {:else}
                       <span class="min-h-[48px] px-5 rounded-full bg-emerald-950/60 text-emerald-300 border border-emerald-500/30 text-xs font-mono font-bold flex items-center">

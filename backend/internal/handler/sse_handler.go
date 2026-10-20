@@ -18,7 +18,7 @@ func NewSSEHandler(hub *service.SSEHub) *SSEHandler {
 func (h *SSEHandler) StreamStaffEvents(w http.ResponseWriter, r *http.Request) {
 	role, ok := middleware.GetUserRole(r.Context())
 	if !ok || (role != "waiter" && role != "cashier" && role != "admin") {
-		http.Error(w, `{"error":"No autorizado para eventos de personal"}`, http.StatusForbidden)
+		writeError(w, http.StatusForbidden, "No autorizado para eventos de personal")
 		return
 	}
 

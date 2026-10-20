@@ -47,23 +47,41 @@
       maximumFractionDigits: 0 
     }).format(val || 0);
   }
+
+  $effect(() => {
+    if (!product) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        store.selectedProduct = null;
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  });
 </script>
 
 {#if product}
-  <!-- svelte-ignore a11y_click_events_have_key_events -->
-  <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div 
     data-lenis-prevent
+    role="dialog"
+    tabindex="-1"
+    aria-modal="true"
+    aria-label="Detalle de {product.name}"
     onwheel={(e) => e.stopPropagation()}
     ontouchmove={(e) => e.stopPropagation()}
     class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 sm:p-6 overflow-y-auto overscroll-contain"
     style="touch-action: pan-y;"
-    onclick={() => store.selectedProduct = null}
   >
+    <button
+      type="button"
+      class="fixed inset-0 bg-transparent border-0 cursor-default"
+      onclick={() => store.selectedProduct = null}
+      aria-label="Cerrar modal de detalle"
+      tabindex="-1"
+    ></button>
     <div 
       data-lenis-prevent
-      class="bg-char text-bone w-full max-w-lg rounded-[38px] sm:rounded-[44px] border border-white/10 overflow-hidden flex flex-col max-h-[90vh] shadow-2xl relative"
-      onclick={(e) => e.stopPropagation()}
+      class="bg-char text-bone w-full max-w-lg rounded-[38px] sm:rounded-[44px] border border-white/10 overflow-hidden flex flex-col max-h-[90vh] shadow-2xl relative z-10"
     >
       <!-- Botón de Cierre Circular Dark (Fat-Finger) -->
       <button 

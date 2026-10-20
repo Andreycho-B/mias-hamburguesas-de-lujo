@@ -19,13 +19,13 @@ func NewAuthHandler(authService *service.AuthService) *AuthHandler {
 func (h *AuthHandler) StaffLogin(w http.ResponseWriter, r *http.Request) {
 	var req service.StaffLoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, `{"error":"Cuerpo de petición inválido"}`, http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "Cuerpo de petición inválido")
 		return
 	}
 
 	resp, err := h.authService.LoginStaff(r.Context(), req)
 	if err != nil {
-		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusUnauthorized)
+		writeError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
@@ -53,13 +53,13 @@ func (h *AuthHandler) StaffLogin(w http.ResponseWriter, r *http.Request) {
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var req service.LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, `{"error":"Cuerpo de petición inválido"}`, http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "Cuerpo de petición inválido")
 		return
 	}
 
 	resp, err := h.authService.Login(r.Context(), req)
 	if err != nil {
-		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusUnauthorized)
+		writeError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
@@ -79,20 +79,19 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		SameSite: sameSite,
 	})
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	writeJSON(w, http.StatusOK, resp)
 }
 
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var req service.RegisterRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, `{"error":"Cuerpo de petición inválido"}`, http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "Cuerpo de petición inválido")
 		return
 	}
 
 	resp, err := h.authService.Register(r.Context(), req)
 	if err != nil {
-		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -112,21 +111,19 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		SameSite: sameSite,
 	})
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(resp)
+	writeJSON(w, http.StatusCreated, resp)
 }
 
 func (h *AuthHandler) OAuthLogin(w http.ResponseWriter, r *http.Request) {
 	var req service.OAuthLoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, `{"error":"Cuerpo de petición inválido"}`, http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "Cuerpo de petición inválido")
 		return
 	}
 
 	resp, err := h.authService.LoginOAuth(r.Context(), req)
 	if err != nil {
-		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -146,8 +143,7 @@ func (h *AuthHandler) OAuthLogin(w http.ResponseWriter, r *http.Request) {
 		SameSite: sameSite,
 	})
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	writeJSON(w, http.StatusOK, resp)
 }
 
 func (h *AuthHandler) RefreshSession(w http.ResponseWriter, r *http.Request) {
@@ -165,13 +161,13 @@ func (h *AuthHandler) RefreshSession(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if tokenVal == "" {
-		http.Error(w, `{"error":"Refresh token no encontrado"}`, http.StatusUnauthorized)
+		writeError(w, http.StatusUnauthorized, "Refresh token no encontrado")
 		return
 	}
 
 	tokens, err := h.authService.RefreshSession(r.Context(), tokenVal)
 	if err != nil {
-		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusUnauthorized)
+		writeError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
@@ -191,8 +187,7 @@ func (h *AuthHandler) RefreshSession(w http.ResponseWriter, r *http.Request) {
 		SameSite: sameSite,
 	})
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(tokens)
+	writeJSON(w, http.StatusOK, tokens)
 }
 
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
@@ -211,8 +206,7 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		Secure:   isTLS,
 		SameSite: sameSite,
 	})
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"message":"Sesión cerrada correctamente"}`))
+	writeJSON(w, http.StatusOK, map[string]string{"message": "Sesión cerrada correctamente"})
 }
 
 func (h *AuthHandler) GetMe(w http.ResponseWriter, r *http.Request) {
@@ -220,12 +214,11 @@ func (h *AuthHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 	role, _ := middleware.GetUserRole(r.Context())
 
 	if !ok {
-		http.Error(w, `{"error":"No autenticado"}`, http.StatusUnauthorized)
+		writeError(w, http.StatusUnauthorized, "No autenticado")
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"user_id": userID,
 		"role":    role,
 	})

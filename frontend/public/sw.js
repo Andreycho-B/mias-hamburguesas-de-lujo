@@ -114,13 +114,29 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 4. Recursos estáticos generales (CSS/JS compilados, fuentes)
+  // 4. Recursos estáticos compilados (JS/CSS en /assets/ y fuentes): Cache-First con almacenamiento en caché
+  if (url.pathname.startsWith('/assets/') || url.pathname.match(/\.(js|css|woff2?|ttf|otf)$/i)) {
+    event.respondWith(
+      caches.match(event.request).then((cachedResponse) => {
+        if (cachedResponse) {
+          return cachedResponse;
+        }
+        return fetch(event.request).then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const copy = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          }
+          return networkResponse;
+        });
+      })
+    );
+    return;
+  }
+
+  // 5. Fallback general
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-      return fetch(event.request);
+      return cachedResponse || fetch(event.request);
     })
   );
 });

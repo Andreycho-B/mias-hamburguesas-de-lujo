@@ -28,9 +28,9 @@ func (c *Config) IsProduction() bool {
 func Load() *Config {
 	port := getEnv("PORT", "8080")
 	dbURL := getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/mias_db?sslmode=disable")
-	jwtSecret := getEnv("JWT_SECRET", "mias-super-secret-key-2026-banking-grade-zero-trust")
+	jwtSecret := getEnv("JWT_SECRET", "mias-dev-secret-key-32-chars-long!")
 	frontendURL := getEnv("FRONTEND_URL", "http://localhost:5173")
-	googleClientID := getEnv("GOOGLE_CLIENT_ID", "98403624230-bt0rlk0cshti1deo9b02egref3g4tjs4.apps.googleusercontent.com")
+	googleClientID := getEnv("GOOGLE_CLIENT_ID", "")
 	vapidPub := getEnv("VAPID_PUBLIC_KEY", "")
 	vapidPriv := getEnv("VAPID_PRIVATE_KEY", "")
 
@@ -38,7 +38,7 @@ func Load() *Config {
 	dbMaxConns := getEnvInt("DB_MAX_CONNS", 25)
 	corsOrigin := getEnv("CORS_ALLOWED_ORIGIN", "")
 
-	return &Config{
+	cfg := &Config{
 		Port:           port,
 		DatabaseURL:    dbURL,
 		JWTSecret:      jwtSecret,
@@ -50,6 +50,12 @@ func Load() *Config {
 		DBMaxConns:     dbMaxConns,
 		CorsOrigin:     corsOrigin,
 	}
+
+	if cfg.IsProduction() && os.Getenv("JWT_SECRET") == "" {
+		panic("JWT_SECRET must be explicitly set when ENV_MODE is production")
+	}
+
+	return cfg
 }
 
 func getEnv(key, defaultVal string) string {

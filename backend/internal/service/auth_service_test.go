@@ -18,15 +18,30 @@ func TestAuthService_LoginOAuth_Protection(t *testing.T) {
 		svc := NewAuthService(mock, jwtSecret)
 
 		_, err := svc.LoginOAuth(context.Background(), OAuthLoginRequest{
-			Email:      "cliente@example.com",
-			HabeasData: false,
+			GoogleToken: "some-token",
+			Email:       "cliente@example.com",
+			HabeasData:  false,
 		})
 		if err == nil || !strings.Contains(err.Error(), "Ley 1581") {
 			t.Fatalf("se esperaba error de Ley 1581, se obtuvo: %v", err)
 		}
 	})
 
-	t.Run("Bloquea intento de escalada de privilegios suplantando cuenta de administrador", func(t *testing.T) {
+	t.Run("Rechaza solicitud sin token de Google", func(t *testing.T) {
+		mock := &BaseMockQuerier{}
+		svc := NewAuthService(mock, jwtSecret)
+
+		_, err := svc.LoginOAuth(context.Background(), OAuthLoginRequest{
+			GoogleToken: "",
+			Email:       "cliente@example.com",
+			HabeasData:  true,
+		})
+		if err == nil || !strings.Contains(err.Error(), "token de autenticación de Google requerido") {
+			t.Fatalf("se esperaba error de token requerido, se obtuvo: %v", err)
+		}
+	})
+
+	t.Run("Bloquea intento de escalada de privilegios suplantando cuenta de personal", func(t *testing.T) {
 		mock := &BaseMockQuerier{
 			GetUserByEmailFunc: func(ctx context.Context, email string) (db.User, error) {
 				return db.User{
@@ -36,11 +51,14 @@ func TestAuthService_LoginOAuth_Protection(t *testing.T) {
 			},
 		}
 		svc := NewAuthService(mock, jwtSecret)
+		svc.SetGoogleVerifier(func(ctx context.Context, token string) (string, string, string, error) {
+			return "admin@mias.com", "Admin Impersonator", "", nil
+		})
 
 		_, err := svc.LoginOAuth(context.Background(), OAuthLoginRequest{
-			Email:      "admin@mias.com",
-			FullName:   "Atacante",
-			HabeasData: true,
+			GoogleToken: "valid-admin-google-token",
+			FullName:    "Atacante",
+			HabeasData:  true,
 		})
 		if err == nil {
 			t.Fatal("se esperaba error de bloqueo para cuenta de personal, pero la operación tuvo éxito")
@@ -64,11 +82,14 @@ func TestAuthService_LoginOAuth_Protection(t *testing.T) {
 			},
 		}
 		svc := NewAuthService(mock, jwtSecret)
+		svc.SetGoogleVerifier(func(ctx context.Context, token string) (string, string, string, error) {
+			return "comensal@gmail.com", "Comensal Mías", "https://avatar.com/p.jpg", nil
+		})
 
 		resp, err := svc.LoginOAuth(context.Background(), OAuthLoginRequest{
-			Email:      "comensal@gmail.com",
-			FullName:   "Comensal Mías",
-			HabeasData: true,
+			GoogleToken: "valid-customer-token",
+			FullName:    "Comensal Mías",
+			HabeasData:  true,
 		})
 		if err != nil {
 			t.Fatalf("error inesperado en login oauth legítimo: %v", err)

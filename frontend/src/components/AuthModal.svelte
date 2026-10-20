@@ -265,12 +265,26 @@
     cashier: 'Cajero',
     waiter: 'Mesero'
   }[store.user?.role] || '');
+
+  $effect(() => {
+    if (!store.isAuthModalOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        store.isAuthModalOpen = false;
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  });
 </script>
 
 {#if store.isAuthModalOpen}
-  <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div 
     data-lenis-prevent
+    role="dialog"
+    tabindex="-1"
+    aria-modal="true"
+    aria-label={store.user ? 'Mi Perfil' : (viewMode === 'register' ? 'Crear Cuenta' : 'Iniciar Sesión')}
     onwheel={(e) => e.stopPropagation()}
     ontouchmove={(e) => e.stopPropagation()}
     class="fixed inset-0 z-[70] w-full h-full min-h-[100dvh] bg-char text-bone overflow-y-auto overscroll-contain select-none"

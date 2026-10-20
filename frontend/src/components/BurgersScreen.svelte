@@ -655,21 +655,28 @@
 
   <!-- TARJETA EDITORIAL DE INGREDIENTES (IDÉNTICA A LA TARJETA DE LA PANTALLA DE INICIO CON ANIMACIÓN GSAP) -->
   {#if showIngredients}
-    <!-- svelte-ignore a11y_click_events_have_key_events -->
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div 
       bind:this={modalBackdropEl}
       data-lenis-prevent
-      class="welcome-modal-backdrop fixed inset-0 h-[100dvh] z-[100] flex items-center justify-center bg-[#050507]/94 lg:backdrop-blur-sm cursor-pointer will-change-[opacity]"
+      role="dialog"
+      tabindex="-1"
+      aria-modal="true"
+      aria-label="Ingredientes de {currentBurger.name}"
+      class="welcome-modal-backdrop fixed inset-0 h-[100dvh] z-[100] flex items-center justify-center bg-[#050507]/94 lg:backdrop-blur-sm will-change-[opacity]"
       style="touch-action: pan-y;"
-      onclick={closeIngredientsModal}
     >
+      <button
+        type="button"
+        class="fixed inset-0 bg-transparent border-0 cursor-default"
+        onclick={closeIngredientsModal}
+        aria-label="Cerrar modal de ingredientes"
+        tabindex="-1"
+      ></button>
       <div 
         bind:this={cardEl}
         data-lenis-prevent
-        class="welcome-card-modal gold-border-card w-full h-full lg:max-w-[94vw] xl:max-w-[1440px] 2xl:max-w-[1560px] lg:h-[88vh] xl:h-[90vh] shadow-2xl lg:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] relative rounded-[38px] sm:rounded-[48px] overflow-hidden cursor-default flex flex-col p-6 sm:p-10 md:p-14 lg:p-16 justify-between text-bone"
+        class="welcome-card-modal gold-border-card w-full h-full lg:max-w-[94vw] xl:max-w-[1440px] 2xl:max-w-[1560px] lg:h-[88vh] xl:h-[90vh] shadow-2xl lg:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] relative rounded-[38px] sm:rounded-[48px] overflow-hidden cursor-default flex flex-col p-6 sm:p-10 md:p-14 lg:p-16 justify-between text-bone z-10"
         style="container-type: inline-size; touch-action: pan-y; --gold-card-bg: #0C0C0E;"
-        onclick={(e) => e.stopPropagation()}
       >
         <!-- Botón Cerrar Flotante Apple Standard con aro dorado (Mismo tamaño que botón atrás y corazón) -->
         <button 
