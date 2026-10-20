@@ -1,7 +1,9 @@
-# ==============================================================================
-# Cloudflare Pages Custom Headers (_headers)
-# Mías Hamburguesas de Lujo - Optimización de Caché y Rendimiento Instantáneo
-# ==============================================================================
+# 0. Encabezados de Seguridad Globales
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
 
 # 1. Imágenes estáticas y optimizadas WebP/PNG/SVG (Cache inmutable de 1 año)
 /imagenes/*

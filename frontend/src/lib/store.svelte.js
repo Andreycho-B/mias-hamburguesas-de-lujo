@@ -307,6 +307,7 @@ class AppStore {
   staffRole = $state(null); // 'waiter', 'cashier', 'admin'
   isReceiptModalOpen = $state(false);
   selectedOrderForStamp = $state(null);
+  isSseConnected = $state(false);
 
   cartCount = $derived(
     this.cart.reduce((sum, item) => sum + item.quantity, 0)
@@ -548,6 +549,14 @@ class AppStore {
       const sseUrl = `${API_BASE}/events/orders${token ? `?token=${token}` : ''}`;
       const es = new EventSource(sseUrl);
 
+      es.onopen = () => {
+        this.isSseConnected = true;
+      };
+
+      es.onerror = () => {
+        this.isSseConnected = false;
+      };
+
       es.addEventListener('order_paid', (e) => {
         try {
           const data = JSON.parse(e.data);
@@ -590,11 +599,13 @@ class AppStore {
         this.refreshUserOrders();
       });
     } catch (err) {
+      this.isSseConnected = false;
       console.warn('[Store] SSE no iniciado', err);
     }
 
-    // Polling resiliente cada 2 segundos para sincronizar el estado de órdenes activas del cliente
+    // Polling de respaldo resiliente solo cuando SSE no está activo
     setInterval(async () => {
+      if (this.isSseConnected) return;
       if (this.staffRole || ['waiter', 'cashier', 'admin'].includes(this.user?.role)) return;
 
       const pendingOrders = this.activeOrders.filter((o) => 
@@ -622,7 +633,7 @@ class AppStore {
           }
         } catch {}
       }
-    }, 2000);
+    }, 5000);
   }
 
   addOrder(order) {

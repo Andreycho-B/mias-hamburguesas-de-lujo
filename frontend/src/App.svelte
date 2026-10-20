@@ -66,20 +66,6 @@
       window.__lenis = lenis;
     }
 
-    // Bloquear zoom con touchpad / Ctrl + rueda en desktop (el scroll vertical libre)
-    const preventCtrlWheel = (e) => {
-      if (e.ctrlKey) e.preventDefault();
-    };
-    window.addEventListener('wheel', preventCtrlWheel, { passive: false });
-
-    // Bloquear atajos de teclado de zoom (Ctrl/Cmd con +, -, =, 0)
-    const preventZoomKeys = (e) => {
-      if ((e.ctrlKey || e.metaKey) && ['+', '-', '=', '0'].includes(e.key)) {
-        e.preventDefault();
-      }
-    };
-    window.addEventListener('keydown', preventZoomKeys);
-
     return () => {
       if (lenis) {
         lenis.destroy();
@@ -90,8 +76,6 @@
       if (typeof window !== 'undefined') {
         delete window.__lenis;
       }
-      window.removeEventListener('wheel', preventCtrlWheel);
-      window.removeEventListener('keydown', preventZoomKeys);
     };
   });
 
@@ -221,10 +205,10 @@
           <span class="font-serif text-lg font-bold text-bone tracking-wide">Mías Hamburguesas de Lujo</span>
         </div>
         <p class="font-mono text-[11px] text-ash/80">
-          Lunes a Viernes: 3:00 PM – 9:00 PM • Sábados y Domingos: 3:00 PM – 10:00 PM • Domicilios: 321 252 0881
+          Sábado a Jueves: 3:00 PM – 9:30 PM (Viernes cerrado) • Domicilios: 321 252 0881 • Duitama, Boyacá
         </p>
         <p class="text-[10px] text-ash/50 font-mono">
-          Sistema de Alta Fidelización y Comandas • Estándar Senior de Ingeniería 2026
+          Duitama, Boyacá, Colombia • Todos los derechos reservados.
         </p>
       </footer>
     {/if}

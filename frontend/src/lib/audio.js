@@ -1,9 +1,22 @@
-// Síntesis de Audio Nativa con Web Audio API (Cero dependencias de archivos externos)
+let sharedAudioCtx = null;
+
+function getAudioContext() {
+  if (typeof window === 'undefined') return null;
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) return null;
+  if (!sharedAudioCtx || sharedAudioCtx.state === 'closed') {
+    sharedAudioCtx = new AudioContextClass();
+  }
+  if (sharedAudioCtx.state === 'suspended') {
+    sharedAudioCtx.resume().catch(() => {});
+  }
+  return sharedAudioCtx;
+}
+
 export function playChime() {
   try {
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContext) return;
-    const ctx = new AudioContext();
+    const ctx = getAudioContext();
+    if (!ctx) return;
 
     const notes = [523.25, 659.25, 783.99]; // Acorde mayor C5 - E5 - G5 elegante
     const now = ctx.currentTime;

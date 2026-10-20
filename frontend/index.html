@@ -3,10 +3,58 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/webp" href="/imagenes/marca/isotipo.webp" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="color-scheme" content="dark" />
     <meta name="theme-color" content="#0C0C0E" id="theme-color-meta" />
-    <meta name="description" content="Mías Hamburguesas de Lujo. Lo Íntimo Hecho para Compartir. Hamburguesas artesanales al carbón y programa de fidelización." />
+    <meta name="description" content="Mías Hamburguesas de Lujo en Duitama, Boyacá. Alta gastronomía artesanal al carbón, ingredientes selectos y programa de fidelización digital." />
+    <link rel="canonical" href="https://mias.com.co/" />
+
+    <!-- Open Graph / Redes Sociales -->
+    <meta property="og:type" content="restaurant.restaurant" />
+    <meta property="og:title" content="Mías Hamburguesas de Lujo | Lo Íntimo Hecho para Compartir" />
+    <meta property="og:description" content="Alta gastronomía artesanal al carbón en Duitama, Boyacá. Pedidos en línea a domicilio y consumo en salón." />
+    <meta property="og:url" content="https://mias.com.co/" />
+    <meta property="og:image" content="https://mias.com.co/imagenes/marca/isotipo.webp" />
+    <meta property="og:locale" content="es_CO" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Mías Hamburguesas de Lujo" />
+    <meta name="twitter:description" content="Alta gastronomía artesanal al carbón en Duitama, Boyacá." />
+    <meta name="twitter:image" content="https://mias.com.co/imagenes/marca/isotipo.webp" />
+
+    <!-- Datos Estructurados JSON-LD (Schema.org Restaurant) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Restaurant",
+      "name": "Mías Hamburguesas de Lujo",
+      "image": "https://mias.com.co/imagenes/marca/isotipo.webp",
+      "url": "https://mias.com.co",
+      "telephone": "+573212520881",
+      "priceRange": "$$",
+      "servesCuisine": "Gourmet Burgers, Fast Casual de Lujo",
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Duitama",
+        "addressRegion": "Boyacá",
+        "addressCountry": "CO"
+      },
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": 5.8268,
+        "longitude": -73.0336
+      },
+      "openingHoursSpecification": [
+        {
+          "@type": "OpeningHoursSpecification",
+          "dayOfWeek": ["Saturday", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday"],
+          "opens": "15:00",
+          "closes": "21:30"
+        }
+      ]
+    }
+    </script>
     
     <!-- iOS Safari PWA Standalone Configuration -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -86,20 +134,18 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="preconnect" href="https://api.fontshare.com" crossorigin />
 
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=Italiana&family=Italianno&family=JetBrains+Mono:wght@400;500;600&family=Pinyon+Script&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=Italiana&family=Italianno&family=JetBrains+Mono:wght@400;500;600&family=Pinyon+Script&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" media="print" onload="this.media='all'" />
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=JetBrains+Mono:wght@400;500;600&family=Pinyon+Script&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=JetBrains+Mono:wght@400;500;600&family=Pinyon+Script&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" media="print" onload="this.media='all'" />
     <noscript>
-      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=Italiana&family=Italianno&family=JetBrains+Mono:wght@400;500;600&family=Pinyon+Script&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" />
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=JetBrains+Mono:wght@400;500;600&family=Pinyon+Script&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" />
     </noscript>
 
-    <link rel="preload" as="style" href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700,900&f[]=cabinet-grotesk@400,500,700,800&display=swap" />
-    <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700,900&f[]=cabinet-grotesk@400,500,700,800&display=swap" media="print" onload="this.media='all'" />
+    <link rel="preload" as="style" href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700,900&display=swap" />
+    <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700,900&display=swap" media="print" onload="this.media='all'" />
     <noscript>
-      <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700,900&f[]=cabinet-grotesk@400,500,700,800&display=swap" />
+      <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700,900&display=swap" />
     </noscript>
-    <!-- Precarga de Alta Prioridad de Imágenes del Modal y Marca -->
-    <link rel="preload" as="image" href="/imagenes/local/restaurante_mias_desde_dentro.webp" type="image/webp" fetchpriority="high" />
-    <link rel="preload" as="image" href="/imagenes/local/restaurante_mias_desde_fuera.webp" type="image/webp" fetchpriority="high" />
+    <!-- Precarga de Alta Prioridad de Marca LCP -->
     <link rel="preload" as="image" href="/imagenes/marca/isotipo.webp" type="image/webp" fetchpriority="high" />
     <!-- Google Identity Services SDK -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>

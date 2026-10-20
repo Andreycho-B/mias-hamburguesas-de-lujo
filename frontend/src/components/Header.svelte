@@ -7,22 +7,22 @@
     store.activeOrders?.filter((o) => activeStatuses.includes(o.status)).length || 0
   );
 
-  // Validar horario en tiempo real: Lunes a Viernes 3:00 PM a 9:00 PM, Sábados y Domingos 3:00 PM a 10:00 PM
-  let isWeekend = $derived.by(() => {
-    const day = new Date().getDay();
-    return day === 0 || day === 6; // 0 = Domingo, 6 = Sábado
+  // Horario oficial: Sábado a Jueves de 3:00 PM a 9:30 PM (Viernes cerrado)
+  let isFriday = $derived.by(() => {
+    return new Date().getDay() === 5; // 5 = Viernes
   });
 
   let isOpen = $derived.by(() => {
     const now = new Date();
     const day = now.getDay();
-    const weekend = day === 0 || day === 6;
+    if (day === 5) return false; // Viernes cerrado
+
     const hour = now.getHours();
     const minute = now.getMinutes();
     const totalMinutes = hour * 60 + minute;
 
     const openMinutes = 15 * 60; // 3:00 PM
-    const closeMinutes = weekend ? 22 * 60 : 21 * 60; // 10:00 PM en fin de semana, 9:00 PM entre semana
+    const closeMinutes = 21 * 60 + 30; // 9:30 PM
 
     return totalMinutes >= openMinutes && totalMinutes <= closeMinutes;
   });
@@ -51,9 +51,11 @@
     <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-char-card border border-white/10 text-xs font-mono">
       <span class="w-2 h-2 rounded-full {isOpen ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}"></span>
       {#if isOpen}
-        <span class="text-bone/90">Abierto hoy hasta {isWeekend ? '10:00 PM' : '9:00 PM'}</span>
+        <span class="text-bone/90">Abierto hoy hasta 9:30 PM</span>
+      {:else if isFriday}
+        <span class="text-[#8E8E93]">Cerrado los viernes · Reanudamos sábado 3:00 PM</span>
       {:else}
-        <span class="text-[#8E8E93]">Cerrado · Servicio de 3:00 PM a {isWeekend ? '10:00 PM' : '9:00 PM'}</span>
+        <span class="text-[#8E8E93]">Cerrado · Servicio de 3:00 PM a 9:30 PM</span>
       {/if}
     </div>
 

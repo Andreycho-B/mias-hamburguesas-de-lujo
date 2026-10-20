@@ -27,6 +27,17 @@
     }
   });
 
+  $effect(() => {
+    if (!store.isReceiptModalOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        store.closeStampModal();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  });
+
   async function submitStampRequest() {
     stampError = '';
     stampSuccess = '';
@@ -298,9 +309,12 @@
 
 <!-- Modal Fat-Finger para Digitar el Número de Factura Física de la Orden -->
 {#if store.isReceiptModalOpen}
-  <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div 
     data-lenis-prevent
+    role="dialog"
+    tabindex="-1"
+    aria-modal="true"
+    aria-label="Registrar Factura Física"
     onwheel={(e) => e.stopPropagation()}
     ontouchmove={(e) => e.stopPropagation()}
     class="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4"
@@ -323,7 +337,7 @@
             orderForModal.status === 'DELIVERED' ? 'bg-purple-950/70 text-purple-400' :
             'bg-amber-950/70 text-amber-400'
           }">
-            {orderForModal.status === 'PAID' ? '✓ PAGADA' : orderForModal.status === 'DELIVERED' ? '✨ ENTREGADA' : '⏳ PENDIENTE'}
+            {orderForModal.status === 'PAID' ? 'PAGADA' : orderForModal.status === 'DELIVERED' ? 'ENTREGADA' : 'PENDIENTE'}
           </span>
         </div>
       {/if}
