@@ -123,7 +123,6 @@ func (h *SSEHub) ServeHTTP(w http.ResponseWriter, r *http.Request, role string) 
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	client := &Client{
 		ID:     uuid.New(),
@@ -136,7 +135,10 @@ func (h *SSEHub) ServeHTTP(w http.ResponseWriter, r *http.Request, role string) 
 
 	// Notificar conexión inicial
 	initialEvent := fmt.Sprintf("event: connected\ndata: {\"client_id\":\"%s\"}\n\n", client.ID.String())
-	w.Write([]byte(initialEvent))
+	if _, err := w.Write([]byte(initialEvent)); err != nil {
+		h.unregister <- client
+		return
+	}
 	flusher.Flush()
 
 	notify := r.Context().Done()
@@ -146,7 +148,9 @@ func (h *SSEHub) ServeHTTP(w http.ResponseWriter, r *http.Request, role string) 
 	}()
 
 	for msg := range client.Send {
-		w.Write(msg)
+		if _, err := w.Write(msg); err != nil {
+			break
+		}
 		flusher.Flush()
 	}
 }

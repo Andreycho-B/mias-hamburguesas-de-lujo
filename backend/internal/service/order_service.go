@@ -90,6 +90,8 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID *uuid.UUID, req C
 	prefix := "ORD"
 	if req.OrderType == "delivery" {
 		prefix = "DOM"
+	} else if req.OrderType == "takeout" {
+		prefix = "TKA"
 	}
 	code := fmt.Sprintf("%s-%04d", prefix, rand.Intn(9000)+1000)
 

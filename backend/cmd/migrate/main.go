@@ -48,14 +48,39 @@ func main() {
 	}
 	defer pool.Close()
 
-	// Idempotencia: Verificar si la tabla 'users' ya existe para evitar errores en reinicios
-	var usersTableExists bool
-	err = pool.QueryRow(ctx, "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'users')").Scan(&usersTableExists)
-	if err == nil && usersTableExists {
-		var count int
-		_ = pool.QueryRow(ctx, "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public'").Scan(&count)
-		log.Printf("[MIGRATE SUCCESS] Base de datos ya inicializada previamente (%d tablas públicas). Omitiendo migración.", count)
-		return
+	// Control de versiones con tabla schema_migrations
+	_, err = pool.Exec(ctx, `
+		CREATE TABLE IF NOT EXISTS schema_migrations (
+			version VARCHAR(255) PRIMARY KEY,
+			applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+		);
+	`)
+	if err != nil {
+		log.Fatalf("[MIGRATE] Error asegurando tabla schema_migrations: %v", err)
+	}
+
+	applied := make(map[string]bool)
+	rows, err := pool.Query(ctx, "SELECT version FROM schema_migrations")
+	if err == nil {
+		for rows.Next() {
+			var v string
+			if scanErr := rows.Scan(&v); scanErr == nil {
+				applied[v] = true
+			}
+		}
+		rows.Close()
+	}
+
+	// Compatibilidad retroactiva: si 'users' ya existe pero schema_migrations estaba vacía
+	if len(applied) == 0 {
+		var usersExists bool
+		_ = pool.QueryRow(ctx, "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'users')").Scan(&usersExists)
+		if usersExists {
+			log.Printf("[MIGRATE] Esquema inicial existente detectado. Marcando migraciones base previas...")
+			_, _ = pool.Exec(ctx, "INSERT INTO schema_migrations (version) VALUES ('00001_init.sql'), ('00002_seed.sql') ON CONFLICT DO NOTHING")
+			applied["00001_init.sql"] = true
+			applied["00002_seed.sql"] = true
+		}
 	}
 
 	// Determine migrations folder path
@@ -78,26 +103,46 @@ func main() {
 	sort.Strings(sqlFiles)
 
 	for _, file := range sqlFiles {
-		log.Printf("[MIGRATE] Applying %s...", filepath.Base(file))
+		base := filepath.Base(file)
+		if applied[base] {
+			log.Printf("[MIGRATE] %s ya aplicada previamente, omitiendo.", base)
+			continue
+		}
+
+		log.Printf("[MIGRATE] Applying %s...", base)
 		content, err := os.ReadFile(file)
 		if err != nil {
 			log.Fatalf("[MIGRATE] Failed to read %s: %v", file, err)
 		}
 
 		rawSQL := string(content)
-		// Extract Up section
 		upSQL := rawSQL
 		if idx := strings.Index(rawSQL, "-- +goose Down"); idx != -1 {
 			upSQL = rawSQL[:idx]
 		}
-		// Remove +goose Up annotations
 		upSQL = strings.ReplaceAll(upSQL, "-- +goose Up", "")
 
-		_, err = pool.Exec(ctx, upSQL)
+		tx, err := pool.Begin(ctx)
 		if err != nil {
-			log.Fatalf("[MIGRATE] Error applying %s: %v", filepath.Base(file), err)
+			log.Fatalf("[MIGRATE] Error iniciando transacción para %s: %v", base, err)
 		}
-		log.Printf("[MIGRATE] Successfully applied %s", filepath.Base(file))
+
+		if _, err := tx.Exec(ctx, upSQL); err != nil {
+			tx.Rollback(ctx)
+			log.Fatalf("[MIGRATE] Error aplicando %s: %v", base, err)
+		}
+
+		if _, err := tx.Exec(ctx, "INSERT INTO schema_migrations (version) VALUES ($1)", base); err != nil {
+			tx.Rollback(ctx)
+			log.Fatalf("[MIGRATE] Error registrando migración %s: %v", base, err)
+		}
+
+		if err := tx.Commit(ctx); err != nil {
+			log.Fatalf("[MIGRATE] Error confirmando transacción para %s: %v", base, err)
+		}
+
+		applied[base] = true
+		log.Printf("[MIGRATE] Successfully applied %s", base)
 	}
 
 	// Verify tables

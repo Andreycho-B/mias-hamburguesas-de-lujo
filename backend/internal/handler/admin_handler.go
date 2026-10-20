@@ -20,20 +20,19 @@ func NewAdminHandler(queries db.Querier) *AdminHandler {
 func (h *AdminHandler) GetMetrics(w http.ResponseWriter, r *http.Request) {
 	metrics, err := h.queries.GetSalesMetrics(r.Context())
 	if err != nil {
-		http.Error(w, `{"error":"Error al calcular métricas de venta"}`, http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "Error al calcular métricas de venta")
 		return
 	}
 
 	topProducts, err := h.queries.GetTopSellingProducts(r.Context(), 10)
 	if err != nil {
-		http.Error(w, `{"error":"Error al cargar productos más vendidos"}`, http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "Error al cargar productos más vendidos")
 		return
 	}
 
 	ratingStats, _ := h.queries.GetAverageRating(r.Context())
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"sales_metrics":   metrics,
 		"top_products":    topProducts,
 		"ratings_summary": ratingStats,
@@ -46,12 +45,11 @@ func (h *AdminHandler) ListAuditLogs(w http.ResponseWriter, r *http.Request) {
 		Offset: 0,
 	})
 	if err != nil {
-		http.Error(w, `{"error":"Error al cargar registros de auditoría"}`, http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "Error al cargar registros de auditoría")
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(logs)
+	writeJSON(w, http.StatusOK, logs)
 }
 
 func (h *AdminHandler) CreateStaffUser(w http.ResponseWriter, r *http.Request) {
@@ -59,22 +57,22 @@ func (h *AdminHandler) CreateStaffUser(w http.ResponseWriter, r *http.Request) {
 		Email    string `json:"email"`
 		FullName string `json:"full_name"`
 		Phone    string `json:"phone"`
-		Role     string `json:"role"` // "waiter", "cashier", "admin"
+		Role     string `json:"role"`
 		Password string `json:"password"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, `{"error":"Cuerpo de petición inválido"}`, http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "Cuerpo de petición inválido")
 		return
 	}
 
 	if req.Role != "waiter" && req.Role != "cashier" && req.Role != "admin" {
-		http.Error(w, `{"error":"Rol no permitido"}`, http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "Rol no permitido")
 		return
 	}
 
 	hash, err := crypto.HashPassword(req.Password)
 	if err != nil {
-		http.Error(w, `{"error":"Error al hashear contraseña"}`, http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "Error al procesar contraseña")
 		return
 	}
 
@@ -86,13 +84,11 @@ func (h *AdminHandler) CreateStaffUser(w http.ResponseWriter, r *http.Request) {
 		PasswordHash: pgtype.Text{String: hash, Valid: true},
 	})
 	if err != nil {
-		http.Error(w, `{"error":"El correo ya se encuentra registrado"}`, http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "El correo ya se encuentra registrado")
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	writeJSON(w, http.StatusCreated, map[string]interface{}{
 		"id":        user.ID,
 		"email":     user.Email,
 		"full_name": user.FullName,

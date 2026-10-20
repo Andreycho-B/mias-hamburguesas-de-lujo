@@ -20,19 +20,18 @@ func NewCatalogHandler(catalogService *service.CatalogService) *CatalogHandler {
 func (h *CatalogHandler) GetPublicMenu(w http.ResponseWriter, r *http.Request) {
 	menu, err := h.catalogService.GetPublicMenu(r.Context())
 	if err != nil {
-		http.Error(w, `{"error":"Error al cargar el menú"}`, http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "Error al cargar el menú")
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(menu)
+	writeJSON(w, http.StatusOK, menu)
 }
 
 func (h *CatalogHandler) ToggleStock(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Error(w, `{"error":"ID de producto inválido"}`, http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "ID de producto inválido")
 		return
 	}
 
@@ -40,15 +39,14 @@ func (h *CatalogHandler) ToggleStock(w http.ResponseWriter, r *http.Request) {
 		InStock bool `json:"in_stock"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, `{"error":"Cuerpo de petición inválido"}`, http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "Cuerpo de petición inválido")
 		return
 	}
 
 	if err := h.catalogService.ToggleStock(r.Context(), int32(id), req.InStock); err != nil {
-		http.Error(w, `{"error":"Error actualizando disponibilidad"}`, http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "Error actualizando disponibilidad")
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(`{"message":"Disponibilidad actualizada exitosamente"}`))
+	writeJSON(w, http.StatusOK, map[string]string{"message": "Disponibilidad actualizada exitosamente"})
 }

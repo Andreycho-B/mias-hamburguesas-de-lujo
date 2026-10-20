@@ -23,10 +23,13 @@ var (
 	ErrUnauthorizedStaff = errors.New("acceso exclusivo para personal del restaurante")
 )
 
+type GoogleTokenVerifier func(ctx context.Context, token string) (string, string, string, error)
+
 type AuthService struct {
 	queries        db.Querier
 	jwtSecret      string
 	googleClientID string
+	googleVerifier GoogleTokenVerifier
 }
 
 func NewAuthService(queries db.Querier, jwtSecret string, googleClientID ...string) *AuthService {
@@ -34,11 +37,17 @@ func NewAuthService(queries db.Querier, jwtSecret string, googleClientID ...stri
 	if len(googleClientID) > 0 {
 		clientID = googleClientID[0]
 	}
-	return &AuthService{
+	s := &AuthService{
 		queries:        queries,
 		jwtSecret:      jwtSecret,
 		googleClientID: clientID,
 	}
+	s.googleVerifier = s.verifyGoogleToken
+	return s
+}
+
+func (s *AuthService) SetGoogleVerifier(v GoogleTokenVerifier) {
+	s.googleVerifier = v
 }
 
 type StaffLoginRequest struct {
@@ -243,22 +252,26 @@ func (s *AuthService) LoginOAuth(ctx context.Context, req OAuthLoginRequest) (*A
 		return nil, errors.New("debe aceptar la política de tratamiento de datos (Ley 1581) para continuar")
 	}
 
-	// Verificación server-side si se envía token de Google (Zero-Trust)
-	if req.GoogleToken != "" {
-		vEmail, vName, vPicture, err := s.verifyGoogleToken(ctx, req.GoogleToken)
-		if err == nil && vEmail != "" {
-			req.Email = vEmail
-			if req.FullName == "" && vName != "" {
-				req.FullName = vName
-			}
-			if req.AvatarURL == "" && vPicture != "" {
-				req.AvatarURL = vPicture
-			}
-		}
+	if strings.TrimSpace(req.GoogleToken) == "" {
+		return nil, errors.New("token de autenticación de Google requerido")
 	}
 
-	if req.Email == "" {
-		return nil, errors.New("el correo electrónico es obligatorio")
+	verifier := s.googleVerifier
+	if verifier == nil {
+		verifier = s.verifyGoogleToken
+	}
+
+	vEmail, vName, vPicture, err := verifier(ctx, req.GoogleToken)
+	if err != nil || strings.TrimSpace(vEmail) == "" {
+		return nil, errors.New("token de Google inválido o expirado")
+	}
+
+	req.Email = strings.TrimSpace(strings.ToLower(vEmail))
+	if req.FullName == "" && vName != "" {
+		req.FullName = vName
+	}
+	if req.AvatarURL == "" && vPicture != "" {
+		req.AvatarURL = vPicture
 	}
 
 	// Blindaje Zero-Trust: Impedir suplantación de cuentas de personal a través del flujo OAuth de clientes

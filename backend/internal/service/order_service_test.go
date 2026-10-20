@@ -174,6 +174,9 @@ func TestOrderService_CreateOrder(t *testing.T) {
 		if resp.Order.OrderType != "takeout" {
 			t.Fatalf("modalidad inesperada: %s", resp.Order.OrderType)
 		}
+		if len(resp.Order.Code) < 4 || resp.Order.Code[:4] != "TKA-" {
+			t.Fatalf("se esperaba prefijo TKA-, obtenido: %s", resp.Order.Code)
+		}
 	})
 
 	t.Run("Calcula correctamente comanda con combo y extras", func(t *testing.T) {
