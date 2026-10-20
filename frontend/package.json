@@ -6,7 +6,6 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "postbuild": "node -e \"const fs=require('node:fs'),path=require('node:path'),d=path.resolve('dist');['out','../out','../dist'].forEach(t=>{try{fs.cpSync(d,path.resolve(t),{recursive:true})}catch(e){}})\"",
     "preview": "vite preview"
   },
   "devDependencies": {
